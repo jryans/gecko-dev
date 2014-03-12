@@ -249,6 +249,121 @@ button {
 
 
 
+/*****************     PREFERENCES     *****************/
+
+
+#preference-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#preference-table-body {
+  overflow: auto;
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  -moz-user-select: none;
+  cursor: default;
+}
+
+#preference-table-filter-row {
+  background: #FFF;
+  border-top: 1px solid #CCC;
+  flex-shrink: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+}
+#preference-filter {
+  flex-grow: 1;
+}
+
+#preference-filter-label {
+  margin-right: 0.5em;
+}
+
+#preference-table-header {
+  display: flex;
+  background: #FFF;
+  border-top: 1px solid #CCC;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.preference-table-header-item {
+  z-index: 2;
+  flex-grow: 1;
+  background: linear-gradient(to bottom, #49535C, #394148);
+  box-shadow: 0px 1px 3px rgba(12, 20, 30, 0.5), inset 0 1px 0px rgba(255,255,255,0.1);
+  color: #9FA6AD;
+  text-shadow: 0px 1px 1px rgba(0,0,0,0.6);
+  border: 0;
+  margin: auto 0;
+  padding: 5px;
+  text-align: center;
+  background: transparent;
+  box-shadow: none;
+  text-shadow: none;
+  flex-basis: 20%;
+}
+
+.preference-table-header-item:first-child {
+  text-align: left;
+  padding-left: 10px;
+  flex-basis: 30%;
+}
+
+#preference-table-header {
+  border: 0;
+  border-bottom: 1px solid #CCC;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+#preference-table-footer {
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.3);
+}
+
+.preference {
+  display: flex;
+  flex-grow: 1;
+}
+
+.preference:nth-child(odd) {
+  background: #E4E4E4;
+}
+
+.preference:hover {
+  background: #EEE;
+}
+
+.preference-name,
+.preference-type,
+.preference-value {
+  border-right: 1px solid #CCC;
+  border-bottom: 1px solid #CCC;
+  flex-grow: 1;
+}
+
+.preference-name {
+  flex-basis: 30%;
+  font-weight: bold;
+  padding: 3px 10px;
+  text-align: left;
+}
+
+.preference-type,
+.preference-value {
+  flex-basis: 20%;
+  padding: 3px;
+  text-align: center;
+}
+
+.preference-filtered-out {
+  display: none;
+}
+
+
 /*****************     SIDEBAR      *****************/
 
 
@@ -393,7 +508,8 @@ body.notconnected > #content {
 }
 
 .tabpanel:not(.selected) {
-  display: none;
+  /* this can fight with display: flex! */
+  display: none !important;
 }
 
 #tabs-headers {

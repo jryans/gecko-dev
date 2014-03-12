@@ -13,6 +13,7 @@ const {require} = devtools;
 const {ConnectionManager, Connection}
   = require("devtools/client/connection-manager");
 const {getDeviceFront} = require("devtools/server/actors/device");
+const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {getTargetForApp, launchApp, closeApp}
   = require("devtools/app-actor-front");
 const DeviceStore = require("devtools/app-manager/device-store");
@@ -51,7 +52,7 @@ let UI = {
       this.onNewConnection();
     } else {
       this.hide();
-    }
+   }
   },
 
   destroy: function() {
@@ -88,8 +89,12 @@ let UI = {
   onNewConnection: function() {
     this.connection.on(Connection.Events.STATUS_CHANGED, this._onConnectionStatusChange);
 
+    // hold onto our deviceStore so we can emit and receive events other than
+    // "set" which is the only thing mergeStores supports via special-case.
+    this.deviceStore = new DeviceStore(this.connection);
+
     this.store = Utils.mergeStores({
-      "device": new DeviceStore(this.connection),
+      "device": this.deviceStore,
       "apps": new WebappsStore(this.connection),
     });
 
@@ -110,13 +115,16 @@ let UI = {
     if (this.connection.status != Connection.Status.CONNECTED) {
       this.hide();
       this.listTabsResponse = null;
+      this.front = null;
+      this.prefs = null;
     } else {
       this.show();
       this.connection.client.listTabs(
         response => {
           this.listTabsResponse = response;
-          let front = getDeviceFront(this.connection.client, this.listTabsResponse);
-          front.getWallpaper().then(longstr => {
+          this.front = getDeviceFront(this.connection.client, this.listTabsResponse);
+          this.prefs = getPreferenceFront(this.connection.client, this.listTabsResponse);
+          this.front.getWallpaper().then(longstr => {
             longstr.string().then(dataURL => {
               longstr.release().then(null, Cu.reportError);
               this.setWallpaper(dataURL);
@@ -198,6 +206,185 @@ let UI = {
     return closeApp(this.connection.client,
                     this.listTabsResponse.webappsActor,
                     manifest);
+  },
+
+  /**
+   * Given a click/dblclick event, figure out what preference it was on, if any.
+   * Extract the data about the preference from the DOM since it's easiest and
+   * template.js didn't set any expandos on our element to refer to the objects.
+   */
+  _getPrefFromEvent: function(event) {
+    let elem = event.explicitOriginalTarget;
+    // Immediately jump up to the first element.
+    if (elem.nodeType !== 1) {
+      elem = elem.parentElement;
+    }
+    while (elem && (elem.id !== "preference-table-body") &&
+           elem.classList) {
+      if (elem.classList.contains("preference")) {
+        // figure out the index of the preference in our array so that we
+        // can retrieve the pref and twiddle values directly.  The wrapper
+        // should be sticky and have the changes reflect in the UI immediately.
+        let prefPath = JSON.parse(elem.getAttribute("template")).rootPath;
+        let index = parseInt(prefPath.split('.').slice(-2)[0]);
+        let pref = this.store.object.device.preferences[index];
+        return pref;
+      }
+      elem = elem.parentElement;
+    }
+    return null;
+  },
+
+  handlePreferenceContextMenu: function(event) {
+    let pref = this._getPrefFromEvent(event);
+    // Save off the preference that is the source of the right-click because
+    // Gecko does not currently populate "relatedTarget" for menuitems.  It's
+    // unclear from the spec if it should be doing so right now; it seems like
+    // it was intended to happen, but that might have been removed from the
+    // spec.
+    this.activePref = pref;
+
+    // Actions that require a preference to be the thing being right-clicked on
+    // should be disabled appropriately.
+    document.querySelector('#preference-modify').disabled = !pref;
+    document.querySelector('#preference-clear').disabled = !pref;
+  },
+
+  modifyPref: function(event, pref) {
+    if (!pref && event) {
+      event.preventDefault(); // prevent text selection from a double click
+      event.stopPropagation();
+      pref = this._getPrefFromEvent(event);
+    }
+    // You need to double-click on a pref for us to be helpful.
+    if (!pref) {
+      return;
+    }
+
+    switch (pref.type) {
+      case "string":
+        let newStringVal = window.prompt(pref.name, pref.value);
+        if (newStringVal !== null && newStringVal !== pref.value) {
+          this.prefs.setCharPref(pref.name, newStringVal);
+          pref.value = newStringVal;
+        }
+        break;
+
+      case "integer":
+        let intString = window.prompt(pref.name, pref.value.toString());
+        if (intString !== null) {
+          let intVal = parseInt(intString, 10);
+          if (intVal !== pref.value && !isNaN(intVal)) {
+            this.prefs.setIntPref(pref.name, intVal);
+            pref.value = intVal;
+          }
+        }
+        break;
+
+      case "boolean":
+        // we can just toggle this one (like in about:config)
+        this.prefs.setBoolPref(pref.name, !pref.value);
+        pref.value = !pref.value;
+        break;
+    }
+  },
+
+  clearPref: function(pref) {
+    if (!pref) {
+      return;
+    }
+
+    this.prefs.clearUserPref(pref.name);
+    // The right thing to do here would be to check what the new value (if
+    // any) of the preference is after clearing and then update our value if
+    // it's still around.  Unfortunately, I'm not sure the communication idiom
+    // for interacting with the store through this.
+    //
+    // And if there is no longer a preference after the clearing, then we would
+    // ideally remove the element, but I'm afraid of the template.js scaling
+    // issues.
+    pref.type = "cleared";
+    pref.value = "cleared";
+  },
+
+  createPref: function(prefType, prefDefault) {
+    let prefName = window.prompt(Utils.l10n("preferences.newPrefNamePrompt"));
+    // bail if the user canceled (null) or they didn't enter anything
+    if (!prefName) {
+      return;
+    }
+    let value;
+    switch (prefType) {
+      case "string":
+        value = window.prompt(prefName, prefDefault);
+        // Bail if the user canceled, but do allow empty strings
+        if (value === null) {
+          return;
+        }
+        this.prefs.setCharPref(prefName, value);
+        break;
+
+      case "integer":
+        let intString = window.prompt(prefName, prefDefault);
+        if (intString === null) {
+          return;
+        }
+        value = parseInt(intString, 10);
+        if (isNaN(value)) {
+          return;
+        }
+        this.prefs.setIntPref(prefName, value);
+        break;
+
+      case "boolean":
+        value = prefDefault;
+        this.prefs.setBoolPref(prefName, value);
+        break;
+    }
+    // This causes the UI to append the new preference, but it takes a loooong
+    // time like it's actually updating everything else too.  Invoking sort
+    // seems like it would turn out worse, and splice seems like it would
+    // (hopefully) just corrupt things, so we don't sort.
+    // TODO make this not super-slow
+    this.store.object.device.preferences.push({
+      name: prefName,
+      type: prefType,
+      value: value,
+      hasUserValue: true
+    });
+  },
+
+  updatePreferenceFilter: function() {
+    function toggleClass(elems, clazz, beThere) {
+      for (var elem of elems) {
+        elem.classList.toggle(clazz, beThere);
+      }
+    }
+
+    // Make all preferences visible again!
+    let bodyElem = document.querySelector("#preference-table-body");
+    toggleClass(bodyElem.querySelectorAll(".preference"),
+                "preference-filtered-out", false);
+
+    let filterValue = document.querySelector("#preference-filter").value;
+    // Sanitize quotes out for selector, and because we don't want them anyways.
+    filterValue = filterValue.replace(/["']/g, "");
+
+    // bail if the filter was cleared or effectively requests nothing
+    if (!filterValue) {
+      return;
+    }
+
+    let nonmatchingSelector =
+          ".preference:not([data-pref-value*=\"" + filterValue + "\"])";
+    let nonmatchingElements = bodyElem.querySelectorAll(nonmatchingSelector);
+    toggleClass(nonmatchingElements, "preference-filtered-out", true);
+  },
+
+  refreshPreferences: function() {
+    this.deviceStore.once("refreshedPreferences",
+                          () => { this.updatePreferenceFilter(); });
+    this.deviceStore.emit("refreshPreferences");
   },
 }
 

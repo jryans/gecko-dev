@@ -4,6 +4,7 @@
 
 const ObservableObject = require("devtools/shared/observable-object");
 const {getDeviceFront} = require("devtools/server/actors/device");
+const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {Connection} = require("devtools/client/connection-manager");
 
 const {Cu} = require("chrome");
@@ -22,6 +23,9 @@ module.exports = DeviceStore = function(connection) {
   _knownDeviceStores.set(connection, this);
 
   ObservableObject.call(this, {});
+
+  this._getDevicePreferencesTable = this._getDevicePreferencesTable.bind(this);
+  this.on("refreshPreferences", this._getDevicePreferencesTable);
 
   this._resetStore();
 
@@ -53,6 +57,7 @@ DeviceStore.prototype = {
     this.object.description = {};
     this.object.permissions = [];
     this.object.tabs = [];
+    this.object.preferences = [];
   },
 
   _onStatusChanged: function() {
@@ -80,6 +85,7 @@ DeviceStore.prototype = {
       // when it changes
       this._connection.client.addListener(
         'tabListChanged', this._onTabListChanged);
+      this._preferenceFront = getPreferenceFront(this._connection.client, resp);
       this._feedStore();
     });
   },
@@ -87,6 +93,7 @@ DeviceStore.prototype = {
   _feedStore: function() {
     this._getDeviceDescription();
     this._getDevicePermissionsTable();
+    this._getDevicePreferencesTable();
   },
 
   _getDeviceDescription: function() {
@@ -112,5 +119,30 @@ DeviceStore.prototype = {
       }
       this.object.permissions = permissionsArray;
     });
-  }
+  },
+
+  _getDevicePreferencesTable: function() {
+    return this._preferenceFront.getAllPrefs()
+    .then(preferencesTable => {
+      let preferencesArray = [];
+      for (let name in preferencesTable) {
+        let prefInfo = preferencesTable[name];
+        let type = typeof(prefInfo.value);
+        if (type === 'number') {
+          type = 'integer';
+        }
+        preferencesArray.push({
+          name: name,
+          type: type,
+          value: prefInfo.value,
+          hasUserValue: prefInfo.hasUserValue
+        });
+      }
+      preferencesArray.sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+      });
+      this.object.preferences = preferencesArray;
+      this.emit("refreshedPreferences");
+    });
+  },
 }

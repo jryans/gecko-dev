@@ -18,6 +18,29 @@
   </head>
 
   <body onload="UI.init()">
+    <menu type="context" id="preferences-contextmenu"
+          onshow="UI.handlePreferenceContextMenu(event);">
+      <menuitem id="preference-modify"
+                label="&preferences.menu.modify.label;"
+                onclick="UI.modifyPref(null, UI.activePref);" />
+      <menuitem id="preference-clear"
+                label="&preferences.menu.clear.label;"
+                onclick="UI.clearPref(UI.activePref);" />
+      <menu label="&preferences.menu.new.label;">
+        <menuitem label="&preferences.menu.new.string.label;"
+                  onclick="UI.createPref('string', '');" />
+        <menuitem label="&preferences.menu.new.integer.label;"
+                  onclick="UI.createPref('integer', '');" />
+        <menuitem label="&preferences.menu.new.true.label;"
+                  onclick="UI.createPref('boolean', true);" />
+        <menuitem label="&preferences.menu.new.false.label;"
+                  onclick="UI.createPref('boolean', false);" />
+      </menu>
+      <!-- template.js really does not like us doing this; disabling for now -->
+      <menuitem label="&preferences.menu.refresh.label;"
+                disabled="true"
+                onclick="UI.refreshPreferences();" />
+    </menu>
 
     <div id="notConnectedMessage"><span>&device.notConnected;</span></div>
 
@@ -37,7 +60,7 @@
             <p template='{"type":"localizedContent","property":"device.deviceSize", "paths":["device.description.width","device.description.height","device.description.dpi"]}'></p>
           </header>
           <div id="tabs-headers">
-            <div onclick="UI.setTab('apps')" class="tab sidebar-item apps" title="&device.installedAppsTooltip;">&device.installedApps;</div>
+            <div onclick="UI.setTab('apps')" class="tab sidebar-item apps selected" title="&device.installedAppsTooltip;">&device.installedApps;</div>
             <div onclick="UI.setTab('permissions')" class="tab sidebar-item permissions" title="&device.permissionsTooltip;">
               &device.permissions;
               <a target="_blank" href="&device.permissionsHelpLink;">
@@ -45,12 +68,13 @@
               </a>
             </div>
             <div onclick="UI.setTab('browser-tabs')" class="tab sidebar-item browser-tabs" title="&device.browserTabsTooltip;">&device.browserTabs;</div>
+            <div onclick="UI.setTab('preferences')" class="tab sidebar-item preferences" title="&device.preferencesTooltip;">&device.preferences;</div>
           </div>
         </div>
       </aside>
       <section id="detail">
         <div id="tabs">
-          <div class="tabpanel apps">
+          <div class="tabpanel apps selected">
             <div class="app-list" template-loop='{"arrayPath":"apps.all","childSelector":"#app-template"}'></div>
           </div>
           <div class="tabpanel permissions permission-table">
@@ -72,11 +96,42 @@
           <div class="tabpanel browser-tabs">
             <section template-loop='{"arrayPath":"device.tabs","childSelector":"#browser-tab-template"}'></section>
           </div>
+          <div id="preference-table" class="tabpanel preferences">
+            <div id="preference-table-filter-row">
+              <label id="preference-filter-label"
+                     for="preference-filter">&preferences.filter.label;</label>
+              <input type="search" id="preference-filter"
+                     oninput="UI.updatePreferenceFilter();" />
+            </div>
+            <div id="preference-table-header">
+              <div class="preference-table-header-item">&preferences.name;</div>
+              <div class="preference-table-header-item">&preferences.type;</div>
+              <div class="preference-table-header-item">&preferences.value;</div>
+            </div>
+            <div id="preference-table-body" contextmenu="preferences-contextmenu" ondblclick="UI.modifyPref(event);">
+              <section template-loop='{"arrayPath":"device.preferences","childSelector":"#preference-template"}'></section>
+            </div>
+          </div>
         </div>
       </section>
     </section>
     <iframe id="connection-footer" hidden="true"></iframe>
   </body>
+
+  <template id="preference-template">
+  <!-- XXX somehow express hasUserValue as an attribute on the root div here;
+       unfortunately the template mechanism does not support multiple actions
+       per node. -->
+  <div class="preference"
+       template='{"type":"attribute", "name":"data-pref-value", "path":"name"}'>
+    <div class="preference-name"
+         template='{"type":"textContent", "path":"name"}'></div>
+    <div class="preference-type"
+         template='{"type":"textContent", "path":"type"}'></div>
+    <div class="preference-value"
+         template='{"type":"textContent", "path":"value"}'></div>
+  </div>
+  </template>
 
   <template id="permission-template">
   <div class="permission">
