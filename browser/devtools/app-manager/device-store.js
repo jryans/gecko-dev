@@ -141,7 +141,7 @@ DeviceStore.prototype = {
         });
       }
       preferencesArray.sort(function(a, b) {
-        return a.name.localeCompare(b.name);
+        return a.name > b.name ? 1 : -1;
       });
       dump("BEGIN SET PREFS\n");
       this.object.preferences = preferencesArray;
