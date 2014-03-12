@@ -214,7 +214,7 @@ Template.prototype = {
             throw new Error("missing property");
           }
           e.setAttribute(json.name, resolver.get(json.path, NOT_FOUND_STRING));
-          paths.push(resolver.path + "." + json.path);
+          paths.push(resolver.rootPathTo(json.path));
           break;
         }
         case "textContent": {
@@ -222,7 +222,7 @@ Template.prototype = {
             throw new Error("missing property");
           }
           e.textContent = resolver.get(json.path, NOT_FOUND_STRING);
-          paths.push(resolver.path + "." + json.path);
+          paths.push(resolver.rootPathTo(json.path));
           break;
         }
         case "localizedContent": {
@@ -231,7 +231,7 @@ Template.prototype = {
             throw new Error("missing property");
           }
           let params = json.paths.map((p) => {
-            paths.push(resolver.path + "." + p);
+            paths.push(resolver.rootPathTo(p));
             let str = resolver.get(p, NOT_FOUND_STRING);
             return str;
           });
@@ -290,7 +290,7 @@ Template.prototype = {
         fragment.appendChild(node);
       }
       this._registerLoop(descendedResolver.path, e);
-      this._registerLoop(descendedResolver.path + ".length", e);
+      this._registerLoop(descendedResolver.rootPathTo("length"), e);
       this._unregisterNodes(e.querySelectorAll("[template]"));
       e.innerHTML = "";
       e.appendChild(fragment);
@@ -382,9 +382,12 @@ Resolver.prototype = {
     return obj;
   },
 
+  rootPathTo: function(path) {
+    return this.path ? this.path + "." + path : path;
+  },
+
   descend: function(path) {
-    let descendedPath = this.path ? this.path + "." + path : path;
-    return new Resolver(this.get(path), descendedPath);
+    return new Resolver(this.get(path), this.rootPathTo(path));
   }
 
 };
