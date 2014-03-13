@@ -11,10 +11,19 @@
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
+// segments.js requires these to be defined
+this.makeInfallible = DevToolsUtils.makeInfallible;
+function dumpn() {}
+function dumpv() {}
+
+let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
+             .getService(Ci.mozIJSSubScriptLoader);
+loader.loadSubScript("resource://gre/modules/devtools/transport/segments.js",
+                     this);
+
 let port = 2929;
 
-function run_test()
-{
+function run_test() {
   do_print("Starting test at " + new Date().toTimeString());
   initTestDebuggerServer();
 
@@ -36,7 +45,6 @@ function test_socket_conn_drops_after_too_long_header() {
   return test_helper('4305724038957487634549823475894325');
 }
 
-
 function test_helper(payload) {
   try_open_listener();
 
@@ -49,7 +57,7 @@ function test_helper(payload) {
       }
 
       // Inject the payload directly into the stream.
-      transport._outgoing += payload;
+      transport._outgoing.push(new StringSegment(payload));
       transport._flushOutgoing();
     },
     onClosed: function(aStatus) {
@@ -60,8 +68,7 @@ function test_helper(payload) {
   transport.ready();
 }
 
-function try_open_listener()
-{
+function try_open_listener() {
   try {
     do_check_true(DebuggerServer.openListener(port));
   } catch (e) {

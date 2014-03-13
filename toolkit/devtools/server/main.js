@@ -81,7 +81,7 @@ function dbg_assert(cond, e) {
 }
 this.dbg_assert = dbg_assert;
 
-loadSubScript.call(this, "resource://gre/modules/devtools/server/transport.js");
+loadSubScript.call(this, "resource://gre/modules/devtools/transport/transport.js");
 
 // XPCOM constructors
 const ServerSocket = CC("@mozilla.org/network/server-socket;1",
