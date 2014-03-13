@@ -988,6 +988,37 @@ DebuggerServerConnection.prototype = {
     return null;
   },
 
+  _getOrCreateActor: function(actorID) {
+    let actor = this.getActor(actorID);
+    if (!actor) {
+      this.transport.send({ from: actorID ? actorID : "root",
+                            error: "noSuchActor",
+                            message: "No such actor for ID: " + actorID });
+      return;
+    }
+
+    // Dyamically-loaded actors have to be created lazily.
+    if (typeof actor == "function") {
+      let instance;
+      try {
+        instance = new actor();
+      } catch (e) {
+        this.transport.send(this._unknownError(
+          "Error occurred while creating actor '" + actor.name,
+          e));
+      }
+      instance.parentID = actor.parentID;
+      // We want the newly-constructed actor to completely replace the factory
+      // actor. Reusing the existing actor ID will make sure ActorPool.addActor
+      // does the right thing.
+      instance.actorID = actor.actorID;
+      actor.registeredPool.addActor(instance);
+      actor = instance;
+    }
+
+    return actor;
+  },
+
   poolFor: function DSC_actorPool(aActorID) {
     if (this._actorPool && this._actorPool.has(aActorID)) {
       return this._actorPool;
@@ -1009,6 +1040,26 @@ DebuggerServerConnection.prototype = {
       error: "unknownError",
       message: errorString
     };
+  },
+
+  _queueResponse: function(actorID, from, type, response) {
+    let pendingResponse = this._actorResponses.get(actorID) || resolve(null);
+    let response = pendingResponse.then(() => {
+      return response;
+    }).then(aResponse => {
+      if (!aResponse.from) {
+        aResponse.from = from;
+      }
+      this.transport.send(aResponse);
+    }).then(null, (e) => {
+      let errorPacket = this._unknownError(
+        "error occurred while processing '" + type,
+        e);
+      errorPacket.from = from;
+      this.transport.send(errorPacket);
+    });
+
+    this._actorResponses.set(actorID, response);
   },
 
   /* Forwarding packets to other transports based on actor name prefixes. */
@@ -1066,31 +1117,9 @@ DebuggerServerConnection.prototype = {
       }
     }
 
-    let actor = this.getActor(aPacket.to);
+    let actor = this._getOrCreateActor(aPacket.to);
     if (!actor) {
-      this.transport.send({ from: aPacket.to ? aPacket.to : "root",
-                            error: "noSuchActor",
-                            message: "No such actor for ID: " + aPacket.to });
       return;
-    }
-
-    // Dyamically-loaded actors have to be created lazily.
-    if (typeof actor == "function") {
-      let instance;
-      try {
-        instance = new actor();
-      } catch (e) {
-        this.transport.send(this._unknownError(
-          "Error occurred while creating actor '" + actor.name,
-          e));
-      }
-      instance.parentID = actor.parentID;
-      // We want the newly-constructed actor to completely replace the factory
-      // actor. Reusing the existing actor ID will make sure ActorPool.addActor
-      // does the right thing.
-      instance.actorID = actor.actorID;
-      actor.registeredPool.addActor(instance);
-      actor = instance;
     }
 
     var ret = null;
@@ -1123,23 +1152,71 @@ DebuggerServerConnection.prototype = {
       return;
     }
 
-    let pendingResponse = this._actorResponses.get(actor.actorID) || resolve(null);
-    let response = pendingResponse.then(() => {
-      return ret;
-    }).then(aResponse => {
-      if (!aResponse.from) {
-        aResponse.from = aPacket.to;
-      }
-      this.transport.send(aResponse);
-    }).then(null, (e) => {
-      let errorPacket = this._unknownError(
-        "error occurred while processing '" + aPacket.type,
-        e);
-      errorPacket.from = aPacket.to;
-      this.transport.send(errorPacket);
-    });
+    this._queueResponse(actor.actorID, aPacket.to, aPacket.type, ret);
+  },
 
-    this._actorResponses.set(actor.actorID, response);
+  /**
+   * Called by the DebuggerTransport to dispatch incoming bulk packets as
+   * appropriate.
+   *
+   * @param packet object
+   *        The incoming packet, which contains:
+   *        * actor:  Actor that will receive the packet
+   *        * type:   Method of the actor that should be called on receipt
+   *        * length: Size of the data to be read
+   *        * stream: This input stream should only be used directly if you can
+   *                  ensure that you will read exactly |length| bytes and will
+   *                  not close the stream when writing is complete
+   *        * done:   If you use the stream directly (instead of |copyTo|
+   *                  below), you must signal completion by resolving /
+   *                  rejecting this deferred.  If you do use |copyTo|, this is
+   *                  taken care of for you when copying completes.
+   *        * copyTo: A helper function for getting your data out of the stream
+   *                  that meets the stream handling requirements above, and has
+   *                  the following signature:
+   *          @param  output nsIAsyncOutputStream
+   *                  The stream to copy to.
+   *          @return Promise
+   *                  The promise is resolved when copying completes or rejected
+   *                  if any (unexpected) errors occur.
+   */
+  onBulkPacket: function(packet) {
+    let { actor: actorKey, type, length } = packet;
+
+    let actor = this._getOrCreateActor(actorKey);
+    if (!actor) {
+      return;
+    }
+
+    // Helper for replying with bulk data from the actor
+    packet.reply = (reply) => {
+      reply.actor = reply.actor || actorKey;
+      reply.type = reply.type || type;
+      return this.transport.startBulkSend(reply);
+    };
+
+    // Dispatch the request to the actor.
+    let ret;
+    if (actor.requestTypes && actor.requestTypes[type]) {
+      try {
+        ret = actor.requestTypes[type].call(actor, packet);
+      } catch(e) {
+        this.transport.send(this._unknownError(
+          "error occurred while processing bulk packet '" + type, e));
+        packet.done.reject(e);
+      }
+    } else {
+      ret = { error: "unrecognizedPacketType",
+              message: ('Actor "' + actorKey +
+                        '" does not recognize the bulk packet type "' +
+                        type + '"') };
+      packet.done.reject(ret);
+    }
+
+    // If there is a JSON response, queue it for sending back to the client.
+    if (ret) {
+      this._queueResponse(actor.actorID, actorKey, type, ret);
+    }
   },
 
   /**
