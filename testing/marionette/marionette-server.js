@@ -35,14 +35,14 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Services.prefs.setBoolPref("marionette.contentListener", false);
 let appName = Services.appinfo.name;
 
-// dumpn needed/used by dbg-transport.js
+// dumpn needed/used by transport.js
 this.dumpn = function dumpn(str) {
   logger.trace(str);
 }
 let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 this.DevToolsUtils = DevToolsUtils;
-loader.loadSubScript("resource://gre/modules/devtools/server/transport.js");
+loader.loadSubScript("resource://gre/modules/devtools/transport/transport.js");
 
 let bypassOffline = false;
 let qemu = "0";
