@@ -2,6 +2,7 @@ const {Ci, Cc, Cu, Cr} = require("chrome");
 Cu.import("resource://gre/modules/osfile.jsm");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm");
+const {NetUtil} = Cu.import("resource://gre/modules/NetUtil.jsm");
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const promise = require("sdk/core/promise");
 
@@ -83,6 +84,7 @@ function zipDirectory(zipFile, dirToArchive) {
   return deferred.promise;
 }
 
+// TODO: Use traits to detect which to use
 function uploadPackage(client, webappsActor, packageFile) {
   let deferred = promise.defer();
 
@@ -135,6 +137,47 @@ function uploadPackage(client, webappsActor, packageFile) {
   return deferred.promise;
 }
 
+// TODO: Check for bulk trait
+function uploadPackageBulk(client, webappsActor, packageFile) {
+  let deferred = promise.defer();
+
+  let request = {
+    to: webappsActor,
+    type: "uploadPackageBulk"
+  };
+  client.request(request, (res) => {
+    startBulkUpload(res.actor);
+  });
+
+  function startBulkUpload(actor) {
+    console.log("Starting bulk upload");
+    let fileSize = packageFile.fileSize;
+    console.log("File size: " + fileSize);
+
+    let request = client.startBulkRequest({
+      actor: actor,
+      type: "stream",
+      length: fileSize
+    });
+
+    request.on("bulk-send-ready", ({copyFrom}) => {
+      NetUtil.asyncFetch(packageFile, function(inputStream) {
+        copyFrom(inputStream).then(() => {
+          console.log("Bulk upload done");
+          inputStream.close();
+        });
+      });
+    });
+
+    request.on("json-reply", () => {
+      console.log("Bulk upload reply received");
+      deferred.resolve(actor);
+    });
+  }
+
+  return deferred.promise;
+}
+
 function removeServerTemporaryFile(client, fileActor) {
   let request = {
     to: fileActor,
@@ -158,7 +201,7 @@ function installPackaged(client, webappsActor, packagePath, appId) {
     packagePromise = promise.resolve(file);
   }
   packagePromise.then((zipFile) => {
-    uploadPackage(client, webappsActor, zipFile)
+    uploadPackageBulk(client, webappsActor, zipFile)
         .then((fileActor) => {
           let request = {
             to: webappsActor,

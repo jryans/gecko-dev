@@ -11,6 +11,7 @@ let CC = Components.Constructor;
 
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
@@ -27,6 +28,7 @@ function debug(aMsg) {
     .getService(Ci.nsIConsoleService)
     .logStringMessage("--*-- WebappsActor : " + aMsg);
   */
+  dump(aMsg + "\n");
 }
 
 function PackageUploadActor(aPath, aFile) {
@@ -110,6 +112,61 @@ PackageUploadActor.prototype.requestTypes = {
   "chunk": PackageUploadActor.prototype.chunk,
   "done": PackageUploadActor.prototype.done,
   "remove": PackageUploadActor.prototype.remove
+};
+
+function PackageUploadBulkActor(aPath, aFile) {
+  this._path = aPath;
+  this._file = aFile;
+  this.size = 0;
+  this._stream = FileUtils.openSafeFileOutputStream(this._file);
+}
+
+PackageUploadBulkActor.prototype = {
+  actorPrefix: "packageUploadBulkActor",
+
+  /**
+   * This method isn't exposed to the client.
+   * It is meant to be called by server code, in order to get
+   * access to the temporary file out of the actor ID.
+   */
+  getFilePath: function () {
+    return this._path;
+  },
+
+  stream: function({length, copyTo}) {
+    debug("Got bulk upload, length: " + length);
+    copyTo(this._stream).then(() => {
+      debug("Bulk copy done");
+      FileUtils.closeSafeFileOutputStream(this._stream);
+    });
+    return {};
+  },
+
+  /**
+   * This method allows you to delete the temporary file,
+   * when you are done using it.
+   */
+  remove: function (aRequest) {
+    this._cleanupFile();
+    return {};
+  },
+
+  _cleanupFile: function () {
+    try {
+      FileUtils.closeSafeFileOutputStream(this._stream);
+    } catch(e) {}
+    try {
+      this._file.remove();
+    } catch(e) {}
+  }
+};
+
+/**
+ * The request types this actor can handle.
+ */
+PackageUploadBulkActor.prototype.requestTypes = {
+  "stream": PackageUploadBulkActor.prototype.stream,
+  "remove": PackageUploadBulkActor.prototype.remove
 };
 
 /**
@@ -238,7 +295,7 @@ WebappsActor.prototype = {
   },
 
   uploadPackage: function () {
-    debug("uploadPackage\n");
+    debug("uploadPackage");
     let tmpDir = FileUtils.getDir("TmpD", ["file-upload"], true, false);
     if (!tmpDir.exists() || !tmpDir.isDirectory()) {
       return {error: "fileAccessError",
@@ -259,6 +316,27 @@ WebappsActor.prototype = {
                 this._uploads.push(actor);
                 return { actor: actor.actorID };
              });
+  },
+
+  uploadPackageBulk: function () {
+    debug("uploadPackageBulk");
+    let tmpDir = FileUtils.getDir("TmpD", ["file-upload"], true, false);
+    if (!tmpDir.exists() || !tmpDir.isDirectory()) {
+      return {error: "fileAccessError",
+              message: "Unable to create temporary folder"};
+    }
+    let tmpFile = tmpDir;
+    tmpFile.append("package.zip");
+    tmpFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
+    if (!tmpFile.exists() || !tmpDir.isFile()) {
+      return {error: "fileAccessError",
+              message: "Unable to create temporary file"};
+    }
+
+    let actor = new PackageUploadBulkActor(tmpFile.path, tmpFile);
+    this._actorPool.addActor(actor);
+    this._uploads.push(actor);
+    return { actor: actor.actorID };
   },
 
   installHostedApp: function wa_actorInstallHosted(aDir, aId, aReceipts,
@@ -944,6 +1022,7 @@ WebappsActor.prototype = {
 WebappsActor.prototype.requestTypes = {
   "install": WebappsActor.prototype.install,
   "uploadPackage": WebappsActor.prototype.uploadPackage,
+  "uploadPackageBulk": WebappsActor.prototype.uploadPackageBulk,
   "getAll": WebappsActor.prototype.getAll,
   "getApp": WebappsActor.prototype.getApp,
   "launch": WebappsActor.prototype.launch,
