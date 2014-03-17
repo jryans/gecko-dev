@@ -248,6 +248,7 @@
     for (let i = 0; i < changes.length; i++) {
       let change = changes[i];
       change.exec();
+      info(root.innerHTML);
       ok(compare(change.reference, root), "Content " + i + " looks good.");
     }
   SimpleTest.finish();

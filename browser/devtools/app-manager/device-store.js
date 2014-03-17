@@ -57,7 +57,9 @@ DeviceStore.prototype = {
     this.object.description = {};
     this.object.permissions = [];
     this.object.tabs = [];
+    dump("BEGIN CLEAR PREFS\n");
     this.object.preferences = [];
+    dump("END CLEAR PREFS\n");
   },
 
   _onStatusChanged: function() {
@@ -141,7 +143,9 @@ DeviceStore.prototype = {
       preferencesArray.sort(function(a, b) {
         return a.name.localeCompare(b.name);
       });
+      dump("BEGIN SET PREFS\n");
       this.object.preferences = preferencesArray;
+      dump("END SET PREFS\n");
       this.emit("refreshedPreferences");
     });
   },

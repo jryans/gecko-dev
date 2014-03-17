@@ -123,14 +123,21 @@ Template.prototype = {
     // We need to invalidate and rebuild the affected elements.
 
     let strpath = path.join(".");
+    let start = Date.now();
+    dump("STORE CHANGED: " + strpath + "\n");
     this._invalidate(strpath);
+    dump("INVALIDATE END: " + (Date.now() - start) + "\n");
 
+    let startLoop = Date.now();
     for (let [registeredPath, set] of this._nodeListeners) {
       if (strpath != registeredPath &&
           registeredPath.indexOf(strpath) > -1) {
         this._invalidate(registeredPath);
       }
     }
+    dump("INVALIDATE NODE END: " + (Date.now() - startLoop) + "\n");
+
+    dump("STORE CHANGED END: " + (Date.now() - start) + "\n");
   },
 
   _invalidate: function(path) {
@@ -138,7 +145,9 @@ Template.prototype = {
     let set = this._loopListeners.get(path);
     if (set) {
       for (let elt of set) {
+        let start = Date.now();
         this._processLoop(elt);
+        //dump("PROCESS LOOP END: " + (Date.now() - start) + "\n");
       }
     }
 
@@ -154,7 +163,9 @@ Template.prototype = {
     set = this._nodeListeners.get(path);
     if (set) {
       for (let elt of set) {
+        let start = Date.now();
         this._processNode(elt);
+        //dump("PROCESS NODE END: " + (Date.now() - start) + "\n");
       }
     }
   },
