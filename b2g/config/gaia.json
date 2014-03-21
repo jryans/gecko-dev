@@ -1,7 +1,7 @@
 {
     "git": {
-        "remote": "", 
-        "branch": "", 
+        "remote": "https://github.com/jryans/gaia.git", 
+        "branch": "devtools-server-tests", 
         "revision": ""
     }, 
     "revision": "3045bf73d5cc752ba8c548d82ea567987743c3bd", 
