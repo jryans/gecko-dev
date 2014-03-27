@@ -37,6 +37,11 @@ MOZ_PACKAGER_MINIFY=1
 
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 
+# Ensure copying Simulator xpi to ftp
+ifdef FXOS_SIMULATOR
+UPLOAD_EXTRA_FILES += fxos-simulator-*-*.xpi
+endif
+
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)
 DEFINES += -DAPPNAME=$(_APPNAME)
