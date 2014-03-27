@@ -115,23 +115,23 @@ let UI = {
     if (this.connection.status != Connection.Status.CONNECTED) {
       this.hide();
       this.listTabsResponse = null;
-      this.front = null;
+      this.device = null;
       this.prefs = null;
     } else {
       this.show();
-      this.connection.client.listTabs(
-        response => {
-          this.listTabsResponse = response;
-          this.front = getDeviceFront(this.connection.client, this.listTabsResponse);
-          this.prefs = getPreferenceFront(this.connection.client, this.listTabsResponse);
-          this.front.getWallpaper().then(longstr => {
-            longstr.string().then(dataURL => {
-              longstr.release().then(null, Cu.reportError);
-              this.setWallpaper(dataURL);
-            });
+      this.connection.client.listTabs(response => {
+        this.listTabsResponse = response;
+        this.device = getDeviceFront(this.connection.client,
+                                     this.listTabsResponse);
+        this.prefs = getPreferenceFront(this.connection.client,
+                                        this.listTabsResponse);
+        this.device.getWallpaper().then(longstr => {
+          longstr.string().then(dataURL => {
+            longstr.release().then(null, Cu.reportError);
+            this.setWallpaper(dataURL);
           });
-        }
-      );
+        });
+      });
     }
   },
 

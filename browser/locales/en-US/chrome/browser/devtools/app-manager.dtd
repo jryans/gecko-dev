@@ -112,6 +112,6 @@
 <!ENTITY preferences.menu.new.label "New Preference">
 <!ENTITY preferences.menu.new.string.label "String">
 <!ENTITY preferences.menu.new.integer.label "Integer">
-<!ENTITY preferences.menu.new.true.label "True Boolean">
-<!ENTITY preferences.menu.new.false.label "False Boolean">
+<!ENTITY preferences.menu.new.true.label "True">
+<!ENTITY preferences.menu.new.false.label "False">
 <!ENTITY preferences.menu.refresh.label "Refresh Preferences">
