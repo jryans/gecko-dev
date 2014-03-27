@@ -382,11 +382,11 @@ let UI = {
   },
 
   refreshPreferences: function() {
-    this.deviceStore.once("refreshedPreferences",
-                          () => { this.updatePreferenceFilter(); });
-    this.deviceStore.emit("refreshPreferences");
-  },
-}
+    this.deviceStore.getDevicePreferencesTable().then(() => {
+      this.updatePreferenceFilter();
+    });
+  }
+};
 
 // This must be bound immediately, as it might be used via the message listener
 // before UI.init() has been called.

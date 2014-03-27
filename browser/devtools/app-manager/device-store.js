@@ -24,8 +24,7 @@ module.exports = DeviceStore = function(connection) {
 
   ObservableObject.call(this, {});
 
-  this._getDevicePreferencesTable = this._getDevicePreferencesTable.bind(this);
-  this.on("refreshPreferences", this._getDevicePreferencesTable);
+  this.getDevicePreferencesTable = this.getDevicePreferencesTable.bind(this);
 
   this._resetStore();
 
@@ -93,7 +92,7 @@ DeviceStore.prototype = {
   _feedStore: function() {
     this._getDeviceDescription();
     this._getDevicePermissionsTable();
-    this._getDevicePreferencesTable();
+    this.getDevicePreferencesTable();
   },
 
   _getDeviceDescription: function() {
@@ -121,7 +120,7 @@ DeviceStore.prototype = {
     });
   },
 
-  _getDevicePreferencesTable: function() {
+  getDevicePreferencesTable: function() {
     return this._preferenceFront.getAllPrefs()
     .then(preferencesTable => {
       let preferencesArray = [];
@@ -142,7 +141,6 @@ DeviceStore.prototype = {
         return a.name > b.name ? 1 : -1;
       });
       this.object.preferences = preferencesArray;
-      this.emit("refreshedPreferences");
     });
   }
 };
