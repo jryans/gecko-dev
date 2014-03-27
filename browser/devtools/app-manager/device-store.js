@@ -139,7 +139,7 @@ DeviceStore.prototype = {
         });
       }
       preferencesArray.sort(function(a, b) {
-        return a.name.localeCompare(b.name);
+        return a.name > b.name ? 1 : -1;
       });
       this.object.preferences = preferencesArray;
       this.emit("refreshedPreferences");
