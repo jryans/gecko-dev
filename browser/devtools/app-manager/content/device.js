@@ -226,7 +226,7 @@ let UI = {
         // can retrieve the pref and twiddle values directly.  The wrapper
         // should be sticky and have the changes reflect in the UI immediately.
         let prefPath = JSON.parse(elem.getAttribute("template")).rootPath;
-        let index = parseInt(prefPath.split('.').slice(-2)[0]);
+        let index = parseInt(prefPath.split('.').slice(-1)[0]);
         let pref = this.store.object.device.preferences[index];
         return pref;
       }
