@@ -599,8 +599,8 @@ class MachCommands(MachCommandBase):
         conditions=[conditions.is_firefox],
         description='Run a devtools mochitest with browser chrome.')
     @MochitestCommand
-    def run_mochitest_devtools(self, test_file, **kwargs):
-        return self.run_mochitest(test_file, 'devtools', **kwargs)
+    def run_mochitest_devtools(self, test_paths, **kwargs):
+        return self.run_mochitest(test_paths, 'devtools', **kwargs)
 
     @Command('mochitest-metro', category='testing',
         conditions=[conditions.is_firefox],
