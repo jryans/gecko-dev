@@ -202,10 +202,6 @@ Template.prototype = {
 
     try {
       let json = JSON.parse(str);
-      // Sanity check
-      if (!("type" in json)) {
-        throw new Error("missing property");
-      }
       if (json.rootPath) {
         // If node has been generated through a loop, we stored
         // previously its rootPath.
@@ -218,38 +214,54 @@ Template.prototype = {
 
       let paths = [];
 
-      switch (json.type) {
-        case "attribute": {
-          if (!("name" in json) ||
-              !("path" in json)) {
-            throw new Error("missing property");
-          }
-          e.setAttribute(json.name, resolver.get(json.path, NOT_FOUND_STRING));
-          paths.push(resolver.rootPathTo(json.path));
-          break;
+      // Convert to object with "actions" property if array
+      if (Array.isArray(json)) {
+        json = { actions: json };
+      }
+
+      // Only wrapped in actions in multiple case
+      let actions = json.actions || [json];
+
+      // Process each template action (one or more per node)
+      for (let action of actions) {
+        // Sanity check
+        if (!("type" in action)) {
+          throw new Error("missing property");
         }
-        case "textContent": {
-          if (!("path" in json)) {
-            throw new Error("missing property");
+        switch (action.type) {
+          case "attribute": {
+            if (!("name" in action) ||
+                !("path" in action)) {
+              throw new Error("missing property");
+            }
+            e.setAttribute(action.name, resolver.get(action.path, NOT_FOUND_STRING));
+            paths.push(resolver.rootPathTo(action.path));
+            break;
           }
-          e.textContent = resolver.get(json.path, NOT_FOUND_STRING);
-          paths.push(resolver.rootPathTo(json.path));
-          break;
-        }
-        case "localizedContent": {
-          if (!("property" in json) ||
-              !("paths" in json)) {
-            throw new Error("missing property");
+          case "textContent": {
+            if (!("path" in action)) {
+              throw new Error("missing property");
+            }
+            e.textContent = resolver.get(action.path, NOT_FOUND_STRING);
+            paths.push(resolver.rootPathTo(action.path));
+            break;
           }
-          let params = json.paths.map((p) => {
-            paths.push(resolver.rootPathTo(p));
-            let str = resolver.get(p, NOT_FOUND_STRING);
-            return str;
-          });
-          e.textContent = this._l10n(json.property, params);
-          break;
+          case "localizedContent": {
+            if (!("property" in action) ||
+                !("paths" in action)) {
+              throw new Error("missing property");
+            }
+            let params = action.paths.map((p) => {
+              paths.push(resolver.rootPathTo(p));
+              let str = resolver.get(p, NOT_FOUND_STRING);
+              return str;
+            });
+            e.textContent = this._l10n(action.property, params);
+            break;
+          }
         }
       }
+
       if (resolver !== this._rootResolver) {
         // We save the rootPath if any.
         json.rootPath = resolver.path;
@@ -262,7 +274,7 @@ Template.prototype = {
       }
       // Store all the paths on the node, to speed up unregistering later
       e.registeredPaths = paths;
-      // Expose the current portion of the store on the element, for easing
+      // Expose the current portion of the store on the element, for easy
       // updating via the UI
       e.storeObject = resolver.get("");
     } catch(exception) {

@@ -337,6 +337,10 @@ button {
   background: #EEE;
 }
 
+.preference[user-value="true"] {
+  font-style: italic;
+}
+
 .preference-name,
 .preference-type,
 .preference-value {
@@ -350,6 +354,7 @@ button {
   font-weight: bold;
   padding: 3px 10px;
   text-align: left;
+  word-wrap: break-word;
 }
 
 .preference-type,

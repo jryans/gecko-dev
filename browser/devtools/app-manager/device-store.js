@@ -157,8 +157,8 @@ DeviceStore.prototype = {
   },
 
   _onStoreChanged: function(event, path, value) {
-    console.log(path);
-    console.log(value);
+    //console.log(path);
+    //console.log(value);
     if (path.length === 3 && path[0] === "preferences" && path[2] === "value") {
       this._setPref(this.object.preferences[path[1]]);
     } else if (path.length === 2 && path[0] === "preferences" &&
