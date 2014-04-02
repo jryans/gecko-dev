@@ -8,6 +8,7 @@ const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {Connection} = require("devtools/client/connection-manager");
 
 const {Cu} = require("chrome");
+const promise = require("sdk/core/promise");
 
 const _knownDeviceStores = new WeakMap();
 
@@ -36,6 +37,8 @@ module.exports = DeviceStore = function(connection) {
   this._connection.on(Connection.Events.STATUS_CHANGED, this._onStatusChanged);
   this._onTabListChanged = this._onTabListChanged.bind(this);
   this._onStatusChanged();
+  this._onStoreChanged = this._onStoreChanged.bind(this);
+  this.on("set", this._onStoreChanged);
   return this;
 };
 
@@ -50,6 +53,8 @@ DeviceStore.prototype = {
       _knownDeviceStores.delete(this._connection);
       this._connection = null;
     }
+    this.off("set", this._onStoreChanged);
+    this._onStoreChanged = null;
   },
 
   _resetStore: function() {
@@ -78,7 +83,11 @@ DeviceStore.prototype = {
         return;
       }
       this._deviceFront = getDeviceFront(this._connection.client, resp);
-      this._preferenceFront = getPreferenceFront(this._connection.client, resp);
+      // Older devices and those that forbid-certified-apps won't have a
+      // perference actor, so we must check for it
+      if (resp.preferenceActor) {
+        this._preferenceFront = getPreferenceFront(this._connection.client, resp);
+      }
       // Save remote browser's tabs
       this.object.tabs = resp.tabs;
       // Add listener to update remote browser's tabs list in app-manager
@@ -121,6 +130,9 @@ DeviceStore.prototype = {
   },
 
   getDevicePreferencesTable: function() {
+    if (!this._preferenceFront) {
+      return promise.resolve();
+    }
     return this._preferenceFront.getAllPrefs()
     .then(preferencesTable => {
       let preferencesArray = [];
@@ -142,5 +154,29 @@ DeviceStore.prototype = {
       });
       this.object.preferences = preferencesArray;
     });
+  },
+
+  _onStoreChanged: function(event, path, value) {
+    console.log(path);
+    if (path.length === 3 && path[0] === "preferences" && path[2] === "value") {
+      this._onPrefModified(path[1], value);
+    }
+  },
+
+  _onPrefModified: function(index, value) {
+    let pref = this.object.preferences[index];
+    switch (pref.type) {
+      case "string":
+        this._preferenceFront.setCharPref(pref.name, value);
+        break;
+
+      case "integer":
+        this._preferenceFront.setIntPref(pref.name, value);
+        break;
+
+      case "boolean":
+        this._preferenceFront.setBoolPref(pref.name, value);
+        break;
+    }
   }
 };

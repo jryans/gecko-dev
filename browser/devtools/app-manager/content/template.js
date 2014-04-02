@@ -168,6 +168,7 @@ Template.prototype = {
         }
       }
       e.registeredPaths = null;
+      e.storeObject = null;
     }
   },
 
@@ -261,6 +262,9 @@ Template.prototype = {
       }
       // Store all the paths on the node, to speed up unregistering later
       e.registeredPaths = paths;
+      // Expose the current portion of the store on the element, for easing
+      // updating via the UI
+      e.storeObject = resolver.get("");
     } catch(exception) {
       console.error("Invalid template: " + e.outerHTML + " (" + exception + ")");
     }

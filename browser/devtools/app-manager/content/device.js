@@ -210,8 +210,7 @@ let UI = {
 
   /**
    * Given a click/dblclick event, figure out what preference it was on, if any.
-   * Extract the data about the preference from the DOM since it's easiest and
-   * template.js didn't set any expandos on our element to refer to the objects.
+   * Extract the data about the preference via the template's store object.
    */
   _getPrefFromEvent: function(event) {
     let elem = event.explicitOriginalTarget;
@@ -219,16 +218,9 @@ let UI = {
     if (elem.nodeType !== 1) {
       elem = elem.parentElement;
     }
-    while (elem && (elem.id !== "preference-table-body") &&
-           elem.classList) {
-      if (elem.classList.contains("preference")) {
-        // figure out the index of the preference in our array so that we
-        // can retrieve the pref and twiddle values directly.  The wrapper
-        // should be sticky and have the changes reflect in the UI immediately.
-        let prefPath = JSON.parse(elem.getAttribute("template")).rootPath;
-        let index = parseInt(prefPath.split('.').slice(-1)[0]);
-        let pref = this.store.object.device.preferences[index];
-        return pref;
+    while (elem && (elem.id !== "preference-table-body")) {
+      if (elem.storeObject) {
+        return elem.storeObject;
       }
       elem = elem.parentElement;
     }
@@ -256,7 +248,6 @@ let UI = {
       event.stopPropagation();
       pref = this._getPrefFromEvent(event);
     }
-    // You need to double-click on a pref for us to be helpful.
     if (!pref) {
       return;
     }
@@ -265,7 +256,6 @@ let UI = {
       case "string":
         let newStringVal = window.prompt(pref.name, pref.value);
         if (newStringVal !== null && newStringVal !== pref.value) {
-          this.prefs.setCharPref(pref.name, newStringVal);
           pref.value = newStringVal;
         }
         break;
@@ -275,7 +265,6 @@ let UI = {
         if (intString !== null) {
           let intVal = parseInt(intString, 10);
           if (intVal !== pref.value && !isNaN(intVal)) {
-            this.prefs.setIntPref(pref.name, intVal);
             pref.value = intVal;
           }
         }
@@ -283,7 +272,6 @@ let UI = {
 
       case "boolean":
         // we can just toggle this one (like in about:config)
-        this.prefs.setBoolPref(pref.name, !pref.value);
         pref.value = !pref.value;
         break;
     }
