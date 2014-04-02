@@ -126,9 +126,6 @@
   </template>
 
   <template id="preference-template">
-  <!-- XXX somehow express hasUserValue as an attribute on the root div here;
-       unfortunately the template mechanism does not support multiple actions
-       per node. -->
   <div class="preference"
        template='[{"type":"attribute", "name":"data-pref-value", "path":"name"},{"type":"attribute", "name":"user-value", "path":"hasUserValue"}]'>
     <div class="preference-name"
