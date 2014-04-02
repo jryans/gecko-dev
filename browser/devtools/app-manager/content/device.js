@@ -112,14 +112,13 @@ let UI = {
     if (this.connection.status != Connection.Status.CONNECTED) {
       this.hide();
       this.listTabsResponse = null;
-      this.device = null;
     } else {
       this.show();
       this.connection.client.listTabs(response => {
         this.listTabsResponse = response;
-        this.device = getDeviceFront(this.connection.client,
-                                     this.listTabsResponse);
-        this.device.getWallpaper().then(longstr => {
+        let device = getDeviceFront(this.connection.client,
+                                    this.listTabsResponse);
+        device.getWallpaper().then(longstr => {
           longstr.string().then(dataURL => {
             longstr.release().then(null, Cu.reportError);
             this.setWallpaper(dataURL);
