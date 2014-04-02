@@ -25,8 +25,6 @@ module.exports = DeviceStore = function(connection) {
 
   ObservableObject.call(this, {});
 
-  this.getDevicePreferencesTable = this.getDevicePreferencesTable.bind(this);
-
   this._resetStore();
 
   this.destroy = this.destroy.bind(this);
