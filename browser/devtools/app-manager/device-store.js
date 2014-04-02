@@ -158,24 +158,27 @@ DeviceStore.prototype = {
 
   _onStoreChanged: function(event, path, value) {
     console.log(path);
+    console.log(value);
     if (path.length === 3 && path[0] === "preferences" && path[2] === "value") {
-      this._onPrefModified(path[1], value);
+      this._setPref(this.object.preferences[path[1]]);
+    } else if (path.length === 2 && path[0] === "preferences" &&
+               path[1] !== "length") {
+      this._setPref(value);
     }
   },
 
-  _onPrefModified: function(index, value) {
-    let pref = this.object.preferences[index];
+  _setPref: function(pref) {
     switch (pref.type) {
       case "string":
-        this._preferenceFront.setCharPref(pref.name, value);
+        this._preferenceFront.setCharPref(pref.name, pref.value);
         break;
 
       case "integer":
-        this._preferenceFront.setIntPref(pref.name, value);
+        this._preferenceFront.setIntPref(pref.name, pref.value);
         break;
 
       case "boolean":
-        this._preferenceFront.setBoolPref(pref.name, value);
+        this._preferenceFront.setBoolPref(pref.name, pref.value);
         break;
     }
   }

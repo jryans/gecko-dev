@@ -309,7 +309,6 @@ let UI = {
         if (value === null) {
           return;
         }
-        this.prefs.setCharPref(prefName, value);
         break;
 
       case "integer":
@@ -321,19 +320,13 @@ let UI = {
         if (isNaN(value)) {
           return;
         }
-        this.prefs.setIntPref(prefName, value);
         break;
 
       case "boolean":
         value = prefDefault;
-        this.prefs.setBoolPref(prefName, value);
         break;
     }
-    // This causes the UI to append the new preference, but it takes a loooong
-    // time like it's actually updating everything else too.  Invoking sort
-    // seems like it would turn out worse, and splice seems like it would
-    // (hopefully) just corrupt things, so we don't sort.
-    // TODO make this not super-slow
+    // Add new pref to the bottom
     this.store.object.device.preferences.push({
       name: prefName,
       type: prefType,
