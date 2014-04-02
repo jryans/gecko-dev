@@ -51,7 +51,7 @@ let UI = {
       this.onNewConnection();
     } else {
       this.hide();
-   }
+    }
   },
 
   destroy: function() {
@@ -88,8 +88,6 @@ let UI = {
   onNewConnection: function() {
     this.connection.on(Connection.Events.STATUS_CHANGED, this._onConnectionStatusChange);
 
-    // hold onto our deviceStore so we can emit and receive events other than
-    // "set" which is the only thing mergeStores supports via special-case.
     this.deviceStore = new DeviceStore(this.connection);
 
     this.store = Utils.mergeStores({
