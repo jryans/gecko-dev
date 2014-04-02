@@ -281,18 +281,7 @@ let UI = {
     if (!pref) {
       return;
     }
-
-    this.prefs.clearUserPref(pref.name);
-    // The right thing to do here would be to check what the new value (if
-    // any) of the preference is after clearing and then update our value if
-    // it's still around.  Unfortunately, I'm not sure the communication idiom
-    // for interacting with the store through this.
-    //
-    // And if there is no longer a preference after the clearing, then we would
-    // ideally remove the element, but I'm afraid of the template.js scaling
-    // issues.
-    pref.type = "cleared";
-    pref.value = "cleared";
+    pref.value = null;
   },
 
   createPref: function(prefType, prefDefault) {

@@ -157,29 +157,62 @@ DeviceStore.prototype = {
   },
 
   _onStoreChanged: function(event, path, value) {
-    //console.log(path);
-    //console.log(value);
     if (path.length === 3 && path[0] === "preferences" && path[2] === "value") {
-      this._setPref(this.object.preferences[path[1]]);
+      this._onPrefChanged(this.object.preferences[path[1]]);
     } else if (path.length === 2 && path[0] === "preferences" &&
                path[1] !== "length") {
-      this._setPref(value);
+      this._onPrefChanged(value);
     }
   },
 
-  _setPref: function(pref) {
+  _onPrefChanged: function(pref) {
+    if (pref.ignoring) {
+      return; // Don't attempt to set while reading
+    }
+    if (pref.value === null) {
+      // Clear a user pref
+      pref.hasUserValue = false;
+      this._preferenceFront.clearUserPref(pref.name);
+      this._refreshPref(pref);
+      return;
+    }
     switch (pref.type) {
       case "string":
         this._preferenceFront.setCharPref(pref.name, pref.value);
         break;
-
       case "integer":
         this._preferenceFront.setIntPref(pref.name, pref.value);
         break;
-
       case "boolean":
         this._preferenceFront.setBoolPref(pref.name, pref.value);
         break;
     }
+    pref.hasUserValue = true;
+  },
+
+  _refreshPref: function(pref) {
+    pref.ignoring = true;
+    let valuePromise;
+    switch (pref.type) {
+      case "string":
+        valuePromise = this._preferenceFront.getCharPref(pref.name, pref.value);
+        break;
+      case "integer":
+        valuePromise = this._preferenceFront.getIntPref(pref.name, pref.value);
+        break;
+      case "boolean":
+        valuePromise = this._preferenceFront.getBoolPref(pref.name, pref.value);
+        break;
+    }
+
+    valuePromise.then(newValue => {
+      pref.value = newValue;
+      pref.ignoring = false;
+    }, () => {
+      // Pref is now missing
+      pref.type = "cleared";
+      pref.value = "cleared";
+      pref.ignoring = false;
+    });
   }
 };
