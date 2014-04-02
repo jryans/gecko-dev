@@ -13,7 +13,6 @@ const {require} = devtools;
 const {ConnectionManager, Connection}
   = require("devtools/client/connection-manager");
 const {getDeviceFront} = require("devtools/server/actors/device");
-const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {getTargetForApp, launchApp, closeApp}
   = require("devtools/app-actor-front");
 const DeviceStore = require("devtools/app-manager/device-store");
@@ -116,15 +115,12 @@ let UI = {
       this.hide();
       this.listTabsResponse = null;
       this.device = null;
-      this.prefs = null;
     } else {
       this.show();
       this.connection.client.listTabs(response => {
         this.listTabsResponse = response;
         this.device = getDeviceFront(this.connection.client,
                                      this.listTabsResponse);
-        this.prefs = getPreferenceFront(this.connection.client,
-                                        this.listTabsResponse);
         this.device.getWallpaper().then(longstr => {
           longstr.string().then(dataURL => {
             longstr.release().then(null, Cu.reportError);
