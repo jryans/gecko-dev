@@ -64,6 +64,8 @@
 <!ENTITY connection.installAnotherSimulator "Add">
 <!ENTITY connection.installAnotherSimulatorTooltip "Install an additional version of the Simulator by downloading the relevant add-on">
 <!ENTITY connection.startRegisteredSimulator "Start:">
+<!ENTITY connection.refresh "Refresh">
+<!ENTITY connection.refreshTooltip "Force the list of connected devices to refresh">
 
 <!ENTITY projects.localApps "Local Apps">
 <!ENTITY projects.addApp "Add">

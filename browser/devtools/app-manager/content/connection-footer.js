@@ -188,7 +188,11 @@ let UI = {
       this.connect();
     });
   },
-  
+
+  refreshDevices: function() {
+    Devices.refresh();
+  },
+
   screenshot: function() {
     this.connection.client.listTabs(
       response => {

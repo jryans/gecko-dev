@@ -37,6 +37,10 @@ const Devices = {
 
   getByName: function (name) {
     return this._devices[name];
+  },
+
+  refresh: function() {
+    this.emit("refresh");
   }
 };
 

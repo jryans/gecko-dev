@@ -73,6 +73,15 @@ body.edit-connection #banner-editing {
   display: inline;
 }
 
+#refresh-devices {
+  display: none;
+  float: right;
+}
+
+[adb-available="true"] #refresh-devices {
+  display: block;
+}
+
 /************** PIXELS **************/
 
 * {
