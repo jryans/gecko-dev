@@ -139,9 +139,7 @@ function removeServerTemporaryFile(client, fileActor) {
     to: fileActor,
     type: "remove"
   };
-  client.request(request, function (aResponse) {
-    console.error("Failed removing server side temporary package file", aResponse);
-  });
+  client.request(request);
 }
 
 function installPackaged(client, webappsActor, packagePath, appId) {
