@@ -300,6 +300,8 @@ main(int32_t argc, char *argv[])
   mozilla::net::NetAddr clientAddr;
   rv = client->GetAddress(&clientAddr);
   NS_ENSURE_SUCCESS(rv, -1);
+  // The client address is 0.0.0.0, but Windows won't receive packets there, so use 127.0.0.1 explicitly
+  clientAddr.inet.ip = PR_htonl(127 << 24 | 1);
 
   phase = TEST_SEND_API;
   rv = server->SendWithAddress(&clientAddr, (uint8_t*)&data, sizeof(uint32_t), &count);
@@ -357,6 +359,7 @@ main(int32_t argc, char *argv[])
   // Disable multicast loopback
   printf("Disable multicast loopback\n");
   client->SetMulticastLoopback(false);
+  server->SetMulticastLoopback(false);
 
   // Send multicast ping
   timerCb->mResult = NS_OK;
@@ -378,6 +381,7 @@ main(int32_t argc, char *argv[])
 
   // Reset state
   client->SetMulticastLoopback(true);
+  server->SetMulticastLoopback(true);
 
   // Change multicast interface
   printf("Changing multicast interface\n");
