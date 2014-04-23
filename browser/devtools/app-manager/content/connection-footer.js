@@ -18,6 +18,8 @@ const ConnectionStore = require("devtools/app-manager/connection-store");
 const DeviceStore = require("devtools/app-manager/device-store");
 const simulatorsStore = require("devtools/app-manager/simulators-store");
 const adbStore = require("devtools/app-manager/builtin-adb-store");
+const discovery = require("devtools/toolkit/discovery/discovery");
+const promise = require("sdk/core/promise");
 
 window.addEventListener("unload", function onUnload() {
   window.removeEventListener("unload", onUnload);
@@ -55,6 +57,33 @@ let UI = {
       "connection": new ConnectionStore(this.connection),
       "simulators": simulatorsStore,
       "adb": adbStore
+    });
+
+    discovery.on("device-added", (e, device, info) => {
+      console.log("Device Added: " + device);
+      Devices.helperAddonInstalled = true;
+      Devices.register(device, {
+        connect: function() {
+          return promise.resolve(info);
+        }
+      });
+    });
+
+    discovery.on("device-updated", (e, device, info) => {
+      console.log("Device Updated: " + device);
+      Devices.helperAddonInstalled = true;
+      Devices.unregister(device);
+      Devices.register(device, {
+        connect: function() {
+          return promise.resolve(info);
+        }
+      });
+    });
+
+    discovery.on("device-removed", (e, device) => {
+      console.log("Device Removed: " + device);
+      Devices.helperAddonInstalled = true;
+      Devices.unregister(device);
     });
 
     let pre = document.querySelector("#logs > pre");
@@ -182,13 +211,19 @@ let UI = {
 
   connectToAdbDevice: function(name) {
     let device = Devices.getByName(name);
-    device.connect().then((port) => {
-      this.connection.host = "localhost";
-      this.connection.port = port;
+    device.connect().then((portOrData) => {
+      console.log("CONNECT " + JSON.stringify(portOrData));
+      if (portOrData.host) {
+        this.connection.host = portOrData.host;
+        this.connection.port = portOrData.port;
+      } else {
+        this.connection.host = "localhost";
+        this.connection.port = portOrData;
+      }
       this.connect();
     });
   },
-  
+
   screenshot: function() {
     this.connection.client.listTabs(
       response => {

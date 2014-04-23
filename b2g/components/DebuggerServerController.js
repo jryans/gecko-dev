@@ -133,16 +133,24 @@ DebuggerServerController.prototype = {
 
     }
 
+    portOrPath = Math.floor(Math.random() * (65000 - 2000 + 1)) + 2000;
+
     try {
       this.debugger.openListener(portOrPath);
     } catch (e) {
       dump("Unable to start debugger server (" + portOrPath + "): " + e + "\n");
     }
 
+    const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+    let discovery = devtools.require("devtools/toolkit/discovery/discovery");
+    discovery.addService("devtools", { port: portOrPath });
   },
 
   stop: function() {
     this.debugger.destroy();
+    const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+    let discovery = devtools.require("devtools/toolkit/discovery/discovery");
+    discovery.removeService("devtools");
   },
 
   _onDebuggerStarted: function(portOrPath) {
