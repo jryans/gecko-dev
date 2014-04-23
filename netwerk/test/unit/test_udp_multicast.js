@@ -76,7 +76,7 @@ add_test(() => {
 
 add_test(() => {
   do_print("Changing multicast interface");
-  gSocket.multicastInterface = "127.0.0.1";
+  gSocket.multicastInterface = "0.0.0.1";
   sendPing().then(
     () => do_throw("Changed interface, but still got a packet"),
     run_next_test

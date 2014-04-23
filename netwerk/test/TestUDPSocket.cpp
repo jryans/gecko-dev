@@ -387,7 +387,7 @@ main(int32_t argc, char *argv[])
   printf("Changing multicast interface\n");
   mozilla::net::NetAddr loopbackAddr;
   loopbackAddr.inet.family = AF_INET;
-  loopbackAddr.inet.ip = PR_htonl(INADDR_LOOPBACK);
+  loopbackAddr.inet.ip = PR_htonl(1);
   client->SetMulticastInterfaceAddr(loopbackAddr);
 
   // Send multicast ping
