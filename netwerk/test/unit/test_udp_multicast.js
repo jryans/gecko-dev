@@ -1,6 +1,6 @@
 // Bug 960397: UDP multicast options
 
-const CC = Components.Constructor;
+const { interfaces: Ci, classes: Cc, Constructor: CC } = Components;
 
 const UDPSocket = CC("@mozilla.org/network/udp-socket;1",
                      "nsIUDPSocket",
@@ -10,6 +10,10 @@ const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {})
 const PORT = 50624;
 const ADDRESS = "224.0.0.255";
 const TIMEOUT = 2000;
+
+const ua = Cc["@mozilla.org/network/protocol;1?name=http"]
+           .getService(Ci.nsIHttpProtocolHandler).userAgent;
+const isWinXP = ua.indexOf("Windows NT 5.1") != -1;
 
 let gSocket;
 let gListener = {
@@ -74,15 +78,20 @@ add_test(() => {
   gSocket.multicastLoopback = true;
 });
 
-add_test(() => {
-  do_print("Changing multicast interface");
-  gSocket.multicastInterface = "127.0.0.1";
-  sendPing().then(
-    () => do_throw("Changed interface, but still got a packet"),
-    run_next_test
-  );
-  gSocket.multicastInterface = "0.0.0.0";
-});
+// The following multicast interface test doesn't work on Windows XP, as it
+// appears to allow packets no matter what address is given, so we'll skip the
+// test there.
+if (!isWinXP) {
+  add_test(() => {
+    do_print("Changing multicast interface");
+    gSocket.multicastInterface = "127.0.0.1";
+    sendPing().then(
+      () => do_throw("Changed interface, but still got a packet"),
+      run_next_test
+    );
+    gSocket.multicastInterface = "0.0.0.0";
+  });
+}
 
 add_test(() => {
   do_print("Leaving multicast group");

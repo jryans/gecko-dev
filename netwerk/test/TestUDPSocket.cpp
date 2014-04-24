@@ -383,6 +383,18 @@ main(int32_t argc, char *argv[])
   client->SetMulticastLoopback(true);
   server->SetMulticastLoopback(true);
 
+  // The following multicast interface test doesn't work on Windows XP, as it
+  // appears to allow packets no matter what address is given, so we'll skip the
+  // test there.
+#ifdef XP_WIN
+  OSVERSIONINFO OsVersion;
+  OsVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+  GetVersionEx(&OsVersion);
+  if (OsVersion.dwMajorVersion == 5 && OsVersion.dwMinorVersion == 1) {
+    goto leave;
+  }
+#endif
+
   // Change multicast interface
   printf("Changing multicast interface\n");
   mozilla::net::NetAddr loopbackAddr;
@@ -414,6 +426,7 @@ main(int32_t argc, char *argv[])
   anyAddr.inet.ip = PR_htonl(INADDR_ANY);
   client->SetMulticastInterfaceAddr(anyAddr);
 
+leave:
   // Leave multicast group
   printf("Leave multicast group\n");
   rv = server->LeaveMulticastAddr(multicastAddr, nullptr);
