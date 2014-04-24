@@ -425,6 +425,7 @@ main(int32_t argc, char *argv[])
   anyAddr.inet.family = AF_INET;
   anyAddr.inet.ip = PR_htonl(INADDR_ANY);
   client->SetMulticastInterfaceAddr(anyAddr);
+  goto leave;
 
 leave:
   // Leave multicast group
