@@ -541,13 +541,13 @@ TLSServerSocket::GetAddress(PRNetAddr *aResult)
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-TLSServerSocket::GetServerCert(nsIX509Cert** cert)
+TLSServerSocket::GetServerCert(nsIX509Cert** aCert)
 {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetServerCert(nsIX509Cert* cert)
+TLSServerSocket::SetServerCert(nsIX509Cert* aCert)
 {
   return NS_OK;
 }
