@@ -18,9 +18,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIFile.h"
 
-using namespace mozilla;
-using namespace mozilla::net;
-
 namespace mozilla {
 namespace net {
 
