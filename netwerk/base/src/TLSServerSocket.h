@@ -30,7 +30,6 @@ public:
   virtual uint64_t ByteCountReceived() { return 0; }
   TLSServerSocket();
 
-  // This must be public to support older compilers (xlC_r on AIX)
   virtual ~TLSServerSocket();
 
 private:
