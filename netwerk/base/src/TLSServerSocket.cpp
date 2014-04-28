@@ -265,7 +265,7 @@ TLSServerSocket::KeepWhenOffline(bool *aKeepWhenOffline)
 // TLSServerSocket::nsISupports
 //-----------------------------------------------------------------------------
 
-NS_IMPL_ISUPPORTS(TLSServerSocket, nsIServerSocket)
+NS_IMPL_ISUPPORTS(TLSServerSocket, nsITLSServerSocket)
 
 
 //-----------------------------------------------------------------------------
@@ -533,6 +533,22 @@ TLSServerSocket::GetAddress(PRNetAddr *aResult)
 {
   // no need to enter the lock here
   memcpy(aResult, &mAddr, sizeof(mAddr));
+  return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// TLSServerSocket::nsITLSServerSocket
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+TLSServerSocket::GetServerCert(nsIX509Cert** cert)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetServerCert(nsIX509Cert* cert)
+{
   return NS_OK;
 }
 

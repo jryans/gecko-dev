@@ -7,18 +7,19 @@
 #define mozilla_net_TLSServerSocket_h
 
 #include "nsASocketHandler.h"
-#include "nsIServerSocket.h"
+#include "nsITLSServerSocket.h"
 #include "mozilla/Mutex.h"
 
 namespace mozilla {
 namespace net {
 
 class TLSServerSocket : public nsASocketHandler
-                      , public nsIServerSocket
+                      , public nsITLSServerSocket
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISERVERSOCKET
+  NS_DECL_NSITLSSERVERSOCKET
 
   // nsASocketHandler methods:
   virtual void OnSocketReady(PRFileDesc *fd, int16_t outFlags);
