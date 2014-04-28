@@ -51,6 +51,7 @@ TLSServerSocket::TLSServerSocket()
   , mFD(nullptr)
   , mAttached(false)
   , mKeepWhenOffline(false)
+  , mServerCert(nullptr)
 {
   // we want to be able to access the STS directly, and it may not have been
   // constructed yet.  the STS constructor sets gSocketTransportService.
@@ -543,12 +544,18 @@ TLSServerSocket::GetAddress(PRNetAddr *aResult)
 NS_IMETHODIMP
 TLSServerSocket::GetServerCert(nsIX509Cert** aCert)
 {
+  if (NS_WARN_IF(!aCert)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  *aCert = mServerCert;
+  NS_IF_ADDREF(*aCert);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 TLSServerSocket::SetServerCert(nsIX509Cert* aCert)
 {
+  mServerCert = aCert;
   return NS_OK;
 }
 

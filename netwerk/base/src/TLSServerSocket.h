@@ -48,6 +48,7 @@ private:
   nsCOMPtr<nsIEventTarget>          mListenerTarget;
   bool                              mAttached;
   bool                              mKeepWhenOffline;
+  nsCOMPtr<nsIX509Cert>             mServerCert;
 };
 
 } // namespace net
