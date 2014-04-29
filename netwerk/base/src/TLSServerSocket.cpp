@@ -201,10 +201,13 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
     else
     {
       nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr);
-      if (NS_FAILED(rv))
+      if (NS_FAILED(rv)) {
         mCondition = rv;
-      else
-        mListener->OnSocketAccepted(this, trans);
+      } else {
+        nsCOMPtr<nsIServerSocket> serverSocket =
+          do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
+        mListener->OnSocketAccepted(serverSocket, trans);
+      }
     }
   }
 }
@@ -225,7 +228,9 @@ TLSServerSocket::OnSocketDetached(PRFileDesc *fd)
 
   if (mListener)
   {
-    mListener->OnStopListening(this, mCondition);
+    nsCOMPtr<nsIServerSocket> serverSocket =
+      do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
+    mListener->OnStopListening(serverSocket, mCondition);
 
     // need to atomically clear mListener.  see our Close() method.
     nsIServerSocketListener *listener = nullptr;
