@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsIServerSocket.idl"
+#include "nsIX509Cert.idl"
+
+/**
+ * nsITLSServerSocket
+ *
+ * An interface to a TLS server socket that can accept incoming connections.
+ */
+[scriptable, uuid(2e025b6c-96ba-4781-85fb-d1cf1a653207)]
+interface nsITLSServerSocket : nsIServerSocket
+{
+  attribute nsIX509Cert serverCert;
+};
