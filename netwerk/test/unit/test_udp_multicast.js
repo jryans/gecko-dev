@@ -7,7 +7,6 @@ const UDPSocket = CC("@mozilla.org/network/udp-socket;1",
                      "init");
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
-const PORT = 50624;
 const ADDRESS = "224.0.0.255";
 const TIMEOUT = 2000;
 
@@ -15,7 +14,6 @@ const ua = Cc["@mozilla.org/network/protocol;1?name=http"]
            .getService(Ci.nsIHttpProtocolHandler).userAgent;
 const isWinXP = ua.indexOf("Windows NT 5.1") != -1;
 
-let gSocket;
 let gListener = {
   onPacketReceived: function(socket, message) {},
   onStopListening: function(socket, status) {}
@@ -31,12 +29,19 @@ function setup() {
   gConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                createInstance(Ci.nsIScriptableUnicodeConverter);
   gConverter.charset = "utf8";
-
-  gSocket = new UDPSocket(PORT, false);
-  gSocket.asyncListen(gListener);
 }
 
-function sendPing() {
+function createSocketAndJoin() {
+  let socket = new UDPSocket(-1, false);
+  socket.asyncListen(gListener);
+  socket.joinMulticast(ADDRESS);
+  do_register_cleanup(() => {
+    socket.close();
+  });
+  return socket;
+}
+
+function sendPing(socket) {
   let ping = "ping";
   let rawPing = gConverter.convertToByteArray(ping);
 
@@ -47,7 +52,8 @@ function sendPing() {
     deferred.resolve(message.data);
   };
 
-  gSocket.send(ADDRESS, PORT, rawPing, rawPing.length);
+  do_print("Multicast send to port " + socket.port);
+  socket.send(ADDRESS, socket.port, rawPing, rawPing.length);
 
   // Timers are bad, but it seems like the only way to test *not* getting a
   // packet.
@@ -61,8 +67,8 @@ function sendPing() {
 
 add_test(() => {
   do_print("Joining multicast group");
-  gSocket.joinMulticast(ADDRESS);
-  sendPing().then(
+  let socket = createSocketAndJoin();
+  sendPing(socket).then(
     run_next_test,
     () => do_throw("Joined group, but no packet received")
   );
@@ -70,12 +76,12 @@ add_test(() => {
 
 add_test(() => {
   do_print("Disabling multicast loopback");
-  gSocket.multicastLoopback = false;
-  sendPing().then(
+  let socket = createSocketAndJoin();
+  socket.multicastLoopback = false;
+  sendPing(socket).then(
     () => do_throw("Loopback disabled, but still got a packet"),
     run_next_test
   );
-  gSocket.multicastLoopback = true;
 });
 
 // The following multicast interface test doesn't work on Windows XP, as it
@@ -84,24 +90,21 @@ add_test(() => {
 if (!isWinXP) {
   add_test(() => {
     do_print("Changing multicast interface");
-    gSocket.multicastInterface = "127.0.0.1";
-    sendPing().then(
+    let socket = createSocketAndJoin();
+    socket.multicastInterface = "127.0.0.1";
+    sendPing(socket).then(
       () => do_throw("Changed interface, but still got a packet"),
       run_next_test
     );
-    gSocket.multicastInterface = "0.0.0.0";
   });
 }
 
 add_test(() => {
   do_print("Leaving multicast group");
-  gSocket.leaveMulticast(ADDRESS);
-  sendPing().then(
+  let socket = createSocketAndJoin();
+  socket.leaveMulticast(ADDRESS);
+  sendPing(socket).then(
     () => do_throw("Left group, but still got a packet"),
     run_next_test
   );
-});
-
-do_register_cleanup(() => {
-  gSocket.close();
 });
