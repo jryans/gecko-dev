@@ -15,6 +15,8 @@
 #include "nsThreadUtils.h"
 #include "prio.h"
 #include "prnetdb.h"
+#include "ScopedNSSTypes.h"
+#include "ssl.h"
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Endian.h"
@@ -515,6 +517,51 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
     mListener = new ServerSocketListenerProxy(aListener);
     mListenerTarget = NS_GetCurrentThread();
   }
+
+  // Verify we have a cert
+  if (NS_WARN_IF(!mServerCert)) {
+    SOCKET_LOG(("TLSServerSocket: No cert"));
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  // Set TLS options on the listening socket
+  SOCKET_LOG(("TLSServerSocket: Adding SSL options"));
+  mFD = SSL_ImportFD(nullptr, mFD);
+  if (NS_WARN_IF(!mFD)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  SSL_OptionSet(mFD, SSL_SECURITY, true);
+  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_CLIENT, false);
+  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
+
+  // Look up the real cert by nickname
+  nsAutoString nickname;
+  nsresult rv = mServerCert->GetNickname(nickname);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ScopedCERTCertificate cert(
+    PK11_FindCertFromNickname(NS_ConvertUTF16toUTF8(nickname).get(), nullptr));
+  if (NS_WARN_IF(!cert)) {
+    SOCKET_LOG(("TLSServerSocket: Couldn't find cert"));
+    return NS_ERROR_FAILURE;
+  }
+
+  ScopedSECKEYPrivateKey key(PK11_FindKeyByAnyCert(cert, nullptr));
+  if (NS_WARN_IF(!key)) {
+    SOCKET_LOG(("TLSServerSocket: Couldn't find private key"));
+    return NS_ERROR_FAILURE;
+  }
+
+  SSLKEAType certKEA = NSS_FindCertKEAType(cert);
+
+  if (SSL_ConfigSecureServer(mFD, cert, key, certKEA) != SECSuccess) {
+    SOCKET_LOG(("TLSServerSocket: Failed to configure socket with cert"));
+    return NS_ERROR_FAILURE;
+  }
+
   return PostEvent(this, &TLSServerSocket::OnMsgAttach);
 }
 
