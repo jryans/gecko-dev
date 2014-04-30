@@ -5,7 +5,7 @@
 "use strict";
 
 let { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
-let Decoder = require("./decoder/qrcode");
+let decoder = require("./decoder/qrcode");
 
 /**
  * There are many "versions" of QR codes, which describes how many dots appear
@@ -60,4 +60,8 @@ exports.encodeToDataURI = function(message, quality, version) {
   encoder.addData(message);
   encoder.make();
   return encoder.createImgData();
+};
+
+exports.decodeFromDataURI = function(dataURI) {
+  return decoder.decode(dataURI);
 };
