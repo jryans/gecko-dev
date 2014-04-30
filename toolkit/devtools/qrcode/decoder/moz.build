@@ -4,15 +4,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-PARALLEL_DIRS += [
-    'decoder',
-    'encoder'
-]
-
-JS_MODULES_PATH = 'modules/devtools/qrcode'
+JS_MODULES_PATH = 'modules/devtools/qrcode/decoder'
 
 EXTRA_JS_MODULES += [
+    'alignpat.js',
+    'bitmat.js',
+    'bmparser.js',
+    'datablock.js',
+    'databr.js',
+    'datamask.js',
+    'decoder.js',
+    'detector.js',
+    'errorlevel.js',
+    'findpat.js',
+    'formatinf.js',
+    'gf256.js',
+    'gf256poly.js',
+    'grid.js',
     'qrcode.js',
+    'rsdecoder.js',
+    'version.js',
 ]
-
-XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
