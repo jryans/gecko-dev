@@ -188,7 +188,7 @@ let UI = {
       this.connect();
     });
   },
-  
+
   screenshot: function() {
     this.connection.client.listTabs(
       response => {
@@ -206,4 +206,12 @@ let UI = {
       }
     );
   },
-}
+
+  liveStream: function() {
+    window.parent.postMessage(JSON.stringify({
+      name: "live-stream",
+      action: "toggle"
+    }), "*");
+  }
+
+};

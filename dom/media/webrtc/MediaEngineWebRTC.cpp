@@ -55,13 +55,12 @@ MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs &aPrefs)
     , mBrowserEngineInit(false)
     , mAppEngineInit(false)
 {
-#ifndef MOZ_B2G_CAMERA
   nsCOMPtr<nsIComponentRegistrar> compMgr;
   NS_GetComponentRegistrar(getter_AddRefs(compMgr));
   if (compMgr) {
     compMgr->IsContractIDRegistered(NS_TABSOURCESERVICE_CONTRACTID, &mHasTabVideoSource);
   }
-#else
+#ifdef MOZ_B2G_CAMERA
   AsyncLatencyLogger::Get()->AddRef();
 #endif
   // XXX
@@ -79,6 +78,9 @@ MediaEngineWebRTC::EnumerateVideoDevices(MediaSourceType aMediaSource,
   MutexAutoLock lock(mMutex);
 
 #ifdef MOZ_B2G_CAMERA
+  if (mHasTabVideoSource)
+    aVSources->AppendElement(new MediaEngineTabVideoSource());
+
   if (aMediaSource != MediaSourceType::Camera) {
     // only supports camera sources
     return;

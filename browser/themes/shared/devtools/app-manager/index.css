@@ -101,3 +101,11 @@
   height: 50px;
   min-height: 50px;
 }
+
+#live-stream {
+  display: none;
+}
+
+#live-stream[streaming] {
+  display: initial;
+}

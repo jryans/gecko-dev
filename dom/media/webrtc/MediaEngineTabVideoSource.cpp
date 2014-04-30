@@ -281,8 +281,8 @@ MediaEngineTabVideoSource::Draw() {
   }
   nscolor bgColor = NS_RGB(255, 255, 255);
   nsCOMPtr<nsIPresShell> presShell = presContext->PresShell();
-  uint32_t renderDocFlags = (nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING |
-                             nsIPresShell::RENDER_DOCUMENT_RELATIVE);
+  uint32_t renderDocFlags = (nsIPresShell::RENDER_CARET |
+                             nsIPresShell::RENDER_USE_WIDGET_LAYERS);
   nsRect r(nsPresContext::CSSPixelsToAppUnits(srcX / scale),
            nsPresContext::CSSPixelsToAppUnits(srcY / scale),
            nsPresContext::CSSPixelsToAppUnits(srcW / scale),

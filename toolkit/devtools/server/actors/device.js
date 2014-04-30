@@ -5,7 +5,7 @@
 const {Cc, Ci, Cu, CC} = require("chrome");
 const Services = require("Services");
 const protocol = require("devtools/server/protocol");
-const {method, RetVal} = protocol;
+const {method, Arg, RetVal} = protocol;
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {LongStringActor} = require("devtools/server/actors/string");
 const {DebuggerServer} = require("devtools/server/main");
@@ -185,7 +185,64 @@ let DeviceActor = exports.DeviceActor = protocol.ActorClass({
       DENY_ACTION: Ci.nsIPermissionManager.DENY_ACTION,
       PROMPT_ACTION: Ci.nsIPermissionManager.PROMPT_ACTION
     };
-  }, {request: {},response: { value: RetVal("json")}})
+  }, {request: {},response: { value: RetVal("json")}}),
+
+  startLiveStream: method(function() {
+    let deferredStream = promise.defer();
+    let window =
+      Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+    window.navigator.mozGetUserMedia({ video: true }, stream => {
+      this._liveStream = stream;
+      dump("Got live stream\n");
+      deferredStream.resolve(stream);
+    }, deferredStream.reject);
+
+    let deferredOffer = promise.defer();
+    deferredStream.promise.then((stream) => {
+      try {
+      dump("Making pc\n");
+      let pc = this._pc = new window.mozRTCPeerConnection();
+
+      dump("Adding stream\n");
+      pc.addStream(stream);
+
+      dump("Creating offer\n");
+      pc.createOffer(function(desc) {
+        pc.setLocalDescription(desc);
+        dump("Got live stream offer: " + JSON.stringify(desc) + "\n");
+        deferredOffer.resolve(JSON.parse(JSON.stringify(desc)));
+      }, deferredOffer.reject);
+      } catch (e) {
+        dump("Error: " + e);
+        deferredOffer.reject(e);
+      } 
+    }, deferredOffer.reject);
+
+    return deferredOffer.promise;
+  }, {request: {}, response: { value: RetVal("json") }}),
+
+  setLiveStreamAnswer: method(function(answer) {
+    if (!this._liveStream) {
+      return;
+    }
+    dump("Got live stream answer: " + JSON.stringify(answer) + "\n");
+    let window =
+      Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+    this._pc.setRemoteDescription(new window.mozRTCSessionDescription(answer));
+    return {};
+  }, {
+    request: { answer: Arg(0, "json") },
+    response: { value: RetVal("json") }
+  }),
+
+  stopLiveStream: method(function() {
+    if (this._liveStream) {
+      this._liveStream.stop();
+      this._liveStream = null;
+    }
+    return {};
+  }, {request: {}, response: { value: RetVal("json") }})
+
 });
 
 let DeviceFront = protocol.FrontClass(DeviceActor, {

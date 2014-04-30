@@ -11,6 +11,8 @@
 <!ENTITY device.debugMainProcessTooltip "Open the Developer Tools connected to the main process on the device">
 <!ENTITY device.screenshot "Screenshot">
 <!ENTITY device.screenshotTooltip "Open a screenshot of the current state of the device in a new tab">
+<!ENTITY device.liveStream "Live Stream">
+<!ENTITY device.liveStreamTooltip "Open a live video stream of the current state of the device">
 <!ENTITY device.title "Device Control Center">
 <!ENTITY device.notConnected "Not connected. Please connect your device below.">
 <!ENTITY device.startApp "Start">

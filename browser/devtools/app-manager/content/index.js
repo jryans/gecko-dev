@@ -77,6 +77,9 @@ let UI = {
         case "toolbox-title":
           // Not implemented
           break;
+        case "live-stream":
+          // Forwarding only
+          break;
         default:
           Cu.reportError("Unknown message: " + json.name);
       }
@@ -87,6 +90,8 @@ let UI = {
     for (let frame of panels) {
       frame.contentWindow.postMessage(event.data, "*");
     }
+    let liveStreamFrame = document.getElementById("live-stream");
+    liveStreamFrame.contentWindow.postMessage(event.data, "*");
   },
 
   selectTabFromButton: function(button) {

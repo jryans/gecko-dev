@@ -28,11 +28,12 @@
         <vbox id="toolbox-tabs" flex="1"/>
         <button class="button help-button" panel="help">&index.help;</button>
       </vbox>
-      <hbox id="tab-panels" flex="1">
+      <hbox id="tab-panels" flex="3">
         <iframe flex="1" class="panel projects-panel" src="chrome://browser/content/devtools/app-manager/projects.xhtml"/>
         <iframe flex="1" class="panel device-panel" src="chrome://browser/content/devtools/app-manager/device.xhtml"/>
         <iframe flex="1" class="panel help-panel" src="chrome://browser/content/devtools/app-manager/help.xhtml"></iframe>
       </hbox>
+      <iframe id="live-stream" flex="1" src="chrome://browser/content/devtools/app-manager/live-stream.xhtml"/>
     </hbox>
     <iframe id="connection-footer" src="chrome://browser/content/devtools/app-manager/connection-footer.xhtml"></iframe>
   </vbox>

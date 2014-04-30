@@ -120,6 +120,8 @@ browser.jar:
     content/browser/devtools/app-manager/connection-footer.xhtml       (app-manager/content/connection-footer.xhtml)
     content/browser/devtools/app-manager/device.js                     (app-manager/content/device.js)
     content/browser/devtools/app-manager/device.xhtml                  (app-manager/content/device.xhtml)
+    content/browser/devtools/app-manager/live-stream.js                (app-manager/content/live-stream.js)
+    content/browser/devtools/app-manager/live-stream.xhtml             (app-manager/content/live-stream.xhtml)
     content/browser/devtools/app-manager/projects.js                   (app-manager/content/projects.js)
     content/browser/devtools/app-manager/projects.xhtml                (app-manager/content/projects.xhtml)
     content/browser/devtools/app-manager/index.xul                     (app-manager/content/index.xul)
