@@ -91,6 +91,13 @@ exports.decodeFromDataURI = function(dataURI) {
   return deferred.promise;
 };
 
+/**
+ * Decode a QR code that has been drawn to a canvas element.
+ * @param Canvas canvas
+ *        <canvas> element to read from
+ * @return string
+ *         The data inside the QR code
+ */
 exports.decodeFromCanvas = function(canvas) {
   return decoder.decodeFromCanvas(canvas);
 };
