@@ -77,8 +77,20 @@ exports.encodeToDataURI = function(message, quality, version) {
   return encoder.createImgData();
 };
 
+/**
+ * Simple wrapper around the underlying decoder's API.
+ * @param string dataURI
+ *        A data URI of an image of a QR code
+ * @return Promise
+ *         The promise will be resolved with a string, which is the data inside
+ *         the QR code.
+ */
 exports.decodeFromDataURI = function(dataURI) {
   let deferred = promise.defer();
-  decoder.decode(dataURI, deferred.resolve);
+  decoder.decodeFromDataURI(dataURI, deferred.resolve);
   return deferred.promise;
+};
+
+exports.decodeFromCanvas = function(canvas) {
+  return decoder.decodeFromCanvas(canvas);
 };

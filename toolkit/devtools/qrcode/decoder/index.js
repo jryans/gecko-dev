@@ -2567,11 +2567,22 @@ Array.prototype.remove = function(from, to) {
 
 // jryans: Add module support
 module.exports = {
-  decode: function(src, cb) {
+  decodeFromDataURI: function(src, cb) {
     if (cb) {
       qrcode.callback = cb;
     }
     return qrcode.decode(src);
+  },
+  decodeFromCanvas: function(canvas, cb) {
+    let context = canvas.getContext('2d');
+    qrcode.width = canvas.width;
+    qrcode.height = canvas.height;
+    qrcode.imagedata = context.getImageData(0, 0, qrcode.width, qrcode.height);
+    let result = qrcode.process(context);
+    if (cb) {
+      cb(result);
+    }
+    return result;
   }
 };
 
