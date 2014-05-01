@@ -7,22 +7,5 @@
 JS_MODULES_PATH = 'modules/devtools/qrcode/decoder'
 
 EXTRA_JS_MODULES += [
-    'alignpat.js',
-    'bitmat.js',
-    'bmparser.js',
-    'bundle.js',
-    'datablock.js',
-    'databr.js',
-    'datamask.js',
-    'decoder.js',
-    'detector.js',
-    'errorlevel.js',
-    'findpat.js',
-    'formatinf.js',
-    'gf256.js',
-    'gf256poly.js',
-    'grid.js',
-    'qrcode.js',
-    'rsdecoder.js',
-    'version.js',
+    'index.js',
 ]

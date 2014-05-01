@@ -8,7 +8,7 @@ const { Cu } = require("chrome");
 const { Promise: promise } =
   Cu.import("resource://gre/modules/Promise.jsm", {});
 const { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
-const decoder = require("./decoder/bundle");
+const decoder = require("./decoder/index");
 
 /**
  * There are many "versions" of QR codes, which describes how many dots appear
