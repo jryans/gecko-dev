@@ -7,8 +7,20 @@
 const { Cu } = require("chrome");
 const { Promise: promise } =
   Cu.import("resource://gre/modules/Promise.jsm", {});
-const { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
-const decoder = require("./decoder/index");
+
+// Lazily require encoder and decoder in case only one is needed
+Object.defineProperty(this, "Encoder", {
+  get: () => require("./encoder/index").Encoder
+});
+Object.defineProperty(this, "QRRSBlock", {
+  get: () => require("./encoder/index").QRRSBlock
+});
+Object.defineProperty(this, "QRErrorCorrectLevel", {
+  get: () => require("./encoder/index").QRErrorCorrectLevel
+});
+Object.defineProperty(this, "decoder", {
+  get: () => require("./decoder/index")
+});
 
 /**
  * There are many "versions" of QR codes, which describes how many dots appear
