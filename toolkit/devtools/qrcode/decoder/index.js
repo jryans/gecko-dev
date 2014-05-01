@@ -2256,9 +2256,11 @@ Decoder.decode=function(bits)
 const { DebuggerServer } = require("devtools/server/main");
 const Services = require("Services");
 const window = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
-const { document, Image } = window;
-const HTML_NS = "http://www.w3.org/1999/xhtml";
-document.createElement = e => document.createElementNS(HTML_NS, e);
+if (window) {
+  const { document, Image } = window;
+  const HTML_NS = "http://www.w3.org/1999/xhtml";
+  document.createElement = e => document.createElementNS(HTML_NS, e);
+}
 
 qrcode = {};
 qrcode.imagedata = null;

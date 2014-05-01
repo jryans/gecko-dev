@@ -12,7 +12,7 @@ PARALLEL_DIRS += [
 JS_MODULES_PATH = 'modules/devtools/qrcode'
 
 EXTRA_JS_MODULES += [
-    'qrcode.js',
+    'index.js',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
