@@ -2567,7 +2567,12 @@ Array.prototype.remove = function(from, to) {
 
 // jryans: Add module support
 module.exports = {
-  decode: qrcode.decode
+  decode: function(src, cb) {
+    if (cb) {
+      qrcode.callback = cb;
+    }
+    return qrcode.decode(src);
+  }
 };
 
 /*

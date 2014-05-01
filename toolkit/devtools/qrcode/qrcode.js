@@ -4,8 +4,11 @@
 
 "use strict";
 
-let { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
-let decoder = require("./decoder/bundle");
+const { Cu } = require("chrome");
+const { Promise: promise } =
+  Cu.import("resource://gre/modules/Promise.jsm", {});
+const { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
+const decoder = require("./decoder/bundle");
 
 /**
  * There are many "versions" of QR codes, which describes how many dots appear
@@ -63,5 +66,7 @@ exports.encodeToDataURI = function(message, quality, version) {
 };
 
 exports.decodeFromDataURI = function(dataURI) {
-  return decoder.decode(dataURI);
+  let deferred = promise.defer();
+  decoder.decode(dataURI, deferred.resolve);
+  return deferred.promise;
 };
