@@ -2421,9 +2421,10 @@ qrcode.process = function(ctx){
             str+=String.fromCharCode(data[i][j]);
     }
     
-    var end = new Date().getTime();
-    var time = end - start;
-    console.log(time);
+    // jryans: disable time logging
+    //var end = new Date().getTime();
+    //var time = end - start;
+    //console.log(time);
     
     return qrcode.decode_utf8(str);
     //alert("Time:" + time + " Code: "+str);
