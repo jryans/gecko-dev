@@ -10,6 +10,7 @@ EXTRA_JS_MODULES += [
     'alignpat.js',
     'bitmat.js',
     'bmparser.js',
+    'bundle.js',
     'datablock.js',
     'databr.js',
     'datamask.js',

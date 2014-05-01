@@ -5,7 +5,7 @@
 "use strict";
 
 let { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
-let decoder = require("./decoder/qrcode");
+let decoder = require("./decoder/bundle");
 
 /**
  * There are many "versions" of QR codes, which describes how many dots appear
