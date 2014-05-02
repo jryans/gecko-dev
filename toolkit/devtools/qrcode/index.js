@@ -4,9 +4,12 @@
 
 "use strict";
 
+const HTML_NS = "http://www.w3.org/1999/xhtml";
 const { Cu } = require("chrome");
 const { Promise: promise } =
   Cu.import("resource://gre/modules/Promise.jsm", {});
+const Services = require("Services");
+const { setTimeout } = require("sdk/timers");
 
 // Lazily require encoder and decoder in case only one is needed
 Object.defineProperty(this, "Encoder", {
@@ -100,4 +103,53 @@ exports.decodeFromDataURI = function(dataURI) {
  */
 exports.decodeFromCanvas = function(canvas) {
   return decoder.decodeFromCanvas(canvas);
+};
+
+function getWindow() {
+  let { DebuggerServer } = require("devtools/server/main");
+  return Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+}
+
+function setupCanvas() {
+  let window = getWindow();
+  let canvas = window.document.createElementNS(HTML_NS, "canvas");
+  canvas.width = 800;
+  canvas.height = 600;
+  return canvas;
+}
+
+function setupVideo() {
+  let window = getWindow();
+  return window.document.createElementNS(HTML_NS, "video");
+}
+
+exports.decodeFromCamera = function() {
+  let deferred = promise.defer();
+
+  let navigator = getWindow().navigator;
+  let getUserMedia = navigator.getUserMedia || navigator.mozGetUserMedia;
+  getUserMedia = getUserMedia.bind(navigator);
+
+  getUserMedia({ video: true, audio: false }, stream => {
+    let video = setupVideo();
+    video.mozSrcObject = stream;
+    video.play();
+
+    let canvas = setupCanvas();
+    let context = canvas.getContext("2d");
+
+    function attemptCapture() {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        let result = exports.decodeFromCanvas(canvas);
+        console.log("DECODE: " + result);
+      } catch(e) {
+        console.error(e);
+        setTimeout(attemptCapture, 1000);
+      }
+    }
+    attemptCapture();
+  }, () => deferred.reject("Unable to access camera"));
+
+  return deferred.promise;
 };
