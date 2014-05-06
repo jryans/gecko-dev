@@ -58,6 +58,12 @@ XPCOMUtils.defineLazyGetter(this, 'DebuggerServer', function() {
   return DebuggerServer;
 });
 
+XPCOMUtils.defineLazyGetter(this, 'QR', function() {
+  let { devtools } = Cu.import('resource://gre/modules/devtools/Loader.jsm', {});
+  let { require } = devtools;
+  return require('devtools/toolkit/qrcode/index');
+});
+
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"]
          .getService(Ci.nsIMessageListenerManager);
@@ -765,6 +771,9 @@ var CustomEventManager = {
       case 'remote-debugger-prompt':
         RemoteDebugger.handleEvent(detail);
         break;
+      case 'devtools-pair':
+        DevToolsPair.handleEvent(detail);
+        break;
       case 'captive-portal-login-cancel':
         CaptivePortalLoginHelper.handleEvent(detail);
         break;
@@ -1011,7 +1020,28 @@ let RemoteDebugger = {
     }
     this._running = false;
   }
-}
+};
+
+let DevToolsPair = {
+
+  start: function() {
+    shell.sendChromeEvent({
+      'type': 'devtools-pair',
+      'action': 'start'
+    });
+  },
+
+  handleEvent: function(detail) {
+    dump('Got pair event: ' + JSON.stringify(detail) + '\n');
+    if (detail.action !== 'check-image') {
+      return;
+    }
+    QR.decodeFromDataURI(detail.src).then(result => {
+      dump('QR Result: ' + result + '\n');
+    });
+  }
+
+};
 
 let KeyboardHelper = {
   handleEvent: function keyboard_handleEvent(detail) {

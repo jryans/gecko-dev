@@ -88,6 +88,7 @@ exports.encodeToDataURI = function(message, quality, version) {
  *         The promise will be resolved with a string, which is the data inside
  *         the QR code.
  */
+// TODO: Rename!
 exports.decodeFromDataURI = function(dataURI) {
   let deferred = promise.defer();
   decoder.decodeFromDataURI(dataURI, deferred.resolve);
