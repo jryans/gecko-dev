@@ -1036,9 +1036,9 @@ let DevToolsPair = {
     if (detail.action !== 'check-image') {
       return;
     }
-    QR.decodeFromDataURI(detail.src).then(result => {
+    QR.decodeFromURI(detail.src).then(result => {
       dump('QR Result: ' + result + '\n');
-    });
+    }, () => dump('QR decoding failed\n'));
   }
 
 };

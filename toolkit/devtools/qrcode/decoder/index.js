@@ -2271,6 +2271,7 @@ qrcode.maxImgSize = 1024*1024;
 qrcode.sizeOfDataLengthInfo =  [  [ 10, 9, 8, 8 ],  [ 12, 11, 16, 10 ],  [ 14, 13, 16, 12 ] ];
 
 qrcode.callback = null;
+qrcode.errback = null;
 
 qrcode.decode = function(src){
 
@@ -2321,14 +2322,19 @@ qrcode.decode = function(src){
             try
             {
                 qrcode.result = qrcode.process(context);
+                if (qrcode.callback!=null) {
+                    qrcode.callback(qrcode.result);
+                }
             }
             catch(e)
             {
-                console.error(e);
+                if (qrcode.errback!=null) {
+                    qrcode.errback(e);
+                } else {
+                    console.error(e);
+                }
                 qrcode.result = "error decoding QR Code";
             }
-            if(qrcode.callback!=null)
-                qrcode.callback(qrcode.result);
         }
         image.src = src;
     }
@@ -2567,9 +2573,12 @@ Array.prototype.remove = function(from, to) {
 
 // jryans: Add module support
 module.exports = {
-  decodeFromDataURI: function(src, cb) {
+  decodeFromURI: function(src, cb, errcb) {
     if (cb) {
       qrcode.callback = cb;
+    }
+    if (errcb) {
+      qrcode.errback = errcb;
     }
     return qrcode.decode(src);
   },
