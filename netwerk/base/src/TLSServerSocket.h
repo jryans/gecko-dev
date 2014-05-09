@@ -43,6 +43,7 @@ private:
 
   static SECStatus AuthCertificateHook(void *arg, PRFileDesc *fd,
                                        PRBool checksig, PRBool isServer);
+  static void HandshakeCallback(PRFileDesc *fd, void* arg);
 
   // lock protects access to mListener; so it is not cleared while being used.
   mozilla::Mutex                    mLock;

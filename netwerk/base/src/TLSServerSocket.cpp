@@ -539,7 +539,9 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_NO_CACHE, true);
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
+  // TODO: Check rv
   SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
+  SSL_HandshakeCallback(mFD, HandshakeCallback, nullptr);
 
   // Look up the real cert by nickname
   nsAutoString nickname;
@@ -576,8 +578,23 @@ TLSServerSocket::AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checksig,
                                      PRBool isServer)
 {
   // TODO: More options than "ACCEPT ALL"
-  printf_stderr("AUTH CERT!\n");
+  printf_stderr("AUTH CERT\n");
+
+  ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
+
+  if (clientCert) {
+    printf_stderr("GOT CERT\n");
+  } else {
+    printf_stderr("NO CERT\n");
+  }
+
   return SECSuccess;
+}
+
+void
+TLSServerSocket::HandshakeCallback(PRFileDesc *fd, void* arg)
+{
+  printf_stderr("HANDSHAKE DONE\n");
 }
 
 NS_IMETHODIMP
