@@ -15,3 +15,11 @@ interface nsITLSServerSocket : nsIServerSocket
 {
   attribute nsIX509Cert serverCert;
 };
+
+[scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
+interface nsITLSServerSocketListener : nsIServerSocketListener
+{
+  void onClientCertReceived(in nsITLSServerSocket server,
+                            in nsISocketTransport transport,
+                            in nsIX509Cert        cert);
+};
