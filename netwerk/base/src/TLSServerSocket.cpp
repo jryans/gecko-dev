@@ -535,6 +535,12 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_CLIENT, false);
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
 
+  // TODO: Break out as options
+  printf_stderr("bob");
+  SSL_OptionSet(mFD, SSL_NO_CACHE, true);
+  SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
+  SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
+
   // Look up the real cert by nickname
   nsAutoString nickname;
   nsresult rv = mServerCert->GetNickname(nickname);
