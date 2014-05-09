@@ -9,6 +9,7 @@
 #include "nsASocketHandler.h"
 #include "nsITLSServerSocket.h"
 #include "mozilla/Mutex.h"
+#include "seccomon.h"
 
 namespace mozilla {
 namespace net {
@@ -39,6 +40,9 @@ private:
 
   // try attaching our socket (mFD) to the STS's poll list.
   nsresult TryAttach();
+
+  static SECStatus AuthCertificateHook(void *arg, PRFileDesc *fd,
+                                       PRBool checksig, PRBool isServer);
 
   // lock protects access to mListener; so it is not cleared while being used.
   mozilla::Mutex                    mLock;

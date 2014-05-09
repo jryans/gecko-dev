@@ -536,10 +536,10 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
 
   // TODO: Break out as options
-  printf_stderr("bob");
   SSL_OptionSet(mFD, SSL_NO_CACHE, true);
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
+  SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
 
   // Look up the real cert by nickname
   nsAutoString nickname;
@@ -569,6 +569,15 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   }
 
   return PostEvent(this, &TLSServerSocket::OnMsgAttach);
+}
+
+SECStatus
+TLSServerSocket::AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checksig,
+                                     PRBool isServer)
+{
+  // TODO: More options than "ACCEPT ALL"
+  printf_stderr("AUTH CERT!\n");
+  return SECSuccess;
 }
 
 NS_IMETHODIMP
