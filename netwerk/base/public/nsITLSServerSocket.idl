@@ -5,6 +5,8 @@
 #include "nsIServerSocket.idl"
 #include "nsIX509Cert.idl"
 
+interface nsITLSSecurityCallback;
+
 /**
  * nsITLSServerSocket
  *
@@ -14,10 +16,11 @@
 interface nsITLSServerSocket : nsIServerSocket
 {
   attribute nsIX509Cert serverCert;
+  void awaitSecurity(in nsITLSSecurityCallback);
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
-interface nsITLSServerSocketListener : nsIServerSocketListener
+interface nsITLSSecurityCallback : nsISupports
 {
   void onClientCertReceived(in nsITLSServerSocket server,
                             in nsISocketTransport transport,
