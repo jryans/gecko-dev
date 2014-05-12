@@ -202,6 +202,7 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
       mCondition = NS_ERROR_OUT_OF_MEMORY;
     else
     {
+      printf_stderr("NEW CLIENT FD: %p\n", clientFD);
       nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr);
       if (NS_FAILED(rv)) {
         mCondition = rv;
@@ -584,7 +585,7 @@ TLSServerSocket::AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checksig,
                                      PRBool isServer)
 {
   // TODO: More options than "ACCEPT ALL"
-  printf_stderr("AUTH CERT\n");
+  printf_stderr("AUTH CERT, FD: %p\n", fd);
 
   ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
 
