@@ -45,7 +45,8 @@ private:
                                        PRBool checksig, PRBool isServer);
   static void HandshakeCallback(PRFileDesc *fd, void* arg);
 
-  // lock protects access to mListener; so it is not cleared while being used.
+  // mLock protects access to mListener / mSecurityCallback, so it is not
+  // cleared while being used
   mozilla::Mutex                    mLock;
   PRFileDesc                       *mFD;
   PRNetAddr                         mAddr;
@@ -54,6 +55,8 @@ private:
   bool                              mAttached;
   bool                              mKeepWhenOffline;
   nsCOMPtr<nsIX509Cert>             mServerCert;
+  nsCOMPtr<nsITLSSecurityCallback>  mSecurityCallback;
+  nsCOMPtr<nsIEventTarget>          mSecurityCallbackTarget;
 };
 
 } // namespace net
