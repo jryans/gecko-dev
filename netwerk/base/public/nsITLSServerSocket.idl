@@ -16,7 +16,7 @@ interface nsITLSSecurityCallback;
 interface nsITLSServerSocket : nsIServerSocket
 {
   attribute nsIX509Cert serverCert;
-  void awaitSecurity(in nsITLSSecurityCallback);
+  void awaitSecurity(in nsITLSSecurityCallback callback);
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
