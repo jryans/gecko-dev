@@ -16,9 +16,6 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let Heritage = devtools.require("sdk/core/heritage");
-
 function debug(aMsg) {
   /*
   Cc["@mozilla.org/consoleservice;1"]
@@ -87,58 +84,55 @@ function PackageUploadJSONActor(file) {
   this._size = 0;
 }
 
-PackageUploadJSONActor.prototype = Heritage.extend(
-    PackageUploadActor.prototype, {
+PackageUploadJSONActor.prototype = Object.create(PackageUploadActor.prototype);
 
-  actorPrefix: "packageUploadJSONActor",
+PackageUploadJSONActor.prototype.actorPrefix = "packageUploadJSONActor";
 
-  _openFile: function() {
-    return OS.File.open(this._path, { write: true, truncate: true });
-  },
+PackageUploadJSONActor.prototype._openFile = function() {
+  return OS.File.open(this._path, { write: true, truncate: true });
+};
 
-  _closeFile: function() {
-    this.openedFile.then(file => file.close());
-  },
+PackageUploadJSONActor.prototype._closeFile = function() {
+  this.openedFile.then(file => file.close());
+};
 
-  /**
-   * This method allows you to upload a piece of file.
-   * It expects a chunk argument that is the a string to write to the file.
-   */
-  chunk: function (aRequest) {
-    let chunk = aRequest.chunk;
-    if (!chunk || chunk.length <= 0) {
-      return {error: "parameterError",
-              message: "Missing or invalid chunk argument"};
-    }
-    // Translate the string used to transfer the chunk over JSON
-    // back to a typed array
-    let data = new Uint8Array(chunk.length);
-    for (let i = 0, l = chunk.length; i < l ; i++) {
-      data[i] = chunk.charCodeAt(i);
-    }
-    return this.openedFile
-               .then(file => file.write(data))
-               .then((written) => {
-                 this._size += written;
-                 return {
-                   written: written,
-                   _size: this._size
-                 };
-               });
-  },
-
-  /**
-   * This method needs to be called, when you are done uploading
-   * chunks, before trying to access/use the temporary file.
-   * Otherwise, the file may be partially written
-   * and also be locked.
-   */
-  done: function () {
-    this._closeFile();
-    return {};
+/**
+ * This method allows you to upload a piece of file.
+ * It expects a chunk argument that is the a string to write to the file.
+ */
+PackageUploadJSONActor.prototype.chunk = function(aRequest) {
+  let chunk = aRequest.chunk;
+  if (!chunk || chunk.length <= 0) {
+    return {error: "parameterError",
+            message: "Missing or invalid chunk argument"};
   }
+  // Translate the string used to transfer the chunk over JSON
+  // back to a typed array
+  let data = new Uint8Array(chunk.length);
+  for (let i = 0, l = chunk.length; i < l ; i++) {
+    data[i] = chunk.charCodeAt(i);
+  }
+  return this.openedFile
+             .then(file => file.write(data))
+             .then((written) => {
+               this._size += written;
+               return {
+                 written: written,
+                 _size: this._size
+               };
+             });
+};
 
-});
+/**
+ * This method needs to be called, when you are done uploading
+ * chunks, before trying to access/use the temporary file.
+ * Otherwise, the file may be partially written
+ * and also be locked.
+ */
+PackageUploadJSONActor.prototype.done = function() {
+  this._closeFile();
+  return {};
+};
 
 /**
  * The request types this actor can handle.
@@ -157,26 +151,23 @@ function PackageUploadBulkActor(file) {
   PackageUploadActor.call(this, file);
 }
 
-PackageUploadBulkActor.prototype = Heritage.extend(
-    PackageUploadActor.prototype, {
+PackageUploadBulkActor.prototype = Object.create(PackageUploadActor.prototype);
 
-  actorPrefix: "packageUploadBulkActor",
+PackageUploadBulkActor.prototype.actorPrefix = "packageUploadBulkActor";
 
-  _openFile: function() {
-    return FileUtils.openSafeFileOutputStream(this._file);
-  },
+PackageUploadBulkActor.prototype._openFile = function() {
+  return FileUtils.openSafeFileOutputStream(this._file);
+};
 
-  _closeFile: function() {
-    FileUtils.closeSafeFileOutputStream(this.openedFile);
-  },
+PackageUploadBulkActor.prototype._closeFile = function() {
+  FileUtils.closeSafeFileOutputStream(this.openedFile);
+};
 
-  stream: function({copyTo}) {
-    copyTo(this.openedFile).then(() => {
-      this._closeFile();
-    });
-  }
-
-});
+PackageUploadBulkActor.prototype.stream = function({copyTo}) {
+  copyTo(this.openedFile).then(() => {
+    this._closeFile();
+  });
+};
 
 /**
  * The request types this actor can handle.
