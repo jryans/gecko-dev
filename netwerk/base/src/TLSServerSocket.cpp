@@ -9,6 +9,7 @@
 #include "nsError.h"
 #include "nsIFile.h"
 #include "nsNetCID.h"
+#include "nsNSSCertificate.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSocketTransport2.h"
@@ -210,6 +211,8 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
         nsCOMPtr<nsIServerSocket> serverSocket =
           do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
         mListener->OnSocketAccepted(serverSocket, trans);
+
+        SSL_AuthCertificateHook(clientFD, AuthCertificateHook, this);
       }
     }
   }
@@ -547,7 +550,7 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
   // TODO: Check rv
-  SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
+  //SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
   SSL_HandshakeCallback(mFD, HandshakeCallback, nullptr);
 
   // Look up the real cert by nickname
@@ -581,7 +584,7 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
 }
 
 SECStatus
-TLSServerSocket::AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checksig,
+TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer)
 {
   // TODO: More options than "ACCEPT ALL"
@@ -595,7 +598,22 @@ TLSServerSocket::AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checksig,
     printf_stderr("NO CERT\n");
   }
 
+  TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
+  serverSocket->OnClientCertReceived(fd);
+
   return SECSuccess;
+}
+
+void
+TLSServerSocket::OnClientCertReceived(PRFileDesc* fd)
+{
+  ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
+  nsCOMPtr<nsIX509Cert> nsClientCert =
+    nsNSSCertificate::Create(clientCert.get());
+
+  if (mSecurityCallback) {
+    mSecurityCallback->OnClientCertReceived(nullptr, nullptr, nsClientCert);
+  }
 }
 
 void

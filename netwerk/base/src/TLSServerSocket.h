@@ -30,6 +30,9 @@ public:
 
   virtual uint64_t ByteCountSent() { return 0; }
   virtual uint64_t ByteCountReceived() { return 0; }
+
+  void OnClientCertReceived(PRFileDesc* fd);
+
   TLSServerSocket();
 
   virtual ~TLSServerSocket();
