@@ -793,5 +793,12 @@ TLSServerSocket::AwaitSecurity(nsITLSSecurityCallback* aCallback)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+TLSServerSocket::SetSecurityOption(uint32_t option, uint32_t value)
+{
+  SSL_OptionSet(mFD, option, value);
+  return NS_OK;
+}
+
 } // namespace net
 } // namespace mozilla

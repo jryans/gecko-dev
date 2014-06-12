@@ -15,8 +15,22 @@ interface nsITLSSecurityCallback;
 [scriptable, uuid(2e025b6c-96ba-4781-85fb-d1cf1a653207)]
 interface nsITLSServerSocket : nsIServerSocket
 {
+  
   attribute nsIX509Cert serverCert;
   void awaitSecurity(in nsITLSSecurityCallback callback);
+
+  void setSecurityOption(in unsigned long option,
+                         in unsigned long value);
+
+  const unsigned long REQUEST_CERTIFICATE     = 3;
+  const unsigned long NO_CACHE                = 9;
+  const unsigned long REQUIRE_CERTIFICATE     = 10;
+  const unsigned long ENABLE_SESSION_TICKETS  = 18;
+
+  const unsigned long REQUIRE_NEVER           = 0;
+  const unsigned long REQUIRE_ALWAYS          = 1;
+  const unsigned long REQUIRE_FIRST_HANDSHAKE = 2;
+  const unsigned long REQUIRE_NO_ERROR        = 3;
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
