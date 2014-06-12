@@ -32,6 +32,7 @@ public:
   virtual uint64_t ByteCountReceived() { return 0; }
 
   void OnClientCertReceived(PRFileDesc* fd);
+  void OnHandshakeDone(PRFileDesc* fd);
 
   TLSServerSocket();
 

@@ -213,6 +213,7 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
         mListener->OnSocketAccepted(serverSocket, trans);
 
         SSL_AuthCertificateHook(clientFD, AuthCertificateHook, this);
+        SSL_HandshakeCallback(clientFD, HandshakeCallback, this);
       }
     }
   }
@@ -550,9 +551,6 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
   SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, false);
-  // TODO: Check rv
-  //SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
-  SSL_HandshakeCallback(mFD, HandshakeCallback, nullptr);
 
   // Look up the real cert by nickname
   nsAutoString nickname;
@@ -613,14 +611,25 @@ TLSServerSocket::OnClientCertReceived(PRFileDesc* fd)
     nsNSSCertificate::Create(clientCert.get());
 
   if (mSecurityCallback) {
-    mSecurityCallback->OnClientCertReceived(nullptr, nullptr, nsClientCert);
+    mSecurityCallback->OnClientCertReceived(this, nullptr, nsClientCert);
   }
 }
 
 void
-TLSServerSocket::HandshakeCallback(PRFileDesc *fd, void* arg)
+TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 {
   printf_stderr("HANDSHAKE DONE\n");
+
+  TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
+  serverSocket->OnHandshakeDone(fd);
+}
+
+void
+TLSServerSocket::OnHandshakeDone(PRFileDesc* fd)
+{
+  if (mSecurityCallback) {
+    mSecurityCallback->OnHandshakeDone(this, nullptr);
+  }
 }
 
 NS_IMETHODIMP
@@ -705,6 +714,26 @@ public:
     nsCOMPtr<nsIX509Cert> mCert;
   };
 
+ class OnHandshakeDoneRunnable : public nsRunnable
+  {
+  public:
+    OnHandshakeDoneRunnable(
+        const nsMainThreadPtrHandle<nsITLSSecurityCallback>& aCallback,
+        nsITLSServerSocket* aServer,
+        nsISocketTransport* aTransport)
+      : mCallback(aCallback)
+      , mServer(aServer)
+      , mTransport(aTransport)
+    { }
+
+    NS_DECL_NSIRUNNABLE
+
+  private:
+    nsMainThreadPtrHandle<nsITLSSecurityCallback> mCallback;
+    nsCOMPtr<nsITLSServerSocket> mServer;
+    nsCOMPtr<nsISocketTransport> mTransport;
+  };
+
 private:
   nsMainThreadPtrHandle<nsITLSSecurityCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mTargetThread;
@@ -727,6 +756,22 @@ NS_IMETHODIMP
 TLSSecurityCallbackProxy::OnClientCertReceivedRunnable::Run()
 {
   mCallback->OnClientCertReceived(mServer, mTransport, mCert);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSSecurityCallbackProxy::OnHandshakeDone(nsITLSServerSocket* aServer,
+                                          nsISocketTransport* aTransport)
+{
+  nsRefPtr<OnHandshakeDoneRunnable> r =
+    new OnHandshakeDoneRunnable(mCallback, aServer, aTransport);
+  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
+}
+
+NS_IMETHODIMP
+TLSSecurityCallbackProxy::OnHandshakeDoneRunnable::Run()
+{
+  mCallback->OnHandshakeDone(mServer, mTransport);
   return NS_OK;
 }
 

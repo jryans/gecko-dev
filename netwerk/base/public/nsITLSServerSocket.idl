@@ -25,4 +25,7 @@ interface nsITLSSecurityCallback : nsISupports
   void onClientCertReceived(in nsITLSServerSocket server,
                             in nsISocketTransport transport,
                             in nsIX509Cert        cert);
+
+  void onHandshakeDone(in nsITLSServerSocket server,
+                       in nsISocketTransport transport);
 };
