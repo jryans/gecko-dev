@@ -547,10 +547,10 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
 
   // TODO: Break out as options
-  SSL_OptionSet(mFD, SSL_NO_CACHE, true);
+  /*SSL_OptionSet(mFD, SSL_NO_CACHE, true);
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
-  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, false);
+  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, false);*/
 
   // Look up the real cert by nickname
   nsAutoString nickname;
@@ -794,9 +794,54 @@ TLSServerSocket::AwaitSecurity(nsITLSSecurityCallback* aCallback)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetSecurityOption(uint32_t option, uint32_t value)
+TLSServerSocket::GetRequestCertificate(bool* value)
 {
-  SSL_OptionSet(mFD, option, value);
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetRequestCertificate(bool value)
+{
+  SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, value);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::GetNoCache(bool* value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetNoCache(bool value)
+{
+  SSL_OptionSet(mFD, SSL_NO_CACHE, value);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::GetRequireCertificate(uint32_t* value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetRequireCertificate(uint32_t value)
+{
+  SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, value);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::GetEnableSessionTickets(bool* value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetEnableSessionTickets(bool value)
+{
+  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, value);
   return NS_OK;
 }
 
