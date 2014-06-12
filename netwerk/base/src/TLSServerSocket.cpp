@@ -549,6 +549,7 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
   SSL_OptionSet(mFD, SSL_NO_CACHE, true);
   SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
+  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, false);
   // TODO: Check rv
   //SSL_AuthCertificateHook(mFD, AuthCertificateHook, nullptr);
   SSL_HandshakeCallback(mFD, HandshakeCallback, nullptr);
