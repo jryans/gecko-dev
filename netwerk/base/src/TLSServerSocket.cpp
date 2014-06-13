@@ -394,6 +394,17 @@ TLSServerSocket::InitWithAddress(const PRNetAddr *aAddr, int32_t aBackLog)
     goto fail;
   }
 
+  // Set TLS options on the listening socket
+  SOCKET_LOG(("TLSServerSocket: Adding SSL options"));
+  mFD = SSL_ImportFD(nullptr, mFD);
+  if (NS_WARN_IF(!mFD)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  SSL_OptionSet(mFD, SSL_SECURITY, true);
+  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_CLIENT, false);
+  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
+
   // wait until AsyncListen is called before polling the socket for
   // client connections.
   return NS_OK;
@@ -534,23 +545,6 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
     SOCKET_LOG(("TLSServerSocket: No cert"));
     return NS_ERROR_NOT_INITIALIZED;
   }
-
-  // Set TLS options on the listening socket
-  SOCKET_LOG(("TLSServerSocket: Adding SSL options"));
-  mFD = SSL_ImportFD(nullptr, mFD);
-  if (NS_WARN_IF(!mFD)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  SSL_OptionSet(mFD, SSL_SECURITY, true);
-  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_CLIENT, false);
-  SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
-
-  // TODO: Break out as options
-  /*SSL_OptionSet(mFD, SSL_NO_CACHE, true);
-  SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, true);
-  SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
-  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, false);*/
 
   // Look up the real cert by nickname
   nsAutoString nickname;
