@@ -15,28 +15,81 @@ interface nsITLSSecurityCallback;
 [scriptable, uuid(2e025b6c-96ba-4781-85fb-d1cf1a653207)]
 interface nsITLSServerSocket : nsIServerSocket
 {
-  
+  /**
+   * serverCert
+   *
+   * The server's certificate that is preseneted to the client during the TLS
+   * handshake.  This is required to be set before calling |asyncListen|.
+   */
   attribute nsIX509Cert serverCert;
+
+  /**
+   * awaitSecurity
+   *
+   * Sets a callback to be notified of various TLS handshake events as described
+   * below in niITLSSecurityCallback.  This is optional.
+   */
   void awaitSecurity(in nsITLSSecurityCallback callback);
 
+  /**
+   * requestCertificate
+   *
+   * Whether the server should request a client auth certificate from the
+   * client.  Defaults to false.
+   */
   attribute boolean requestCertificate;
-  attribute boolean noCache;
-  attribute unsigned long requireCertificate;
-  attribute boolean enableSessionTickets;
 
+  /**
+   * sessionCache
+   *
+   * Whether the server should use a session cache.  Defaults to true.
+   */
+  attribute boolean sessionCache;
+
+  /**
+   * requireCertificate
+   *
+   * Whether the server should require a client auth certificate from the
+   * client.  Defaults to REQUIRE_FIRST_HANDSHAKE.  See values below.
+   */
+  attribute unsigned long requireCertificate;
+
+  /**
+   * Values for requireCertificate
+   */
   const unsigned long REQUIRE_NEVER           = 0;
   const unsigned long REQUIRE_ALWAYS          = 1;
   const unsigned long REQUIRE_FIRST_HANDSHAKE = 2;
   const unsigned long REQUIRE_NO_ERROR        = 3;
+
+  /**
+   * sessionTickets
+   *
+   * Whether the server should use support session tickets.  Defaults to true.
+   */
+  attribute boolean sessionTickets;
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
 interface nsITLSSecurityCallback : nsISupports
 {
+  /**
+   * onClientCertReceived
+   *
+   * Called when the server receives a client auth cert from the client.  Note
+   * that client certs are not requested by default.  This method is only called
+   * when a client cert is actually exchanged, so it may be skipped if session
+   * caching or tickets allow TLS to skip the cert exchange.
+   */
   void onClientCertReceived(in nsITLSServerSocket server,
                             in nsISocketTransport transport,
                             in nsIX509Cert        cert);
 
+  /**
+   * onHandshakeDone
+   *
+   * Called when the TLS handshake is complete.
+   */
   void onHandshakeDone(in nsITLSServerSocket server,
                        in nsISocketTransport transport);
 };
