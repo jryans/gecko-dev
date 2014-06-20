@@ -908,10 +908,15 @@ let RemoteDebugger = {
 #endif
     }
 
-    let path = Services.prefs.getCharPref("devtools.debugger.unix-domain-socket") ||
-               "/data/local/debugger-socket";
+    let portOrPath =
+      Services.prefs.getCharPref("devtools.debugger.unix-domain-socket") ||
+      "/data/local/debugger-socket";
+
+    portOrPath = Math.floor(Math.random() * (65000 - 2000 + 1)) + 2000;
+
     try {
-      DebuggerServer.openListener(path);
+      dump("Starting debugger on " + portOrPath + "\n");
+      DebuggerServer.openListener(portOrPath);
       // Temporary event, until bug 942756 lands and offers a way to know
       // when the server is up and running.
       Services.obs.notifyObservers(null, 'debugger-server-started', null);
@@ -919,6 +924,10 @@ let RemoteDebugger = {
     } catch (e) {
       dump('Unable to start debugger server: ' + e + '\n');
     }
+
+    const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+    let discovery = devtools.require("devtools/toolkit/discovery/discovery");
+    discovery.addService("devtools", { port: portOrPath });
   },
 
   stop: function debugger_stop() {
@@ -937,6 +946,11 @@ let RemoteDebugger = {
     } catch (e) {
       dump('Unable to stop debugger server: ' + e + '\n');
     }
+
+    const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+    let discovery = devtools.require("devtools/toolkit/discovery/discovery");
+    discovery.removeService("devtools");
+
     this._running = false;
   }
 }
