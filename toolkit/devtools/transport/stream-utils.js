@@ -139,7 +139,10 @@ StreamCopier.prototype = {
   },
 
   _emitProgress: function() {
-    this.emit("progress", this._length - this._amountLeft, this._length);
+    this.emit("progress", {
+      bytesSent: this._length - this._amountLeft,
+      totalBytes: this._length
+    });
   },
 
   _flush: function() {

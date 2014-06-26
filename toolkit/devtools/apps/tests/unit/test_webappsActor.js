@@ -181,9 +181,12 @@ add_test(function testFileUploadInstall() {
   gClient.traits.bulk = false;
 
   let progressDeferred = promise.defer();
-  // Ensure we get at least one progress event
-  AppActorFront.once("install-progress", function() {
-    progressDeferred.resolve();
+  // Ensure we get at least one progress event at the end
+  AppActorFront.on("install-progress", function onProgress(e, progress) {
+    if (progress.bytesSent == progress.totalBytes) {
+      AppActorFront.off("install-progress", onProgress);
+      progressDeferred.resolve();
+    }
   });
 
   let installed =
@@ -207,9 +210,12 @@ add_test(function testBulkUploadInstall() {
   do_check_true(gClient.traits.bulk);
 
   let progressDeferred = promise.defer();
-  // Ensure we get at least one progress event
-  AppActorFront.once("install-progress", function() {
-    progressDeferred.resolve();
+  // Ensure we get at least one progress event at the end
+  AppActorFront.on("install-progress", function onProgress(e, progress) {
+    if (progress.bytesSent == progress.totalBytes) {
+      AppActorFront.off("install-progress", onProgress);
+      progressDeferred.resolve();
+    }
   });
 
   let installed =

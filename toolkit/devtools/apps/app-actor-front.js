@@ -110,7 +110,10 @@ function uploadPackageJSON(client, webappsActor, packageFile) {
   let bytesRead = 0;
 
   function emitProgress() {
-    emitInstallProgress(bytesRead, fileSize);
+    emitInstallProgress({
+      bytesSent: bytesRead,
+      totalBytes: fileSize
+    });
   }
 
   function openFile(actor) {
@@ -189,8 +192,8 @@ function uploadPackageBulk(client, webappsActor, packageFile) {
     request.on("bulk-send-ready", ({copyFrom}) => {
       NetUtil.asyncFetch(packageFile, function(inputStream) {
         let copying = copyFrom(inputStream);
-        copying.on("progress", (e, bytesSent, totalBytes) => {
-          emitInstallProgress(bytesSent, totalBytes);
+        copying.on("progress", (e, progress) => {
+          emitInstallProgress(progress);
         });
         copying.then(() => {
           console.log("Bulk upload done");
@@ -260,8 +263,14 @@ function installPackaged(client, webappsActor, packagePath, appId) {
 }
 exports.installPackaged = installPackaged;
 
-function emitInstallProgress(bytesSent, totalBytes) {
-  AppActorFront.emit("install-progress", bytesSent, totalBytes);
+/**
+ * Emits numerous events as packaged app installation proceeds.
+ * The progress object contains:
+ *  * bytesSent:  The number of bytes sent so far
+ *  * totalBytes: The total number of bytes to send
+ */
+function emitInstallProgress(progress) {
+  AppActorFront.emit("install-progress", progress);
 }
 
 function installHosted(client, webappsActor, appId, metadata, manifest) {
