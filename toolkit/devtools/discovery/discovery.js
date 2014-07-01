@@ -131,7 +131,9 @@ Transport.prototype = {
     this.emit("message", object);
   },
 
-  onStopListening: function() {}
+  onStopListening: function(socket, status) {
+    log("Socket stopped: " + status);
+  }
 
 };
 
