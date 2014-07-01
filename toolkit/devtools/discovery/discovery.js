@@ -71,6 +71,15 @@ function log(msg) {
   }
 }
 
+if (Services.appinfo.widgetToolkit == "gonk") {
+  const { DebuggerServer } = require("devtools/server/main");
+  const chromeWin =
+    Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  chromeWin.navigator.mozWifiManager.onstatuschange = (status) => {
+    log(status);
+  };
+}
+
 /**
  * Each Transport instance owns a single UDPSocket.
  * @param port integer
