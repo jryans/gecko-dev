@@ -71,15 +71,6 @@ function log(msg) {
   }
 }
 
-if (Services.appinfo.widgetToolkit == "gonk") {
-  const { DebuggerServer } = require("devtools/server/main");
-  const chromeWin =
-    Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
-  chromeWin.navigator.mozWifiManager.onstatuschange = (status) => {
-    log(status);
-  };
-}
-
 /**
  * Each Transport instance owns a single UDPSocket.
  * @param port integer
@@ -306,6 +297,17 @@ Discovery.prototype = {
     this._transports.update = null;
   },
 
+  restartListening: function() {
+    if (this._transports.scan) {
+      this._stopListeningForScan();
+      this._startListeningForScan();
+    }
+    if (this._transports.update) {
+      this._stopListeningForUpdate();
+      this._startListeningForUpdate();
+    }
+  },
+
   /**
    * When sending message, we can use either transport, so just pick the first
    * one currently alive.
@@ -409,5 +411,18 @@ Discovery.prototype = {
 };
 
 let discovery = new Discovery();
+
+if (Services.appinfo.widgetToolkit == "gonk") {
+  const { DebuggerServer } = require("devtools/server/main");
+  const chromeWin =
+    Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  chromeWin.navigator.mozWifiManager.onstatuschange = (event) => {
+    log("WiFi status change: " + event.status);
+    if (event.status === "connected") {
+      log("Connected, restart listening");
+      discovery.restartListening();
+    }
+  };
+}
 
 module.exports = discovery;
