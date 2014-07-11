@@ -439,6 +439,8 @@ namespace {
 
 class ServerSocketListenerProxy MOZ_FINAL : public nsIServerSocketListener
 {
+  ~ServerSocketListenerProxy() {}
+
 public:
   ServerSocketListenerProxy(nsIServerSocketListener* aListener)
     : mListener(new nsMainThreadPtrHolder<nsIServerSocketListener>(aListener))
@@ -676,6 +678,8 @@ namespace {
 
 class TLSSecurityCallbackProxy MOZ_FINAL : public nsITLSSecurityCallback
 {
+  ~TLSSecurityCallbackProxy() {}
+
 public:
   TLSSecurityCallbackProxy(nsITLSSecurityCallback* aCallback)
     : mCallback(new nsMainThreadPtrHolder<nsITLSSecurityCallback>(aCallback))
@@ -788,6 +792,32 @@ TLSServerSocket::AwaitSecurity(nsITLSSecurityCallback* aCallback)
 }
 
 NS_IMETHODIMP
+TLSServerSocket::GetSessionCache(bool* value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetSessionCache(bool value)
+{
+  SSL_OptionSet(mFD, SSL_NO_CACHE, !value);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::GetSessionTickets(bool* value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TLSServerSocket::SetSessionTickets(bool value)
+{
+  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, value);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 TLSServerSocket::GetRequestCertificate(bool* value)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -801,19 +831,6 @@ TLSServerSocket::SetRequestCertificate(bool value)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::GetNoCache(bool* value)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TLSServerSocket::SetNoCache(bool value)
-{
-  SSL_OptionSet(mFD, SSL_NO_CACHE, value);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TLSServerSocket::GetRequireCertificate(uint32_t* value)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -823,19 +840,6 @@ NS_IMETHODIMP
 TLSServerSocket::SetRequireCertificate(uint32_t value)
 {
   SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, value);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TLSServerSocket::GetEnableSessionTickets(bool* value)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TLSServerSocket::SetEnableSessionTickets(bool value)
-{
-  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, value);
   return NS_OK;
 }
 

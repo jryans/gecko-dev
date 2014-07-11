@@ -36,9 +36,9 @@ public:
 
   TLSServerSocket();
 
+private:
   virtual ~TLSServerSocket();
 
-private:
   void OnMsgClose();
   void OnMsgAttach();
 

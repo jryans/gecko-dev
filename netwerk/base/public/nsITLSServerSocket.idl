@@ -32,19 +32,26 @@ interface nsITLSServerSocket : nsIServerSocket
   void awaitSecurity(in nsITLSSecurityCallback callback);
 
   /**
+   * sessionCache
+   *
+   * Whether the server should use a session cache.  Defaults to true.
+   */
+  attribute boolean sessionCache;
+
+  /**
+   * sessionTickets
+   *
+   * Whether the server should use support session tickets.  Defaults to true.
+   */
+  attribute boolean sessionTickets;
+
+  /**
    * requestCertificate
    *
    * Whether the server should request a client auth certificate from the
    * client.  Defaults to false.
    */
   attribute boolean requestCertificate;
-
-  /**
-   * sessionCache
-   *
-   * Whether the server should use a session cache.  Defaults to true.
-   */
-  attribute boolean sessionCache;
 
   /**
    * requireCertificate
@@ -61,13 +68,6 @@ interface nsITLSServerSocket : nsIServerSocket
   const unsigned long REQUIRE_ALWAYS          = 1;
   const unsigned long REQUIRE_FIRST_HANDSHAKE = 2;
   const unsigned long REQUIRE_NO_ERROR        = 3;
-
-  /**
-   * sessionTickets
-   *
-   * Whether the server should use support session tickets.  Defaults to true.
-   */
-  attribute boolean sessionTickets;
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
