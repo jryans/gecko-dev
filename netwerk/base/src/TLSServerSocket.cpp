@@ -792,54 +792,55 @@ TLSServerSocket::AwaitSecurity(nsITLSSecurityCallback* aCallback)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::GetSessionCache(bool* value)
+TLSServerSocket::GetSessionCache(bool* aEnabled)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetSessionCache(bool value)
+TLSServerSocket::SetSessionCache(bool aEnabled)
 {
-  SSL_OptionSet(mFD, SSL_NO_CACHE, !value);
+  SSL_OptionSet(mFD, SSL_NO_CACHE, !aEnabled);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::GetSessionTickets(bool* value)
+TLSServerSocket::GetSessionTickets(bool* aEnabled)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetSessionTickets(bool value)
+TLSServerSocket::SetSessionTickets(bool aEnabled)
 {
-  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, value);
+  SSL_OptionSet(mFD, SSL_ENABLE_SESSION_TICKETS, aEnabled);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::GetRequestCertificate(bool* value)
+TLSServerSocket::GetRequestCertificate(uint32_t* aMode)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetRequestCertificate(bool value)
+TLSServerSocket::SetRequestCertificate(uint32_t aMode)
 {
-  SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, value);
-  return NS_OK;
-}
+  SSL_OptionSet(mFD, SSL_REQUEST_CERTIFICATE, aMode != REQUEST_NEVER);
 
-NS_IMETHODIMP
-TLSServerSocket::GetRequireCertificate(uint32_t* value)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TLSServerSocket::SetRequireCertificate(uint32_t value)
-{
-  SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, value);
+  switch (aMode) {
+    case REQUEST_ALWAYS:
+      SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NO_ERROR);
+      break;
+    case REQUIRE_FIRST_HANDSHAKE:
+      SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_FIRST_HANDSHAKE);
+      break;
+    case REQUIRE_ALWAYS:
+      SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_ALWAYS);
+      break;
+    default:
+      SSL_OptionSet(mFD, SSL_REQUIRE_CERTIFICATE, SSL_REQUIRE_NEVER);
+  }
   return NS_OK;
 }
 

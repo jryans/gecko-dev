@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIServerSocket.idl"
-#include "nsIX509Cert.idl"
 
+interface nsIX509Cert;
 interface nsITLSSecurityCallback;
 
 /**
@@ -48,26 +48,21 @@ interface nsITLSServerSocket : nsIServerSocket
   /**
    * requestCertificate
    *
-   * Whether the server should request a client auth certificate from the
-   * client.  Defaults to false.
+   * Whether the server should request and/or require a client auth certificate
+   * from the client.  Defaults to REQUEST_NEVER.  See the possible options
+   * below.
    */
-  attribute boolean requestCertificate;
+  attribute unsigned long requestCertificate;
 
   /**
-   * requireCertificate
-   *
-   * Whether the server should require a client auth certificate from the
-   * client.  Defaults to REQUIRE_FIRST_HANDSHAKE.  See values below.
+   * Values for requestCertificate
+   * TODO: More comments
    */
-  attribute unsigned long requireCertificate;
-
-  /**
-   * Values for requireCertificate
-   */
-  const unsigned long REQUIRE_NEVER           = 0;
-  const unsigned long REQUIRE_ALWAYS          = 1;
-  const unsigned long REQUIRE_FIRST_HANDSHAKE = 2;
-  const unsigned long REQUIRE_NO_ERROR        = 3;
+  const unsigned long REQUEST_NEVER           = 0;
+  const unsigned long REQUEST_FIRST_HANDSHAKE = 1;
+  const unsigned long REQUEST_ALWAYS          = 2;
+  const unsigned long REQUIRE_FIRST_HANDSHAKE = 3;
+  const unsigned long REQUIRE_ALWAYS          = 4;
 };
 
 [scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
