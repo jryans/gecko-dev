@@ -216,7 +216,7 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
           do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
         mListener->OnSocketAccepted(serverSocket, trans);
 
-        SSL_AuthCertificateHook(clientFD, AuthCertificateHook, this);
+        SSL_AuthCertificateHook(clientFD, AuthCertificateHook, tlsStatus);
         SSL_HandshakeCallback(clientFD, HandshakeCallback, this);
       }
     }
@@ -590,6 +590,8 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
   printf_stderr("AUTH CERT, FD: %p\n", fd);
 
   ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
+  nsCOMPtr<nsIX509Cert> nsClientCert =
+    nsNSSCertificate::Create(clientCert.get());
 
   if (clientCert) {
     printf_stderr("GOT CERT\n");
@@ -597,8 +599,10 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
     printf_stderr("NO CERT\n");
   }
 
-  TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
-  serverSocket->OnClientCertReceived(fd);
+  RefPtr<nsSSLStatus> tlsStatus = static_cast<nsSSLStatus*>(arg);
+  tlsStatus->mServerCert = nsClientCert;
+  //TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
+  //serverSocket->OnClientCertReceived(fd);
 
   return SECSuccess;
 }
