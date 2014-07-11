@@ -13,6 +13,7 @@
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSocketTransport2.h"
+#include "nsSSLStatus.h"
 #include "nsThreadUtils.h"
 #include "prio.h"
 #include "prnetdb.h"
@@ -204,7 +205,10 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
     else
     {
       printf_stderr("NEW CLIENT FD: %p\n", clientFD);
-      nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr);
+      nsCOMPtr<nsISupports> tlsStatus =
+        NS_ISUPPORTS_CAST(nsISSLStatus*, new nsSSLStatus());
+      nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr,
+                                                   tlsStatus);
       if (NS_FAILED(rv)) {
         mCondition = rv;
       } else {
