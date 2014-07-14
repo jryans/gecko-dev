@@ -1010,4 +1010,6 @@ pref("identity.fxaccounts.enabled", true);
 pref("services.mobileid.server.uri", "https://msisdn-dev.stage.mozaws.net");
 
 // Enable mapped array buffer
+#ifndef XP_WIN
 pref("dom.mapped_arraybuffer.enabled", true);
+#endif
