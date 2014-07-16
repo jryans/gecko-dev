@@ -63,8 +63,10 @@ private:
 
 class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
 {
+  friend class TLSServerSocket;
+
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITLSSERVERCONNECTIONINFO
 
   TLSServerConnectionInfo();

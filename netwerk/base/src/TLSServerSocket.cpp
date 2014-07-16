@@ -205,10 +205,10 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
     else
     {
       printf_stderr("NEW CLIENT FD: %p\n", clientFD);
-      nsCOMPtr<nsISupports> tlsStatus =
-        NS_ISUPPORTS_CAST(nsISSLStatus*, new nsSSLStatus());
+      RefPtr<TLSServerConnectionInfo> info = new TLSServerConnectionInfo();
+      info->mServerSocket = this;
       nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr,
-                                                   tlsStatus);
+                                                   info);
       if (NS_FAILED(rv)) {
         mCondition = rv;
       } else {
@@ -217,7 +217,7 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
         mListener->OnSocketAccepted(serverSocket, trans);
 
         SSL_AuthCertificateHook(clientFD, AuthCertificateHook, nullptr);
-        SSL_HandshakeCallback(clientFD, HandshakeCallback, tlsStatus);
+        SSL_HandshakeCallback(clientFD, HandshakeCallback, info);
       }
     }
   }
@@ -601,15 +601,18 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 {
   printf_stderr("HANDSHAKE DONE\n");
 
-  ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
-  if (!clientCert) {
-    return;
-  }
+  RefPtr<TLSServerConnectionInfo> info =
+    static_cast<TLSServerConnectionInfo*>(arg);
 
-  nsCOMPtr<nsIX509Cert> nsClientCert =
-    nsNSSCertificate::Create(clientCert.get());
-  RefPtr<nsSSLStatus> tlsStatus = static_cast<nsSSLStatus*>(arg);
-  tlsStatus->mServerCert = nsClientCert;
+  RefPtr<nsSSLStatus> tlsStatus = new nsSSLStatus();
+  info->mTlsStatus = tlsStatus;
+
+  ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
+  if (clientCert) {
+    nsCOMPtr<nsIX509Cert> nsClientCert =
+      nsNSSCertificate::Create(clientCert.get());
+    tlsStatus->mServerCert = nsClientCert;
+  }
 
   //TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
   //serverSocket->OnHandshakeDone(fd);
@@ -747,24 +750,10 @@ TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::SetServerSocket(nsITLSServerSocket* aSocket)
-{
-  mServerSocket = aSocket;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TLSServerConnectionInfo::GetTlsStatus(nsISSLStatus** aTlsStatus)
 {
   *aTlsStatus = mTlsStatus;
   NS_IF_ADDREF(*aTlsStatus);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TLSServerConnectionInfo::SetTlsStatus(nsISSLStatus* aTlsStatus)
-{
-  mTlsStatus = aTlsStatus;
   return NS_OK;
 }
 

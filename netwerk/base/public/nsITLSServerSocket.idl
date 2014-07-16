@@ -62,6 +62,6 @@ interface nsISSLStatus;
 [scriptable, uuid(64687740-e524-45ea-9786-aed078479d7a)]
 interface nsITLSServerConnectionInfo : nsISupports
 {
-  attribute nsITLSServerSocket serverSocket;
-  attribute nsISSLStatus tlsStatus;
+  readonly attribute nsITLSServerSocket serverSocket;
+  readonly attribute nsISSLStatus tlsStatus;
 };
