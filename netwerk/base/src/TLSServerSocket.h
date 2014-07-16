@@ -61,6 +61,21 @@ private:
   nsCOMPtr<nsIX509Cert>             mServerCert;
 };
 
+class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSITLSSERVERCONNECTIONINFO
+
+  TLSServerConnectionInfo();
+
+private:
+  virtual ~TLSServerConnectionInfo();
+
+  nsCOMPtr<nsITLSServerSocket> mServerSocket;
+  nsCOMPtr<nsISSLStatus> mTlsStatus;
+};
+
 } // namespace net
 } // namespace mozilla
 

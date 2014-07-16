@@ -722,5 +722,51 @@ TLSServerSocket::SetRequestCertificate(uint32_t aMode)
   return NS_OK;
 }
 
+//-----------------------------------------------------------------------------
+// TLSServerConnectionInfo
+//-----------------------------------------------------------------------------
+
+NS_IMPL_ISUPPORTS(TLSServerConnectionInfo, nsITLSServerConnectionInfo)
+
+TLSServerConnectionInfo::TLSServerConnectionInfo()
+  : mServerSocket(nullptr)
+  , mTlsStatus(nullptr)
+{
+}
+
+TLSServerConnectionInfo::~TLSServerConnectionInfo()
+{
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
+{
+  *aSocket = mServerSocket;
+  NS_IF_ADDREF(*aSocket);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::SetServerSocket(nsITLSServerSocket* aSocket)
+{
+  mServerSocket = aSocket;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetTlsStatus(nsISSLStatus** aTlsStatus)
+{
+  *aTlsStatus = mTlsStatus;
+  NS_IF_ADDREF(*aTlsStatus);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::SetTlsStatus(nsISSLStatus* aTlsStatus)
+{
+  mTlsStatus = aTlsStatus;
+  return NS_OK;
+}
+
 } // namespace net
 } // namespace mozilla

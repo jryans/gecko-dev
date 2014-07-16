@@ -56,3 +56,12 @@ interface nsITLSServerSocket : nsIServerSocket
   const unsigned long REQUIRE_FIRST_HANDSHAKE = 3;
   const unsigned long REQUIRE_ALWAYS          = 4;
 };
+
+interface nsISSLStatus;
+
+[scriptable, uuid(64687740-e524-45ea-9786-aed078479d7a)]
+interface nsITLSServerConnectionInfo : nsISupports
+{
+  attribute nsITLSServerSocket serverSocket;
+  attribute nsISSLStatus tlsStatus;
+};
