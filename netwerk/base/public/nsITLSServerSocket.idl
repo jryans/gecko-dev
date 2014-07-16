@@ -24,14 +24,6 @@ interface nsITLSServerSocket : nsIServerSocket
   attribute nsIX509Cert serverCert;
 
   /**
-   * awaitSecurity
-   *
-   * Sets a callback to be notified of various TLS handshake events as described
-   * below in niITLSSecurityCallback.  This is optional.
-   */
-  void awaitSecurity(in nsITLSSecurityCallback callback);
-
-  /**
    * sessionCache
    *
    * Whether the server should use a session cache.  Defaults to true.
@@ -63,28 +55,4 @@ interface nsITLSServerSocket : nsIServerSocket
   const unsigned long REQUEST_ALWAYS          = 2;
   const unsigned long REQUIRE_FIRST_HANDSHAKE = 3;
   const unsigned long REQUIRE_ALWAYS          = 4;
-};
-
-[scriptable, uuid(5f7f4ccf-a1c3-4204-ab69-e8274046a778)]
-interface nsITLSSecurityCallback : nsISupports
-{
-  /**
-   * onClientCertReceived
-   *
-   * Called when the server receives a client auth cert from the client.  Note
-   * that client certs are not requested by default.  This method is only called
-   * when a client cert is actually exchanged, so it may be skipped if session
-   * caching or tickets allow TLS to skip the cert exchange.
-   */
-  void onClientCertReceived(in nsITLSServerSocket server,
-                            in nsISocketTransport transport,
-                            in nsIX509Cert        cert);
-
-  /**
-   * onHandshakeDone
-   *
-   * Called when the TLS handshake is complete.
-   */
-  void onHandshakeDone(in nsITLSServerSocket server,
-                       in nsISocketTransport transport);
 };

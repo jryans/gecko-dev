@@ -254,12 +254,6 @@ TLSServerSocket::OnSocketDetached(PRFileDesc *fd)
     if (listener)
       NS_ProxyRelease(mListenerTarget, listener);
   }
-
-  if (mSecurityCallback) {
-    nsITLSSecurityCallback* securityCallback = nullptr;
-    mSecurityCallback.swap(securityCallback);
-    NS_ProxyRelease(mSecurityCallbackTarget, securityCallback);
-  }
 }
 
 void
@@ -597,9 +591,9 @@ TLSServerSocket::OnClientCertReceived(PRFileDesc* fd)
   nsCOMPtr<nsIX509Cert> nsClientCert =
     nsNSSCertificate::Create(clientCert.get());
 
-  if (mSecurityCallback) {
-    mSecurityCallback->OnClientCertReceived(this, nullptr, nsClientCert);
-  }
+  //if (mSecurityCallback) {
+    //mSecurityCallback->OnClientCertReceived(this, nullptr, nsClientCert);
+  //}
 }
 
 void
@@ -624,9 +618,9 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 void
 TLSServerSocket::OnHandshakeDone(PRFileDesc* fd)
 {
-  if (mSecurityCallback) {
-    mSecurityCallback->OnHandshakeDone(this, nullptr);
-  }
+  //if (mSecurityCallback) {
+    //mSecurityCallback->OnHandshakeDone(this, nullptr);
+  //}
 }
 
 NS_IMETHODIMP
@@ -672,123 +666,6 @@ NS_IMETHODIMP
 TLSServerSocket::SetServerCert(nsIX509Cert* aCert)
 {
   mServerCert = aCert;
-  return NS_OK;
-}
-
-namespace {
-
-class TLSSecurityCallbackProxy MOZ_FINAL : public nsITLSSecurityCallback
-{
-  ~TLSSecurityCallbackProxy() {}
-
-public:
-  TLSSecurityCallbackProxy(nsITLSSecurityCallback* aCallback)
-    : mCallback(new nsMainThreadPtrHolder<nsITLSSecurityCallback>(aCallback))
-    , mTargetThread(do_GetCurrentThread())
-  { }
-
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSITLSSECURITYCALLBACK
-
-  class OnClientCertReceivedRunnable : public nsRunnable
-  {
-  public:
-    OnClientCertReceivedRunnable(
-        const nsMainThreadPtrHandle<nsITLSSecurityCallback>& aCallback,
-        nsITLSServerSocket* aServer,
-        nsISocketTransport* aTransport,
-        nsIX509Cert* aCert)
-      : mCallback(aCallback)
-      , mServer(aServer)
-      , mTransport(aTransport)
-      , mCert(aCert)
-    { }
-
-    NS_DECL_NSIRUNNABLE
-
-  private:
-    nsMainThreadPtrHandle<nsITLSSecurityCallback> mCallback;
-    nsCOMPtr<nsITLSServerSocket> mServer;
-    nsCOMPtr<nsISocketTransport> mTransport;
-    nsCOMPtr<nsIX509Cert> mCert;
-  };
-
- class OnHandshakeDoneRunnable : public nsRunnable
-  {
-  public:
-    OnHandshakeDoneRunnable(
-        const nsMainThreadPtrHandle<nsITLSSecurityCallback>& aCallback,
-        nsITLSServerSocket* aServer,
-        nsISocketTransport* aTransport)
-      : mCallback(aCallback)
-      , mServer(aServer)
-      , mTransport(aTransport)
-    { }
-
-    NS_DECL_NSIRUNNABLE
-
-  private:
-    nsMainThreadPtrHandle<nsITLSSecurityCallback> mCallback;
-    nsCOMPtr<nsITLSServerSocket> mServer;
-    nsCOMPtr<nsISocketTransport> mTransport;
-  };
-
-private:
-  nsMainThreadPtrHandle<nsITLSSecurityCallback> mCallback;
-  nsCOMPtr<nsIEventTarget> mTargetThread;
-};
-
-NS_IMPL_ISUPPORTS(TLSSecurityCallbackProxy,
-                  nsITLSSecurityCallback)
-
-NS_IMETHODIMP
-TLSSecurityCallbackProxy::OnClientCertReceived(nsITLSServerSocket* aServer,
-                                               nsISocketTransport* aTransport,
-                                               nsIX509Cert* aCert)
-{
-  nsRefPtr<OnClientCertReceivedRunnable> r =
-    new OnClientCertReceivedRunnable(mCallback, aServer, aTransport, aCert);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
-}
-
-NS_IMETHODIMP
-TLSSecurityCallbackProxy::OnClientCertReceivedRunnable::Run()
-{
-  mCallback->OnClientCertReceived(mServer, mTransport, mCert);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TLSSecurityCallbackProxy::OnHandshakeDone(nsITLSServerSocket* aServer,
-                                          nsISocketTransport* aTransport)
-{
-  nsRefPtr<OnHandshakeDoneRunnable> r =
-    new OnHandshakeDoneRunnable(mCallback, aServer, aTransport);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
-}
-
-NS_IMETHODIMP
-TLSSecurityCallbackProxy::OnHandshakeDoneRunnable::Run()
-{
-  mCallback->OnHandshakeDone(mServer, mTransport);
-  return NS_OK;
-}
-
-} // anonymous namespace
-
-NS_IMETHODIMP
-TLSServerSocket::AwaitSecurity(nsITLSSecurityCallback* aCallback)
-{
-  if (NS_WARN_IF(mSecurityCallback)) {
-    return NS_ERROR_IN_PROGRESS;
-  }
-
-  {
-    MutexAutoLock lock(mLock);
-    mSecurityCallback = new TLSSecurityCallbackProxy(aCallback);
-    mSecurityCallbackTarget = NS_GetCurrentThread();
-  }
-
   return NS_OK;
 }
 

@@ -59,8 +59,6 @@ private:
   bool                              mAttached;
   bool                              mKeepWhenOffline;
   nsCOMPtr<nsIX509Cert>             mServerCert;
-  nsCOMPtr<nsITLSSecurityCallback>  mSecurityCallback;
-  nsCOMPtr<nsIEventTarget>          mSecurityCallbackTarget;
 };
 
 } // namespace net
