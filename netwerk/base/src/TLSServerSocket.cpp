@@ -207,17 +207,17 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
       printf_stderr("NEW CLIENT FD: %p\n", clientFD);
       RefPtr<TLSServerConnectionInfo> info = new TLSServerConnectionInfo();
       info->mServerSocket = this;
+      info->mTransport = trans;
       nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr,
                                                    info);
       if (NS_FAILED(rv)) {
         mCondition = rv;
       } else {
-        nsCOMPtr<nsIServerSocket> serverSocket =
-          do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
-        mListener->OnSocketAccepted(serverSocket, trans);
-
         SSL_AuthCertificateHook(clientFD, AuthCertificateHook, nullptr);
+        // Server application code is notified of new client after handshake
+        // completes
         SSL_HandshakeCallback(clientFD, HandshakeCallback, info);
+        PR_Write(clientFD, "", 0);
       }
     }
   }
@@ -581,19 +581,9 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer)
 {
   printf_stderr("AUTH CERT, FD: %p\n", fd);
+  // Allow any client cert here, server application code can decide whether it's
+  // okay after being notified of the new client socket
   return SECSuccess;
-}
-
-void
-TLSServerSocket::OnClientCertReceived(PRFileDesc* fd)
-{
-  ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
-  nsCOMPtr<nsIX509Cert> nsClientCert =
-    nsNSSCertificate::Create(clientCert.get());
-
-  //if (mSecurityCallback) {
-    //mSecurityCallback->OnClientCertReceived(this, nullptr, nsClientCert);
-  //}
 }
 
 void
@@ -614,16 +604,19 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
     tlsStatus->mServerCert = nsClientCert;
   }
 
-  //TLSServerSocket* serverSocket = static_cast<TLSServerSocket*>(arg);
-  //serverSocket->OnHandshakeDone(fd);
+  nsRefPtr<TLSServerSocket> serverSocket = do_QueryObject(info->mServerSocket);
+  serverSocket->OnHandshakeDone(info);
 }
 
 void
-TLSServerSocket::OnHandshakeDone(PRFileDesc* fd)
+TLSServerSocket::OnHandshakeDone(nsITLSServerConnectionInfo* aInfo)
 {
-  //if (mSecurityCallback) {
-    //mSecurityCallback->OnHandshakeDone(this, nullptr);
-  //}
+  // Notify application code of new client now that handshake is complete
+  if (mListener) {
+    nsCOMPtr<nsISocketTransport> transport;
+    aInfo->GetTransport(getter_AddRefs(transport));
+    mListener->OnSocketAccepted(this, transport);
+  }
 }
 
 NS_IMETHODIMP
@@ -746,6 +739,14 @@ TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
 {
   *aSocket = mServerSocket;
   NS_IF_ADDREF(*aSocket);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetTransport(nsISocketTransport** aTransport)
+{
+  *aTransport = mTransport;
+  NS_IF_ADDREF(*aTransport);
   return NS_OK;
 }
 

@@ -14,6 +14,10 @@
 namespace mozilla {
 namespace net {
 
+#define TLSSERVERSOCKET_IMPL_IID \
+{ 0x8127169b, 0x55a3, 0x4c20, \
+  { 0xbc, 0xfc, 0xc1, 0xeb, 0x69, 0xb2, 0x88, 0x72 } }
+
 class TLSServerSocket : public nsASocketHandler
                       , public nsITLSServerSocket
 {
@@ -21,6 +25,7 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISERVERSOCKET
   NS_DECL_NSITLSSERVERSOCKET
+  NS_DECLARE_STATIC_IID_ACCESSOR(TLSSERVERSOCKET_IMPL_IID)
 
   // nsASocketHandler methods:
   virtual void OnSocketReady(PRFileDesc *fd, int16_t outFlags);
@@ -31,8 +36,7 @@ public:
   virtual uint64_t ByteCountSent() { return 0; }
   virtual uint64_t ByteCountReceived() { return 0; }
 
-  void OnClientCertReceived(PRFileDesc* fd);
-  void OnHandshakeDone(PRFileDesc* fd);
+  void OnHandshakeDone(nsITLSServerConnectionInfo* aInfo);
 
   TLSServerSocket();
 
@@ -61,6 +65,8 @@ private:
   nsCOMPtr<nsIX509Cert>             mServerCert;
 };
 
+NS_DEFINE_STATIC_IID_ACCESSOR(TLSServerSocket, TLSSERVERSOCKET_IMPL_IID)
+
 class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
 {
   friend class TLSServerSocket;
@@ -75,6 +81,7 @@ private:
   virtual ~TLSServerConnectionInfo();
 
   nsCOMPtr<nsITLSServerSocket> mServerSocket;
+  nsCOMPtr<nsISocketTransport> mTransport;
   nsCOMPtr<nsISSLStatus> mTlsStatus;
 };
 

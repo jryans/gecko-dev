@@ -57,11 +57,13 @@ interface nsITLSServerSocket : nsIServerSocket
   const unsigned long REQUIRE_ALWAYS          = 4;
 };
 
+interface nsISocketTransport;
 interface nsISSLStatus;
 
 [scriptable, uuid(64687740-e524-45ea-9786-aed078479d7a)]
 interface nsITLSServerConnectionInfo : nsISupports
 {
   readonly attribute nsITLSServerSocket serverSocket;
+  readonly attribute nsISocketTransport transport;
   readonly attribute nsISSLStatus tlsStatus;
 };
