@@ -7,6 +7,8 @@
 
 #include "nsIDevToolsCertService.h"
 
+#include "nsCOMPtr.h"
+
 namespace mozilla {
 
 class DevToolsCertService MOZ_FINAL : public nsIDevToolsCertService
@@ -19,6 +21,7 @@ public:
 
 private:
   ~DevToolsCertService();
+  nsCOMPtr<nsIX509Cert> mCert;
 };
 
 } // namespace mozilla

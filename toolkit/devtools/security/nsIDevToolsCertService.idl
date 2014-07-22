@@ -11,3 +11,7 @@ interface nsIDevToolsCertService : nsISupports
 {
   nsIX509Cert getOrCreateCert();
 };
+
+%{ C++
+#define DEVTOOLSCERTSERVICE_CONTRACTID "@mozilla.org/devtools/cert-service;1"
+%}
