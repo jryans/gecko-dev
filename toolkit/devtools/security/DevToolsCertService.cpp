@@ -5,10 +5,13 @@
 #include "DevToolsCertService.h"
 
 #include "mozilla/ModuleUtils.h"
+#include "cert.h"
 #include "nsIX509Cert.h"
 #include "nsIX509CertDB.h"
 #include "nsLiteralString.h"
 #include "nsServiceManagerUtils.h"
+#include "pk11pub.h"
+#include "ScopedNSSTypes.h"
 
 namespace mozilla {
 
@@ -33,8 +36,7 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   }
 
   // Try to lookup an existing cert in the DB
-  // TODO: Set to devtools
-  NS_NAMED_LITERAL_STRING(certName, "jryans");
+  NS_NAMED_LITERAL_STRING(certName, "devtools");
 
   nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID);
   if (!certDB) {
@@ -54,7 +56,39 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   }
 
   // Generate a new cert
+  NS_NAMED_LITERAL_CSTRING(subjectNameStr, "CN=devtools");
+  ScopedCERTName subjectName(CERT_AsciiToName(subjectNameStr.get()));
+  if (!subjectName) {
+    return NS_ERROR_FAILURE;
+  }
 
+  // Use the well-known NIST P-265 curve
+  SECOidData* curveOidData = SECOID_FindOIDByTag(SEC_OID_SECG_EC_SECP256R1);
+  if (!curveOidData) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Get key params from the curve
+  ScopedAutoSECItem keyParams(2 + curveOidData->oid.len);
+  keyParams.data[0] = SEC_ASN1_OBJECT_ID;
+  keyParams.data[1] = curveOidData->oid.len;
+  memcpy(keyParams.data + 2, curveOidData->oid.data, curveOidData->oid.len);
+
+  // Generate cert key pair
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  if (!slot) {
+    return NS_ERROR_FAILURE;
+  }
+  ScopedSECKEYPrivateKey privateKey;
+  ScopedSECKEYPublicKey publicKey;
+  SECKEYPublicKey* tempPublicKey;
+  // TODO: What are these bools?
+  privateKey = PK11_GenerateKeyPair(slot, CKM_EC_KEY_PAIR_GEN, &keyParams,
+                                    &tempPublicKey, PR_FALSE, PR_TRUE, nullptr);
+  if (!privateKey) {
+    return NS_ERROR_FAILURE;
+  }
+  publicKey = tempPublicKey;
 
   return NS_ERROR_NOT_IMPLEMENTED;
 }
