@@ -36,7 +36,7 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   }
 
   // Try to lookup an existing cert in the DB
-  NS_NAMED_LITERAL_STRING(certName, "devtools");
+  NS_NAMED_LITERAL_CSTRING(certName, "devtools");
 
   nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID);
   if (!certDB) {
@@ -45,7 +45,7 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
 
   nsCOMPtr<nsIX509Cert> certFromDB;
   nsresult rv;
-  rv = certDB->FindCertByNickname(nullptr, certName,
+  rv = certDB->FindCertByNickname(nullptr, NS_ConvertASCIItoUTF16(certName),
                                   getter_AddRefs(certFromDB));
   if (NS_SUCCEEDED(rv)) {
     // TODO: Verify cert is good
@@ -159,9 +159,25 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
     return NS_ERROR_FAILURE;
   }
 
+  // Save the cert in the DB
+  srv = PK11_ImportCert(slot, cert, CK_INVALID_HANDLE,
+                        certName.get(), PR_FALSE);
+  if (srv != SECSuccess) {
+    return NS_ERROR_FAILURE;
+  }
 
+  // We should now have cert in the DB
+  rv = certDB->FindCertByNickname(nullptr, NS_ConvertASCIItoUTF16(certName),
+                                  getter_AddRefs(certFromDB));
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  return NS_ERROR_NOT_IMPLEMENTED;
+  // TODO: Verify cert is good
+  mCert = certFromDB;
+  *aCert = mCert;
+  NS_IF_ADDREF(*aCert);
+  return NS_OK;
 }
 
 #define DEVTOOLSCERTSERVICE_CID \
