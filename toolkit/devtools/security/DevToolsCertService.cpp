@@ -75,7 +75,7 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   memcpy(keyParams.data + 2, curveOidData->oid.data, curveOidData->oid.len);
 
   // Generate cert key pair
-  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
   if (!slot) {
     return NS_ERROR_FAILURE;
   }
@@ -141,20 +141,20 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   // Set cert signature algorithm
   PLArenaPool* arena = cert->arena;
   srv = SECOID_SetAlgorithmID(arena, &cert->signature,
-                              SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, 0);
+                              SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE, 0);
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
   // Encode and self-sign the cert
   ScopedSECItem certDER(
-    SEC_ASN1EncodeItem(arena, nullptr, cert,
+    SEC_ASN1EncodeItem(nullptr, nullptr, cert,
                        SEC_ASN1_GET(CERT_CertificateTemplate)));
   if (!certDER) {
     return NS_ERROR_FAILURE;
   }
   srv = SEC_DerSignData(arena, &cert->derCert, certDER->data, certDER->len,
-                        privateKey, SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION);
+                        privateKey, SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE);
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
