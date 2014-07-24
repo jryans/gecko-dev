@@ -48,6 +48,12 @@ private:
       return NS_OK;
     }
 
+    // Remove existing certs with this name (if any)
+    rv = RemoveExisting();
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_FAILURE;
+    }
+
     // Generate a new cert
     NS_NAMED_LITERAL_CSTRING(subjectNameStr, "CN=devtools");
     ScopedCERTName subjectName(CERT_AsciiToName(subjectNameStr.get()));
@@ -177,6 +183,25 @@ private:
     // TODO: Verify cert is good
     mCert = certFromDB;
     return NS_OK;
+  }
+
+  nsresult RemoveExisting()
+  {
+    // Search for any existing certs with this name and remove them
+    NS_NAMED_LITERAL_CSTRING(certName, "devtools");
+    SECStatus srv;
+
+    for (;;) {
+      ScopedCERTCertificate cert(
+        PK11_FindCertFromNickname(certName.get(), nullptr));
+      if (!cert) {
+        return NS_OK; // All done
+      }
+      srv = PK11_DeleteTokenCertAndKey(cert, nullptr);
+      if (srv != SECSuccess) {
+        return NS_ERROR_FAILURE;
+      }
+    }
   }
 
   virtual void ReleaseNSSResources() {}
