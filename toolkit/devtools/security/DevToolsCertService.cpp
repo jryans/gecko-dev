@@ -55,7 +55,7 @@ private:
       return NS_ERROR_FAILURE;
     }
 
-    // Use the well-known NIST P-265 curve
+    // Use the well-known NIST P-256 curve
     SECOidData* curveOidData = SECOID_FindOIDByTag(SEC_OID_SECG_EC_SECP256R1);
     if (!curveOidData) {
       return NS_ERROR_FAILURE;
