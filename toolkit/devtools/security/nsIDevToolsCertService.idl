@@ -5,11 +5,18 @@
 #include "nsISupports.idl"
 
 interface nsIX509Cert;
+interface nsIDevToolsGetCertCallback;
 
 [scriptable, uuid(9702fdd4-4c2c-439c-ba2e-19cda018eb99)]
 interface nsIDevToolsCertService : nsISupports
 {
-  nsIX509Cert getOrCreateCert();
+  void getOrCreateCert(in nsIDevToolsGetCertCallback cb);
+};
+
+[scriptable, uuid(cc09633e-7c70-4093-a9cf-79ab676ca8a9)]
+interface nsIDevToolsGetCertCallback : nsISupports
+{
+  void handleCert(in nsIX509Cert cert, in nsresult result);
 };
 
 %{ C++

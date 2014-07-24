@@ -21,7 +21,6 @@ public:
 
 private:
   ~DevToolsCertService();
-  nsCOMPtr<nsIX509Cert> mCert;
 };
 
 } // namespace mozilla
