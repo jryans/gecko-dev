@@ -82,9 +82,9 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
   ScopedSECKEYPrivateKey privateKey;
   ScopedSECKEYPublicKey publicKey;
   SECKEYPublicKey* tempPublicKey;
-  // TODO: What are these bools?
   privateKey = PK11_GenerateKeyPair(slot, CKM_EC_KEY_PAIR_GEN, &keyParams,
-                                    &tempPublicKey, PR_FALSE, PR_TRUE, nullptr);
+                                    &tempPublicKey, PR_TRUE /* token */,
+                                    PR_TRUE /* sensitive */, nullptr);
   if (!privateKey) {
     return NS_ERROR_FAILURE;
   }
