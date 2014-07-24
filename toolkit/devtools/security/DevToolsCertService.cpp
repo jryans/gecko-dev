@@ -159,14 +159,22 @@ DevToolsCertService::GetOrCreateCert(nsIX509Cert** aCert)
     return NS_ERROR_FAILURE;
   }
 
+  // Create a CERTCertificate from the signed data
+  ScopedCERTCertificate certFromDER(
+    CERT_NewTempCertificate(CERT_GetDefaultCertDB(), &cert->derCert, nullptr,
+                            PR_TRUE /* perm */, PR_TRUE /* copyDER */));
+  if (!certFromDER) {
+    return NS_ERROR_FAILURE;
+  }
+
   // Save the cert in the DB
-  srv = PK11_ImportCert(slot, cert, CK_INVALID_HANDLE,
-                        certName.get(), PR_FALSE);
+  srv = PK11_ImportCert(slot, certFromDER, CK_INVALID_HANDLE,
+                        certName.get(), PR_FALSE /* unused */);
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
-  // We should now have cert in the DB
+  // We should now have cert in the DB, read it back in nsIX509Cert form
   rv = certDB->FindCertByNickname(nullptr, NS_ConvertASCIItoUTF16(certName),
                                   getter_AddRefs(certFromDB));
   if (NS_FAILED(rv)) {
