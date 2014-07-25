@@ -57,6 +57,20 @@ private:
 
   nsresult Generate()
   {
+    SECStatus srv;
+
+    // Ensure key database will allow generation
+    ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+    if (!slot) {
+      return NS_ERROR_FAILURE;
+    }
+    if (PK11_NeedUserInit(slot)) {
+      srv = PK11_InitPin(slot, "", "");
+      if (srv != SECSuccess) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
     // Remove existing certs with this name (if any)
     nsresult rv = RemoveExisting();
     if (NS_FAILED(rv)) {
@@ -83,10 +97,6 @@ private:
     memcpy(keyParams.data + 2, curveOidData->oid.data, curveOidData->oid.len);
 
     // Generate cert key pair
-    ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
-    if (!slot) {
-      return NS_ERROR_FAILURE;
-    }
     ScopedSECKEYPrivateKey privateKey;
     ScopedSECKEYPublicKey publicKey;
     SECKEYPublicKey* tempPublicKey;
@@ -126,11 +136,10 @@ private:
 
     // Generate random serial
     unsigned long serial;
-    // Note: This serial in principle could collide, but it's unlikely
-    SECStatus srv =
-      PK11_GenerateRandomOnSlot(slot,
-                                reinterpret_cast<unsigned char *>(&serial),
-                                sizeof(serial));
+    // This serial in principle could collide, but it's unlikely
+    srv = PK11_GenerateRandomOnSlot(slot,
+                                    reinterpret_cast<unsigned char *>(&serial),
+                                    sizeof(serial));
     if (srv != SECSuccess) {
       return NS_ERROR_FAILURE;
     }
