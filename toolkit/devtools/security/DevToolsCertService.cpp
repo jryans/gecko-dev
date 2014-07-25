@@ -10,6 +10,7 @@
 #include "CryptoTask.h"
 #include "nsIX509Cert.h"
 #include "nsIX509CertDB.h"
+#include "nsIX509CertValidity.h"
 #include "nsLiteralString.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
@@ -31,27 +32,35 @@ private:
   virtual nsresult CalculateResult() MOZ_OVERRIDE
   {
     // Try to lookup an existing cert in the DB
-    NS_NAMED_LITERAL_CSTRING(certName, "devtools");
-
-    nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID);
-    if (!certDB) {
-      return NS_ERROR_FAILURE;
-    }
-
-    nsCOMPtr<nsIX509Cert> certFromDB;
-    nsresult rv;
-    rv = certDB->FindCertByNickname(nullptr, NS_ConvertASCIItoUTF16(certName),
-                                    getter_AddRefs(certFromDB));
-    if (NS_SUCCEEDED(rv)) {
-      // TODO: Verify cert is good
-      mCert = certFromDB;
-      return NS_OK;
-    }
-
-    // Remove existing certs with this name (if any)
-    rv = RemoveExisting();
+    nsresult rv = GetFromDB();
+    // Make a new one if getting fails
     if (NS_FAILED(rv)) {
-      return NS_ERROR_FAILURE;
+      rv = Generate();
+    }
+    // If generation fails, we're out of luck
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    // Validate cert, make a new one if it fails
+    rv = Validate();
+    if (NS_FAILED(rv)) {
+      rv = Generate();
+    }
+    // If generation fails, we're out of luck
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    return NS_OK;
+  }
+
+  nsresult Generate()
+  {
+    // Remove existing certs with this name (if any)
+    nsresult rv = RemoveExisting();
+    if (NS_FAILED(rv)) {
+      return rv;
     }
 
     // Generate a new cert
@@ -167,6 +176,7 @@ private:
     }
 
     // Save the cert in the DB
+    NS_NAMED_LITERAL_CSTRING(certName, "devtools");
     srv = PK11_ImportCert(slot, certFromDER, CK_INVALID_HANDLE,
                           certName.get(), PR_FALSE /* unused */);
     if (srv != SECSuccess) {
@@ -174,14 +184,48 @@ private:
     }
 
     // We should now have cert in the DB, read it back in nsIX509Cert form
-    rv = certDB->FindCertByNickname(nullptr, NS_ConvertASCIItoUTF16(certName),
-                                    getter_AddRefs(certFromDB));
-    if (NS_FAILED(rv)) {
+    return GetFromDB();
+  }
+
+  nsresult GetFromDB()
+  {
+    NS_NAMED_LITERAL_STRING(certName, "devtools");
+
+    nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID);
+    if (!certDB) {
       return NS_ERROR_FAILURE;
     }
 
-    // TODO: Verify cert is good
+    nsCOMPtr<nsIX509Cert> certFromDB;
+    nsresult rv;
+    rv = certDB->FindCertByNickname(nullptr, certName,
+                                    getter_AddRefs(certFromDB));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     mCert = certFromDB;
+    return NS_OK;
+  }
+
+  nsresult Validate()
+  {
+    nsCOMPtr<nsIX509CertValidity> validity;
+    mCert->GetValidity(getter_AddRefs(validity));
+
+    PRTime notBefore, notAfter;
+    validity->GetNotBefore(&notBefore);
+    validity->GetNotAfter(&notAfter);
+
+    // Ensure cert will last at least one more day
+    static const PRTime oneDay = PRTime(PR_USEC_PER_SEC)
+                               * PRTime(60)  // sec
+                               * PRTime(60)  // min
+                               * PRTime(24); // hours
+    if (notBefore > PR_Now() ||
+        notAfter < (PR_Now() - oneDay)) {
+      return NS_ERROR_FAILURE;
+    }
+
     return NS_OK;
   }
 
