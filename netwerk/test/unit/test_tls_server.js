@@ -9,6 +9,7 @@ do_get_profile();
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
 
 const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
+const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 const { Promise: promise } =
   Cu.import("resource://gre/modules/Promise.jsm", {});
 const certService = Cc["@mozilla.org/security/local-cert-service;1"]
@@ -56,12 +57,7 @@ function startServer(cert) {
 
       sInput.asyncWait({
         onInputStreamReady: function(input) {
-          try {
-            dump("INPUT: " + input.available() + "\n");
-            let data = NetUtil.readInputStreamToString(input, input.available());
-          } catch (e) {
-            dump("INPUT ERROR:" + e + "\n");
-          }
+          NetUtil.asyncCopy(input, sOutput);
         }
       }, 0, 0, Services.tm.currentThread);
     },
@@ -106,6 +102,8 @@ function startClient(cert) {
     onInputStreamReady: function(is) {
       try {
         dump("CLI INPUT: " + is.available() + "\n");
+        let data = NetUtil.readInputStreamToString(is, is.available());
+        equal(data, "HELLO", "Echoed data received");
         inputDeferred.resolve();
       } catch (e) {
         // Bad cert is known here!
