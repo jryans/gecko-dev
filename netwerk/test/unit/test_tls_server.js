@@ -3,13 +3,12 @@
 
 "use strict";
 
-const { classes: Cc, utils: Cu, interfaces: Ci } = Components;
-
 // Need profile dir to store the key / cert
 do_get_profile();
 // Ensure PSM is initialized
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
 
+const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const { Promise: promise } =
   Cu.import("resource://gre/modules/Promise.jsm", {});
 const certService = Cc["@mozilla.org/security/local-cert-service;1"]
@@ -59,6 +58,7 @@ function startServer(cert) {
         onInputStreamReady: function(input) {
           try {
             dump("INPUT: " + input.available() + "\n");
+            let data = NetUtil.readInputStreamToString(input, input.available());
           } catch (e) {
             dump("INPUT ERROR:" + e + "\n");
           }
@@ -99,12 +99,14 @@ function startClient(cert) {
 
   let clientSecInfo = transport.securityInfo;
   let tlsControl = clientSecInfo.QueryInterface(Ci.nsISSLSocketControl);
-  tlsControl.desiredClientCert = cert;
+  tlsControl.clientCert = cert;
 
+  let inputDeferred = promise.defer();
   input.asyncWait({
     onInputStreamReady: function(is) {
       try {
         dump("CLI INPUT: " + is.available() + "\n");
+        inputDeferred.resolve();
       } catch (e) {
         // Bad cert is known here!
         dump("CLI INPUT ERROR:" + e + "\n");
@@ -114,15 +116,18 @@ function startClient(cert) {
         if (errorCode == SEC_ERROR_UNKNOWN_ISSUER) {
           dump("C doesn't like S cert\n");
         }
+        inputDeferred.reject();
       }
     }
   }, 0, 0, Services.tm.currentThread);
 
+  let outputDeferred = promise.defer();
   output.asyncWait({
     onOutputStreamReady: function(output) {
       try {
         output.write("HELLO", 5);
         dump("WRITE SUCCESS\n");
+        outputDeferred.resolve();
       } catch (e) {
         dump("WRITE FAILED: " + e.result + "\n");
         let SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
@@ -132,15 +137,18 @@ function startClient(cert) {
           // Server didn't like client cert
           dump("S doesn't like C cert\n");
         }
+        outputDeferred.reject();
       }
     }
   }, 0, 0, Services.tm.currentThread);
+
+  return promise.all([inputDeferred.promise, outputDeferred.promise]);
 }
 
 add_task(function*() {
   let cert = yield getCert();
   ok(!!cert, "Got self-signed cert");
-  //startServer(cert);
-  //storeCertOverride(cert);
-  //startClient(cert);
+  startServer(cert);
+  storeCertOverride(cert);
+  yield startClient(cert);
 });
