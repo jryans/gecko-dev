@@ -70,6 +70,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(TLSServerSocket, TLSSERVERSOCKET_IMPL_IID)
 class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
 {
   friend class TLSServerSocket;
+  friend class TLSServerOutputNudger;
 
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -82,7 +83,8 @@ private:
 
   nsCOMPtr<nsITLSServerSocket> mServerSocket;
   nsCOMPtr<nsISocketTransport> mTransport;
-  nsCOMPtr<nsISSLStatus> mTlsStatus;
+  PRFileDesc*                  mClientFD;
+  nsCOMPtr<nsISSLStatus>       mTlsStatus;
 };
 
 } // namespace net

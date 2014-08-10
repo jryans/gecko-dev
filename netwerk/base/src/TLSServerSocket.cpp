@@ -8,6 +8,7 @@
 #include "nsAutoPtr.h"
 #include "nsError.h"
 #include "nsIFile.h"
+#include "nsITimer.h"
 #include "nsNetCID.h"
 #include "nsNSSCertificate.h"
 #include "nsProxyRelease.h"
@@ -45,6 +46,72 @@ PostEvent(TLSServerSocket *s, TLSServerSocketFunc func)
 
   return gSocketTransportService->Dispatch(ev, NS_DISPATCH_NORMAL);
 }
+
+//-----------------------------------------------------------------------------
+
+/**
+ * TODO: This feels like a terrible hack!
+ *
+ * We need to nudge the TLS handshake machinery along when a new client
+ * connects.  We can do this by "writing" 0 bytes.  In order for it to advance
+ * successfully, we must have already received the client's handshake packet.
+ * However, we don't know when that will arrive.  It particular, it is quite
+ * likely / always the case that this data is not yet here at the time we
+ * |PR_Accept| the client socket.  So, a timer is used to keep trying until we
+ * make progress.
+ */
+class TLSServerOutputNudger : public nsITimerCallback
+{
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  TLSServerOutputNudger(TLSServerConnectionInfo* aConnectionInfo)
+    : mConnectionInfo(aConnectionInfo)
+    , mTimer(nullptr)
+  {
+  }
+
+  nsresult Nudge()
+  {
+    nsresult rv;
+
+    if (!mTimer) {
+      mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
+    }
+
+    rv = mTimer->InitWithCallback(this, 1000, nsITimer::TYPE_ONE_SHOT);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP Notify(nsITimer* aTimer)
+  {
+    // TODO: Assert thread
+    // Attempt to an empty write to nudge the TLS state machine
+    PR_Write(mConnectionInfo->mClientFD, "", 0);
+    PRErrorCode result = PR_GetError();
+    printf_stderr("TLSServerNudge %p %d %d\n", this, result,
+                  result == PR_WOULD_BLOCK_ERROR);
+
+    if (result == PR_WOULD_BLOCK_ERROR) {
+      Nudge();
+    }
+
+    return NS_OK;
+  }
+
+private:
+  virtual ~TLSServerOutputNudger() {}
+  RefPtr<TLSServerConnectionInfo> mConnectionInfo;
+  nsCOMPtr<nsITimer>              mTimer;
+};
+
+NS_IMPL_ISUPPORTS(TLSServerOutputNudger, nsITimerCallback)
 
 //-----------------------------------------------------------------------------
 // TLSServerSocket
@@ -208,6 +275,7 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
       RefPtr<TLSServerConnectionInfo> info = new TLSServerConnectionInfo();
       info->mServerSocket = this;
       info->mTransport = trans;
+      info->mClientFD = clientFD;
       nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr,
                                                    info);
       if (NS_FAILED(rv)) {
@@ -217,11 +285,25 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
         // Server application code is notified of new client after handshake
         // completes
         SSL_HandshakeCallback(clientFD, HandshakeCallback, info);
-        PR_Write(clientFD, "", 0);
+        //PR_Write(clientFD, "", 0);
+        auto nudger = new TLSServerOutputNudger(info);
+        nudger->Nudge();
       }
     }
   }
 }
+
+/**
+ * TODO: This feels like a terrible hack!
+ *
+ * We need to nudge the TLS handshake machinery along when a new client
+ * connects.  We can do this by "writing" 0 bytes.  In order for it to advance
+ * successfully, we must have already received the client's handshake packet.
+ * However, we don't know when that will arrive.  It particular, it is quite
+ * likely / always the case that this data is not yet here at the time we
+ * |PR_Accept| the client socket.  So, a timer is used to keep trying until we
+ * make progress.
+ */
 
 void
 TLSServerSocket::OnSocketDetached(PRFileDesc *fd)
