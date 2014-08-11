@@ -285,7 +285,6 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
         // Server application code is notified of new client after handshake
         // completes
         SSL_HandshakeCallback(clientFD, HandshakeCallback, info);
-        //PR_Write(clientFD, "", 0);
         auto nudger = new TLSServerOutputNudger(info);
         nudger->Nudge();
       }

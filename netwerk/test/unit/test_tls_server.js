@@ -45,15 +45,19 @@ function startServer(cert) {
   tlsServer.init(6080, false, -1);
   tlsServer.serverCert = cert;
 
-  let lastServerTransport;
   let sInput, sOutput;
 
   let listener = {
     onSocketAccepted: function(socket, transport) {
       do_print("ACCEPT TLS");
-      lastServerTransport = transport;
       sInput = transport.openInputStream(0, 0, 0);
       sOutput = transport.openOutputStream(0, 0, 0);
+
+      let connectionInfo = transport.securityInfo
+                           .QueryInterface(Ci.nsITLSServerConnectionInfo);
+      let tlsStatus = connectionInfo.tlsStatus;
+      ok(!!tlsStatus.serverCert, "Has peer cert");
+      ok(tlsStatus.serverCert.equals(cert), "Peer cert matches expected cert");
 
       sInput.asyncWait({
         onInputStreamReady: function(input) {
