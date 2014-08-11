@@ -41,8 +41,7 @@ function getCert() {
 function startServer(cert) {
   let tlsServer = Cc["@mozilla.org/network/tls-server-socket;1"]
                   .createInstance(Ci.nsITLSServerSocket);
-  // TODO: Change to any free port
-  tlsServer.init(6080, false, -1);
+  tlsServer.init(-1, true, -1);
   tlsServer.serverCert = cert;
 
   let sInput, sOutput;
@@ -75,18 +74,20 @@ function startServer(cert) {
   tlsServer.requestCertificate = Ci.nsITLSServerSocket.REQUEST_ALWAYS;
 
   tlsServer.asyncListen(listener);
+
+  return tlsServer.port;
 }
 
-function storeCertOverride(cert) {
+function storeCertOverride(port, cert) {
   let overrideBits = Ci.nsICertOverrideService.ERROR_UNTRUSTED |
                      Ci.nsICertOverrideService.ERROR_MISMATCH;
-  certOverrideService.rememberValidityOverride("127.0.0.1", 6080, cert,
-                                               overrideBits, false);
+  certOverrideService.rememberValidityOverride("127.0.0.1", port, cert,
+                                               overrideBits, true);
 }
 
-function startClient(cert) {
+function startClient(port, cert) {
   let transport =
-    socketTransportService.createTransport(["ssl"], 1, "127.0.0.1", 6080, null);
+    socketTransportService.createTransport(["ssl"], 1, "127.0.0.1", port, null);
 
   transport.setEventSink({
     onTransportStatus: function(t, status) {
@@ -150,7 +151,7 @@ function startClient(cert) {
 add_task(function*() {
   let cert = yield getCert();
   ok(!!cert, "Got self-signed cert");
-  startServer(cert);
-  storeCertOverride(cert);
-  yield startClient(cert);
+  let port = startServer(cert);
+  storeCertOverride(port, cert);
+  yield startClient(port, cert);
 });
