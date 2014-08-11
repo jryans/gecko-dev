@@ -686,7 +686,7 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
     tlsStatus->mServerCert = nsClientCert;
   }
 
-  nsRefPtr<TLSServerSocket> serverSocket = do_QueryObject(info->mServerSocket);
+  nsRefPtr<TLSServerSocket> serverSocket = info->mServerSocket;
   serverSocket->OnHandshakeDone(info);
 }
 
@@ -697,7 +697,9 @@ TLSServerSocket::OnHandshakeDone(nsITLSServerConnectionInfo* aInfo)
   if (mListener) {
     nsCOMPtr<nsISocketTransport> transport;
     aInfo->GetTransport(getter_AddRefs(transport));
-    mListener->OnSocketAccepted(this, transport);
+    nsCOMPtr<nsIServerSocket> serverSocket =
+      do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
+    mListener->OnSocketAccepted(serverSocket, transport);
   }
 }
 
@@ -808,6 +810,8 @@ NS_IMPL_ISUPPORTS(TLSServerConnectionInfo, nsITLSServerConnectionInfo)
 
 TLSServerConnectionInfo::TLSServerConnectionInfo()
   : mServerSocket(nullptr)
+  , mTransport(nullptr)
+  , mClientFD(nullptr)
   , mTlsStatus(nullptr)
 {
 }

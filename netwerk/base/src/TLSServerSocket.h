@@ -81,7 +81,7 @@ public:
 private:
   virtual ~TLSServerConnectionInfo();
 
-  nsCOMPtr<nsITLSServerSocket> mServerSocket;
+  nsRefPtr<TLSServerSocket>    mServerSocket;
   nsCOMPtr<nsISocketTransport> mTransport;
   PRFileDesc*                  mClientFD;
   nsCOMPtr<nsISSLStatus>       mTlsStatus;
