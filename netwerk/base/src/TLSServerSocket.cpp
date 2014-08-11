@@ -16,7 +16,6 @@
 #include "nsIServerSocket.h"
 #include "nsITimer.h"
 #include "nsNetCID.h"
-#include "nsNSSCertificate.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSocketTransport2.h"
@@ -471,6 +470,10 @@ TLSServerSocket::InitWithAddress(const PRNetAddr *aAddr, int32_t aBackLog)
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_CLIENT, false);
   SSL_OptionSet(mFD, SSL_HANDSHAKE_AS_SERVER, true);
 
+  // We don't currently notify the server API consumer of renegotiation events
+  // (to revalidate peer certs, etc.), so disable it for now.
+  SSL_OptionSet(mFD, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_NEVER);
+
   // wait until AsyncListen is called before polling the socket for
   // client connections.
   return NS_OK;
@@ -621,8 +624,7 @@ TLSServerSocket::AsyncListen(nsIServerSocketListener *aListener)
     return NS_ERROR_FAILURE;
   }
 
-  ScopedCERTCertificate cert(
-    PK11_FindCertFromNickname(NS_ConvertUTF16toUTF8(nickname).get(), nullptr));
+  ScopedCERTCertificate cert(mServerCert->GetCert());
   if (NS_WARN_IF(!cert)) {
     SOCKET_LOG(("TLSServerSocket: Couldn't find cert"));
     return NS_ERROR_FAILURE;
@@ -657,6 +659,7 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
 void
 TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 {
+  nsresult rv;
   printf_stderr("HANDSHAKE DONE\n");
 
   RefPtr<TLSServerConnectionInfo> info =
@@ -667,8 +670,20 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 
   ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
   if (clientCert) {
-    nsCOMPtr<nsIX509Cert> nsClientCert =
-      nsNSSCertificate::Create(clientCert.get());
+    nsCOMPtr<nsIX509CertDB> certDB =
+      do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      // TODO
+    }
+
+    nsCOMPtr<nsIX509Cert> nsClientCert;
+    rv = certDB->ConstructX509(reinterpret_cast<char*>(clientCert->derCert.data),
+                               clientCert->derCert.len,
+                               getter_AddRefs(nsClientCert));
+    if (NS_FAILED(rv)) {
+      // TODO
+    }
+
     tlsStatus->mServerCert = nsClientCert;
   }
 
