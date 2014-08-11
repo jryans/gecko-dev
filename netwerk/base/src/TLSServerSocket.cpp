@@ -5,9 +5,15 @@
 
 #include "TLSServerSocket.h"
 
+#include "mozilla/Attributes.h"
+#include "mozilla/Endian.h"
+#include "mozilla/net/DNS.h"
+#include "mozilla/RefPtr.h"
 #include "nsAutoPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsError.h"
 #include "nsIFile.h"
+#include "nsIServerSocket.h"
 #include "nsITimer.h"
 #include "nsNetCID.h"
 #include "nsNSSCertificate.h"
@@ -20,10 +26,6 @@
 #include "prnetdb.h"
 #include "ScopedNSSTypes.h"
 #include "ssl.h"
-
-#include "mozilla/Attributes.h"
-#include "mozilla/Endian.h"
-#include "mozilla/net/DNS.h"
 
 namespace mozilla {
 namespace net {
@@ -50,8 +52,6 @@ PostEvent(TLSServerSocket *s, TLSServerSocketFunc func)
 //-----------------------------------------------------------------------------
 
 /**
- * TODO: This feels like a terrible hack!
- *
  * We need to nudge the TLS handshake machinery along when a new client
  * connects.  We can do this by "writing" 0 bytes.  In order for it to advance
  * successfully, we must have already received the client's handshake packet.
@@ -92,7 +92,7 @@ class TLSServerOutputNudger : public nsITimerCallback
   NS_IMETHODIMP Notify(nsITimer* aTimer)
   {
     // TODO: Assert thread
-    // Attempt to an empty write to nudge the TLS state machine
+    // Attempt an empty write to nudge the TLS state machine
     PR_Write(mConnectionInfo->mClientFD, "", 0);
     PRErrorCode result = PR_GetError();
     printf_stderr("TLSServerNudge %p %d %d\n", this, result,
@@ -292,18 +292,6 @@ TLSServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
   }
 }
 
-/**
- * TODO: This feels like a terrible hack!
- *
- * We need to nudge the TLS handshake machinery along when a new client
- * connects.  We can do this by "writing" 0 bytes.  In order for it to advance
- * successfully, we must have already received the client's handshake packet.
- * However, we don't know when that will arrive.  It particular, it is quite
- * likely / always the case that this data is not yet here at the time we
- * |PR_Accept| the client socket.  So, a timer is used to keep trying until we
- * make progress.
- */
-
 void
 TLSServerSocket::OnSocketDetached(PRFileDesc *fd)
 {
@@ -364,7 +352,6 @@ TLSServerSocket::KeepWhenOffline(bool *aKeepWhenOffline)
 //-----------------------------------------------------------------------------
 
 NS_IMPL_ISUPPORTS(TLSServerSocket, nsITLSServerSocket)
-
 
 //-----------------------------------------------------------------------------
 // TLSServerSocket::nsIServerSocket
