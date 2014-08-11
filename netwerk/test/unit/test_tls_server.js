@@ -50,7 +50,7 @@ function startServer(cert) {
 
   let listener = {
     onSocketAccepted: function(socket, transport) {
-      dump("ACCEPT TLS\n");
+      do_print("ACCEPT TLS");
       lastServerTransport = transport;
       sInput = transport.openInputStream(0, 0, 0);
       sOutput = transport.openOutputStream(0, 0, 0);
@@ -62,7 +62,7 @@ function startServer(cert) {
       }, 0, 0, Services.tm.currentThread);
     },
     onStopListening: function() {
-      dump("STOP\n");
+      do_print("STOP");
     }
   };
 
@@ -86,7 +86,7 @@ function startClient(cert) {
 
   transport.setEventSink({
     onTransportStatus: function(t, status) {
-      dump("STATUS: " + status + "\n");
+      do_print("STATUS: " + status);
     }
   }, Services.tm.currentThread);
 
@@ -101,18 +101,18 @@ function startClient(cert) {
   input.asyncWait({
     onInputStreamReady: function(is) {
       try {
-        dump("CLI INPUT: " + is.available() + "\n");
+        do_print("CLI INPUT: " + is.available());
         let data = NetUtil.readInputStreamToString(is, is.available());
         equal(data, "HELLO", "Echoed data received");
         inputDeferred.resolve();
       } catch (e) {
         // Bad cert is known here!
-        dump("CLI INPUT ERROR:" + e + "\n");
+        do_print("CLI INPUT ERROR:" + e);
         let SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
         let SEC_ERROR_UNKNOWN_ISSUER = SEC_ERROR_BASE + 13;
         let errorCode = -1 * (e.result & 0xFFFF);
         if (errorCode == SEC_ERROR_UNKNOWN_ISSUER) {
-          dump("C doesn't like S cert\n");
+          do_print("C doesn't like S cert");
         }
         inputDeferred.reject();
       }
@@ -124,16 +124,16 @@ function startClient(cert) {
     onOutputStreamReady: function(output) {
       try {
         output.write("HELLO", 5);
-        dump("WRITE SUCCESS\n");
+        do_print("WRITE SUCCESS");
         outputDeferred.resolve();
       } catch (e) {
-        dump("WRITE FAILED: " + e.result + "\n");
+        do_print("WRITE FAILED: " + e.result);
         let SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
         let SSL_ERROR_BAD_CERT_ALERT = SSL_ERROR_BASE + 17;
         let errorCode = -1 * (e.result & 0xFFFF);
         if (errorCode == SSL_ERROR_BAD_CERT_ALERT) {
           // Server didn't like client cert
-          dump("S doesn't like C cert\n");
+          do_print("S doesn't like C cert");
         }
         outputDeferred.reject();
       }
