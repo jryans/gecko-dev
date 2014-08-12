@@ -236,7 +236,7 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer)
 {
   printf_stderr("AUTH CERT, FD: %p\n", fd);
-  // Allow any client cert here, server application code can decide whether it's
+  // Allow any client cert here, server consumer code can decide whether it's
   // okay after being notified of the new client socket.
   return SECSuccess;
 }
@@ -279,7 +279,7 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 void
 TLSServerSocket::OnHandshakeDone(nsITLSServerConnectionInfo* aInfo)
 {
-  // Notify application code of new client now that handshake is complete
+  // Notify consumer code of new client now that handshake is complete
   if (mListener) {
     nsCOMPtr<nsISocketTransport> transport;
     aInfo->GetTransport(getter_AddRefs(transport));
