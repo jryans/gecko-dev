@@ -6,18 +6,13 @@
 
 interface nsIX509Cert;
 
-/**
- * nsITLSServerSocket
- *
- * An interface to a TLS server socket that can accept incoming connections.
- */
 [scriptable, uuid(2e025b6c-96ba-4781-85fb-d1cf1a653207)]
 interface nsITLSServerSocket : nsIServerSocket
 {
   /**
    * serverCert
    *
-   * The server's certificate that is preseneted to the client during the TLS
+   * The server's certificate that is presented to the client during the TLS
    * handshake.  This is required to be set before calling |asyncListen|.
    */
   attribute nsIX509Cert serverCert;
@@ -47,20 +42,35 @@ interface nsITLSServerSocket : nsIServerSocket
 
   /**
    * Values for requestCertificate
-   * TODO: More comments
    */
+  // Never request
   const unsigned long REQUEST_NEVER           = 0;
+  // Request (but do not require) during the first handshake only
   const unsigned long REQUEST_FIRST_HANDSHAKE = 1;
+  // Request (but do not require) during each handshake
   const unsigned long REQUEST_ALWAYS          = 2;
+  // Require during the first handshake only
   const unsigned long REQUIRE_FIRST_HANDSHAKE = 3;
+  // Require during each handshake
   const unsigned long REQUIRE_ALWAYS          = 4;
 };
 
 [scriptable, uuid(19668ea4-e5ad-4182-9698-7e890d48f327)]
 interface nsITLSClientStatus : nsISupports
 {
+  /**
+   * peerCert
+   *
+   * The client's certificate, if one was requested via |requestCertificate|
+   * above and supplied by the client.
+   */
   readonly attribute nsIX509Cert peerCert;
 
+  /**
+   * tlsVersionUsed
+   *
+   * The version of TLS used by the connection.  See values below.
+   */
   readonly attribute short tlsVersionUsed;
 
   /* These values are defined by TLS. */
@@ -70,9 +80,28 @@ interface nsITLSClientStatus : nsISupports
   const short TLS_VERSION_1_2 = 0x0303;
   const short TLS_VERSION_UNKNOWN = -1;
 
+  /**
+   * cipherName
+   *
+   * Name of the cipher suite used, such as
+   * "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256".
+   * See security/nss/lib/ssl/sslinfo.c for the possible values.
+   */
   readonly attribute ACString cipherName;
+
+  /**
+   * keyLength
+   *
+   * The "effective" key size of the symmetric key in bits.
+   */
   readonly attribute unsigned long keyLength;
-  readonly attribute unsigned long secretKeyLength;
+
+  /**
+   * macLength
+   *
+   * The size of the MAC in bits.
+   */
+  readonly attribute unsigned long macLength;
 };
 
 interface nsISocketTransport;

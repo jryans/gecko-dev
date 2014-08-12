@@ -57,11 +57,11 @@ function startServer(cert) {
       ok(status.peerCert.equals(cert), "Peer cert matches expected cert");
 
       equal(status.tlsVersionUsed, Ci.nsITLSClientStatus.TLS_VERSION_1_2,
-             "Using TLS 1.2");
+            "Using TLS 1.2");
       equal(status.cipherName, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "Using expected cipher");
-      equal(status.keyLength, 128, "Using 128-bit symmetric key");
-      equal(status.secretKeyLength, 128, "Using 128-bit secret key");
+      equal(status.keyLength, 128, "Using 128-bit key");
+      equal(status.macLength, 128, "Using 128-bit MAC");
 
       input.asyncWait({
         onInputStreamReady: function(input) {
@@ -74,7 +74,7 @@ function startServer(cert) {
 
   tlsServer.sessionCache = false;
   tlsServer.sessionTickets = false;
-  tlsServer.requestCertificate = Ci.nsITLSServerSocket.REQUEST_ALWAYS;
+  tlsServer.requestCertificate = Ci.nsITLSServerSocket.REQUIRE_ALWAYS;
 
   tlsServer.asyncListen(listener);
 

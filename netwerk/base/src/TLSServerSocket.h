@@ -66,7 +66,7 @@ private:
   int16_t                      mTlsVersionUsed;
   nsCString                    mCipherName;
   uint32_t                     mKeyLength;
-  uint32_t                     mSecretKeyLength;
+  uint32_t                     mMacLength;
 };
 
 } // namespace net

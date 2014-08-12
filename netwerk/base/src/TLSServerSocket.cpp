@@ -145,6 +145,10 @@ TLSServerSocket::SetSocketDefaults()
   // (to revalidate peer certs, etc.), so disable it for now.
   SSL_OptionSet(mFD, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_NEVER);
 
+  SetSessionCache(true);
+  SetSessionTickets(true);
+  SetRequestCertificate(REQUEST_NEVER);
+
   return NS_OK;
 }
 
@@ -265,8 +269,8 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
     return;
   }
   info->mCipherName.Assign(cipherInfo.cipherSuiteName);
-  info->mKeyLength = cipherInfo.symKeyBits;
-  info->mSecretKeyLength = cipherInfo.effectiveKeyBits;
+  info->mKeyLength = cipherInfo.effectiveKeyBits;
+  info->mMacLength = cipherInfo.macBits;
 
   nsRefPtr<TLSServerSocket> serverSocket = info->mServerSocket;
   serverSocket->OnHandshakeDone(info);
@@ -375,7 +379,7 @@ TLSServerConnectionInfo::TLSServerConnectionInfo()
   , mPeerCert(nullptr)
   , mTlsVersionUsed(TLS_VERSION_UNKNOWN)
   , mKeyLength(0)
-  , mSecretKeyLength(0)
+  , mMacLength(0)
 {
 }
 
@@ -455,12 +459,12 @@ TLSServerConnectionInfo::GetKeyLength(uint32_t* aKeyLength)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetSecretKeyLength(uint32_t* aKeyLength)
+TLSServerConnectionInfo::GetMacLength(uint32_t* aMacLength)
 {
-  if (NS_WARN_IF(!aKeyLength)) {
+  if (NS_WARN_IF(!aMacLength)) {
     return NS_ERROR_INVALID_POINTER;
   }
-  *aKeyLength = mSecretKeyLength;
+  *aMacLength = mMacLength;
   return NS_OK;
 }
 
