@@ -44,13 +44,11 @@ function startServer(cert) {
   tlsServer.init(-1, true, -1);
   tlsServer.serverCert = cert;
 
-  let sInput, sOutput;
-
   let listener = {
     onSocketAccepted: function(socket, transport) {
-      do_print("ACCEPT TLS");
-      sInput = transport.openInputStream(0, 0, 0);
-      sOutput = transport.openOutputStream(0, 0, 0);
+      do_print("Accept TLS client connection");
+      let input = transport.openInputStream(0, 0, 0);
+      let output = transport.openOutputStream(0, 0, 0);
 
       let connectionInfo = transport.securityInfo
                            .QueryInterface(Ci.nsITLSServerConnectionInfo);
@@ -65,15 +63,13 @@ function startServer(cert) {
       equal(status.keyLength, 128, "Using 128-bit symmetric key");
       equal(status.secretKeyLength, 128, "Using 128-bit secret key");
 
-      sInput.asyncWait({
+      input.asyncWait({
         onInputStreamReady: function(input) {
-          NetUtil.asyncCopy(input, sOutput);
+          NetUtil.asyncCopy(input, output);
         }
       }, 0, 0, Services.tm.currentThread);
     },
-    onStopListening: function() {
-      do_print("STOP");
-    }
+    onStopListening: function() {}
   };
 
   tlsServer.sessionCache = false;
@@ -95,38 +91,24 @@ function storeCertOverride(port, cert) {
 function startClient(port, cert) {
   let transport =
     socketTransportService.createTransport(["ssl"], 1, "127.0.0.1", port, null);
-
-  transport.setEventSink({
-    onTransportStatus: function(t, status) {
-      do_print("STATUS: " + status);
-    }
-  }, Services.tm.currentThread);
-
   let input = transport.openInputStream(0, 0, 0);
   let output = transport.openOutputStream(0, 0, 0);
 
-  let clientSecInfo = transport.securityInfo;
-  let tlsControl = clientSecInfo.QueryInterface(Ci.nsISSLSocketControl);
-  tlsControl.clientCert = cert;
-
   let inputDeferred = promise.defer();
   input.asyncWait({
-    onInputStreamReady: function(is) {
+    onInputStreamReady: function(input) {
       try {
-        do_print("CLI INPUT: " + is.available());
-        let data = NetUtil.readInputStreamToString(is, is.available());
+        let data = NetUtil.readInputStreamToString(input, input.available());
         equal(data, "HELLO", "Echoed data received");
         inputDeferred.resolve();
       } catch (e) {
-        // Bad cert is known here!
-        do_print("CLI INPUT ERROR:" + e);
         let SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
         let SEC_ERROR_UNKNOWN_ISSUER = SEC_ERROR_BASE + 13;
         let errorCode = -1 * (e.result & 0xFFFF);
         if (errorCode == SEC_ERROR_UNKNOWN_ISSUER) {
-          do_print("C doesn't like S cert");
+          do_print("Client doesn't like server cert");
         }
-        inputDeferred.reject();
+        inputDeferred.reject(e);
       }
     }
   }, 0, 0, Services.tm.currentThread);
@@ -134,20 +116,22 @@ function startClient(port, cert) {
   let outputDeferred = promise.defer();
   output.asyncWait({
     onOutputStreamReady: function(output) {
+      // Set the cert we want to avoid any cert UI prompts
+      let clientSecInfo = transport.securityInfo;
+      let tlsControl = clientSecInfo.QueryInterface(Ci.nsISSLSocketControl);
+      tlsControl.clientCert = cert;
       try {
         output.write("HELLO", 5);
-        do_print("WRITE SUCCESS");
+        do_print("Output to server written");
         outputDeferred.resolve();
       } catch (e) {
-        do_print("WRITE FAILED: " + e.result);
         let SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
         let SSL_ERROR_BAD_CERT_ALERT = SSL_ERROR_BASE + 17;
         let errorCode = -1 * (e.result & 0xFFFF);
         if (errorCode == SSL_ERROR_BAD_CERT_ALERT) {
-          // Server didn't like client cert
-          do_print("S doesn't like C cert");
+          do_print("Server doesn't like client cert");
         }
-        outputDeferred.reject();
+        outputDeferred.reject(e);
       }
     }
   }, 0, 0, Services.tm.currentThread);
