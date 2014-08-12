@@ -119,8 +119,7 @@ include('/ipc/chromium/chromium-config.mozbuild')
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '/dom/base',
-    '/netwerk/protocol/http',
-    '/security/pkix/include'
+    '/netwerk/protocol/http'
 ]
 
 if 'rtsp' in CONFIG['NECKO_PROTOCOLS']:

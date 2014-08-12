@@ -335,7 +335,6 @@
     {0xab, 0x1d, 0x5e, 0x68, 0xa9, 0xf4, 0x5f, 0x08} \
 }
 
-// TODO: Rename
 // component implementing nsITLSServerSocket
 #define NS_TLSSERVERSOCKET_CONTRACTID \
     "@mozilla.org/network/tls-server-socket;1"
