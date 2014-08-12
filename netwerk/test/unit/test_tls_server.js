@@ -58,6 +58,13 @@ function startServer(cert) {
       ok(!!status.peerCert, "Has peer cert");
       ok(status.peerCert.equals(cert), "Peer cert matches expected cert");
 
+      equal(status.tlsVersionUsed, Ci.nsITLSClientStatus.TLS_VERSION_1_2,
+             "Using TLS 1.2");
+      equal(status.cipherName, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "Using expected cipher");
+      equal(status.keyLength, 128, "Using 128-bit symmetric key");
+      equal(status.secretKeyLength, 128, "Using 128-bit secret key");
+
       sInput.asyncWait({
         onInputStreamReady: function(input) {
           NetUtil.asyncCopy(input, sOutput);
