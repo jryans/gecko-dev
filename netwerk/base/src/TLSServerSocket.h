@@ -51,6 +51,7 @@ private:
 NS_DEFINE_STATIC_IID_ACCESSOR(TLSServerSocket, TLSSERVERSOCKET_IMPL_IID)
 
 class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
+                              , public nsITLSClientStatus
 {
   friend class TLSServerSocket;
   friend class TLSServerOutputNudger;
@@ -58,6 +59,7 @@ class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITLSSERVERCONNECTIONINFO
+  NS_DECL_NSITLSCLIENTSTATUS
 
   TLSServerConnectionInfo();
 
@@ -67,7 +69,11 @@ private:
   nsRefPtr<TLSServerSocket>    mServerSocket;
   nsCOMPtr<nsISocketTransport> mTransport;
   PRFileDesc*                  mClientFD;
-  nsCOMPtr<nsISSLStatus>       mTlsStatus;
+  nsCOMPtr<nsIX509Cert>        mPeerCert;
+  int16_t                      mTlsVersionUsed;
+  nsCString                    mCipherName;
+  uint32_t                     mKeyLength;
+  uint32_t                     mSecretKeyLength;
 };
 
 } // namespace net

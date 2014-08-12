@@ -54,9 +54,9 @@ function startServer(cert) {
 
       let connectionInfo = transport.securityInfo
                            .QueryInterface(Ci.nsITLSServerConnectionInfo);
-      let tlsStatus = connectionInfo.tlsStatus;
-      ok(!!tlsStatus.serverCert, "Has peer cert");
-      ok(tlsStatus.serverCert.equals(cert), "Peer cert matches expected cert");
+      let status = connectionInfo.status;
+      ok(!!status.peerCert, "Has peer cert");
+      ok(status.peerCert.equals(cert), "Peer cert matches expected cert");
 
       sInput.asyncWait({
         onInputStreamReady: function(input) {

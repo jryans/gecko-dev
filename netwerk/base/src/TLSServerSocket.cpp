@@ -19,7 +19,6 @@
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSocketTransport2.h"
-#include "nsSSLStatus.h"
 #include "nsThreadUtils.h"
 #include "prio.h"
 #include "prnetdb.h"
@@ -161,6 +160,7 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
                                        const NetAddr& aClientAddr)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  nsresult rv;
 
   nsRefPtr<nsSocketTransport> trans = new nsSocketTransport;
   if (NS_WARN_IF(!trans)) {
@@ -173,8 +173,9 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
   info->mServerSocket = this;
   info->mTransport = trans;
   info->mClientFD = aClientFD;
-  nsresult rv = trans->InitWithConnectedSocket(aClientFD, &aClientAddr,
-                                               info);
+  nsCOMPtr<nsISupports> infoSupports =
+    NS_ISUPPORTS_CAST(nsITLSServerConnectionInfo*, info);
+  rv = trans->InitWithConnectedSocket(aClientFD, &aClientAddr, infoSupports);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mCondition = rv;
     return;
@@ -250,27 +251,45 @@ TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
   RefPtr<TLSServerConnectionInfo> info =
     static_cast<TLSServerConnectionInfo*>(arg);
 
-  RefPtr<nsSSLStatus> tlsStatus = new nsSSLStatus();
-  info->mTlsStatus = tlsStatus;
-
   ScopedCERTCertificate clientCert(SSL_PeerCertificate(fd));
   if (clientCert) {
     nsCOMPtr<nsIX509CertDB> certDB =
       do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) {
-      // TODO
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      info->mTransport->Close(rv);
+      return;
     }
 
     nsCOMPtr<nsIX509Cert> nsClientCert;
     rv = certDB->ConstructX509(reinterpret_cast<char*>(clientCert->derCert.data),
                                clientCert->derCert.len,
                                getter_AddRefs(nsClientCert));
-    if (NS_FAILED(rv)) {
-      // TODO
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      info->mTransport->Close(rv);
+      return;
     }
 
-    tlsStatus->mServerCert = nsClientCert;
+    info->mPeerCert = nsClientCert;
   }
+
+  SSLChannelInfo channelInfo;
+  rv = MapSECStatus(SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    info->mTransport->Close(rv);
+    return;
+  }
+  info->mTlsVersionUsed = channelInfo.protocolVersion;
+
+  SSLCipherSuiteInfo cipherInfo;
+  rv = MapSECStatus(SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
+                                           sizeof(cipherInfo)));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    info->mTransport->Close(rv);
+    return;
+  }
+  info->mCipherName.Assign(cipherInfo.cipherSuiteName);
+  info->mKeyLength = cipherInfo.symKeyBits;
+  info->mSecretKeyLength = cipherInfo.effectiveKeyBits;
 
   nsRefPtr<TLSServerSocket> serverSocket = info->mServerSocket;
   serverSocket->OnHandshakeDone(info);
@@ -368,13 +387,18 @@ TLSServerSocket::SetRequestCertificate(uint32_t aMode)
 // TLSServerConnectionInfo
 //-----------------------------------------------------------------------------
 
-NS_IMPL_ISUPPORTS(TLSServerConnectionInfo, nsITLSServerConnectionInfo)
+NS_IMPL_ISUPPORTS(TLSServerConnectionInfo,
+                  nsITLSServerConnectionInfo,
+                  nsITLSClientStatus)
 
 TLSServerConnectionInfo::TLSServerConnectionInfo()
   : mServerSocket(nullptr)
   , mTransport(nullptr)
   , mClientFD(nullptr)
-  , mTlsStatus(nullptr)
+  , mPeerCert(nullptr)
+  , mTlsVersionUsed(TLS_VERSION_UNKNOWN)
+  , mKeyLength(0)
+  , mSecretKeyLength(0)
 {
 }
 
@@ -405,13 +429,61 @@ TLSServerConnectionInfo::GetTransport(nsISocketTransport** aTransport)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetTlsStatus(nsISSLStatus** aTlsStatus)
+TLSServerConnectionInfo::GetStatus(nsITLSClientStatus** aStatus)
 {
-  if (NS_WARN_IF(!aTlsStatus)) {
+  if (NS_WARN_IF(!aStatus)) {
     return NS_ERROR_INVALID_POINTER;
   }
-  *aTlsStatus = mTlsStatus;
-  NS_IF_ADDREF(*aTlsStatus);
+  *aStatus = this;
+  NS_IF_ADDREF(*aStatus);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetPeerCert(nsIX509Cert** aCert)
+{
+  if (NS_WARN_IF(!aCert)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  *aCert = mPeerCert;
+  NS_IF_ADDREF(*aCert);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetTlsVersionUsed(int16_t* aTlsVersionUsed)
+{
+  if (NS_WARN_IF(!aTlsVersionUsed)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  *aTlsVersionUsed = mTlsVersionUsed;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetCipherName(nsACString& aCipherName)
+{
+  aCipherName.Assign(mCipherName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetKeyLength(uint32_t* aKeyLength)
+{
+  if (NS_WARN_IF(!aKeyLength)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  *aKeyLength = mKeyLength;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TLSServerConnectionInfo::GetSecretKeyLength(uint32_t* aKeyLength)
+{
+  if (NS_WARN_IF(!aKeyLength)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  *aKeyLength = mSecretKeyLength;
   return NS_OK;
 }
 

@@ -5,7 +5,6 @@
 #include "nsIServerSocket.idl"
 
 interface nsIX509Cert;
-interface nsITLSSecurityCallback;
 
 /**
  * nsITLSServerSocket
@@ -57,13 +56,31 @@ interface nsITLSServerSocket : nsIServerSocket
   const unsigned long REQUIRE_ALWAYS          = 4;
 };
 
+[scriptable, uuid(19668ea4-e5ad-4182-9698-7e890d48f327)]
+interface nsITLSClientStatus : nsISupports
+{
+  readonly attribute nsIX509Cert peerCert;
+
+  readonly attribute short tlsVersionUsed;
+
+  /* These values are defined by TLS. */
+  const short SSL_VERSION_3   = 0x0300;
+  const short TLS_VERSION_1   = 0x0301;
+  const short TLS_VERSION_1_1 = 0x0302;
+  const short TLS_VERSION_1_2 = 0x0303;
+  const short TLS_VERSION_UNKNOWN = -1;
+
+  readonly attribute ACString cipherName;
+  readonly attribute unsigned long keyLength;
+  readonly attribute unsigned long secretKeyLength;
+};
+
 interface nsISocketTransport;
-interface nsISSLStatus;
 
 [scriptable, uuid(64687740-e524-45ea-9786-aed078479d7a)]
 interface nsITLSServerConnectionInfo : nsISupports
 {
   readonly attribute nsITLSServerSocket serverSocket;
   readonly attribute nsISocketTransport transport;
-  readonly attribute nsISSLStatus tlsStatus;
+  readonly attribute nsITLSClientStatus status;
 };
