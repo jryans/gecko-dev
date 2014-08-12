@@ -15,10 +15,6 @@
 namespace mozilla {
 namespace net {
 
-#define TLSSERVERSOCKET_IMPL_IID \
-{ 0x8127169b, 0x55a3, 0x4c20, \
-  { 0xbc, 0xfc, 0xc1, 0xeb, 0x69, 0xb2, 0x88, 0x72 } }
-
 class TLSServerSocket : public nsServerSocket
                       , public nsITLSServerSocket
 {
@@ -26,7 +22,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSISERVERSOCKET(nsServerSocket::)
   NS_DECL_NSITLSSERVERSOCKET
-  NS_DECLARE_STATIC_IID_ACCESSOR(TLSSERVERSOCKET_IMPL_IID)
 
   // Override methods from nsServerSocket
   virtual void CreateClientTransport(PRFileDesc* clientFD,
@@ -47,8 +42,6 @@ private:
 
   nsCOMPtr<nsIX509Cert>             mServerCert;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(TLSServerSocket, TLSSERVERSOCKET_IMPL_IID)
 
 class TLSServerConnectionInfo : public nsITLSServerConnectionInfo
                               , public nsITLSClientStatus

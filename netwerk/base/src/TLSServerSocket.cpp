@@ -94,8 +94,8 @@ class TLSServerOutputNudger : public nsITimerCallback
     // Attempt an empty write to nudge the TLS state machine
     PR_Write(mConnectionInfo->mClientFD, "", 0);
     PRErrorCode result = PR_GetError();
-    printf_stderr("TLSServerNudge %p %d %d\n", this, result,
-                  result == PR_WOULD_BLOCK_ERROR);
+    SOCKET_LOG(("TLSServerNudge %p %d %d\n", this, result,
+                result == PR_WOULD_BLOCK_ERROR));
 
     if (result == PR_WOULD_BLOCK_ERROR) {
       // Still blocked, so try again later
@@ -138,7 +138,6 @@ nsresult
 TLSServerSocket::SetSocketDefaults()
 {
   // Set TLS options on the listening socket
-  SOCKET_LOG(("TLSServerSocket: Adding SSL options"));
   mFD = SSL_ImportFD(nullptr, mFD);
   if (NS_WARN_IF(!mFD)) {
     return mozilla::psm::GetXPCOMFromNSSError(PR_GetError());
@@ -168,7 +167,6 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
     return;
   }
 
-  printf_stderr("NEW CLIENT FD: %p\n", aClientFD);
   RefPtr<TLSServerConnectionInfo> info = new TLSServerConnectionInfo();
   info->mServerSocket = this;
   info->mTransport = trans;
@@ -196,36 +194,24 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
 nsresult
 TLSServerSocket::OnSocketListen()
 {
-  // Verify we have a cert
   if (NS_WARN_IF(!mServerCert)) {
-    SOCKET_LOG(("TLSServerSocket: No cert"));
     return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  // Look up the real cert by nickname
-  nsAutoString nickname;
-  nsresult rv = mServerCert->GetNickname(nickname);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
   }
 
   ScopedCERTCertificate cert(mServerCert->GetCert());
   if (NS_WARN_IF(!cert)) {
-    SOCKET_LOG(("TLSServerSocket: Couldn't find cert"));
     return mozilla::psm::GetXPCOMFromNSSError(PR_GetError());
   }
 
   ScopedSECKEYPrivateKey key(PK11_FindKeyByAnyCert(cert, nullptr));
   if (NS_WARN_IF(!key)) {
-    SOCKET_LOG(("TLSServerSocket: Couldn't find private key"));
     return mozilla::psm::GetXPCOMFromNSSError(PR_GetError());
   }
 
   SSLKEAType certKEA = NSS_FindCertKEAType(cert);
 
-  rv = MapSECStatus(SSL_ConfigSecureServer(mFD, cert, key, certKEA));
+  nsresult rv = MapSECStatus(SSL_ConfigSecureServer(mFD, cert, key, certKEA));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    SOCKET_LOG(("TLSServerSocket: Failed to configure socket with cert"));
     return rv;
   }
 
@@ -236,7 +222,6 @@ SECStatus
 TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer)
 {
-  printf_stderr("AUTH CERT, FD: %p\n", fd);
   // Allow any client cert here, server consumer code can decide whether it's
   // okay after being notified of the new client socket.
   return SECSuccess;
@@ -246,8 +231,6 @@ void
 TLSServerSocket::HandshakeCallback(PRFileDesc* fd, void* arg)
 {
   nsresult rv;
-  printf_stderr("HANDSHAKE DONE\n");
-
   RefPtr<TLSServerConnectionInfo> info =
     static_cast<TLSServerConnectionInfo*>(arg);
 
