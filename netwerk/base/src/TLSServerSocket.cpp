@@ -49,6 +49,7 @@ class TLSServerOutputNudger : public nsITimerCallback
   TLSServerOutputNudger(TLSServerConnectionInfo* aConnectionInfo)
     : mConnectionInfo(aConnectionInfo)
     , mTimer(nullptr)
+    , mCounter(0)
   {
   }
 
@@ -63,7 +64,22 @@ class TLSServerOutputNudger : public nsITimerCallback
       }
     }
 
-    rv = mTimer->InitWithCallback(this, 1000, nsITimer::TYPE_ONE_SHOT);
+    uint32_t counter = mCounter++;
+    uint32_t delay;
+
+    // Borrowed this backoff schedule from http/TunnelUtils.cpp, as it solves a
+    // similar TLS state machine timing problem.
+    if (!counter) {
+      delay = 0;
+    } else if (counter < 8) { // up to 48ms at 6ms
+      delay = 6;
+    } else if (counter < 34) { // up to 499ms at 17ms
+      delay = 17;
+    } else { // after that at 51ms
+      delay = 51;
+    }
+
+    rv = mTimer->InitWithCallback(this, delay, nsITimer::TYPE_ONE_SHOT);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -81,7 +97,11 @@ class TLSServerOutputNudger : public nsITimerCallback
                   result == PR_WOULD_BLOCK_ERROR);
 
     if (result == PR_WOULD_BLOCK_ERROR) {
+      // Still blocked, so try again later
       Nudge();
+    } else {
+      // Not blocked, reset the counter
+      mCounter = 0;
     }
 
     return NS_OK;
@@ -91,6 +111,7 @@ private:
   virtual ~TLSServerOutputNudger() {}
   RefPtr<TLSServerConnectionInfo> mConnectionInfo;
   nsCOMPtr<nsITimer>              mTimer;
+  uint32_t                        mCounter;
 };
 
 NS_IMPL_ISUPPORTS(TLSServerOutputNudger, nsITimerCallback)
