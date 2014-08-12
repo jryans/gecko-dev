@@ -26,6 +26,8 @@
 #include "ScopedNSSTypes.h"
 #include "ssl.h"
 
+extern PRThread *gSocketThread;
+
 namespace mozilla {
 namespace net {
 
@@ -89,7 +91,7 @@ class TLSServerOutputNudger : public nsITimerCallback
 
   NS_IMETHODIMP Notify(nsITimer* aTimer)
   {
-    // TODO: Assert thread
+    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
     // Attempt an empty write to nudge the TLS state machine
     PR_Write(mConnectionInfo->mClientFD, "", 0);
     PRErrorCode result = PR_GetError();
@@ -158,6 +160,8 @@ void
 TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
                                        const NetAddr& aClientAddr)
 {
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+
   nsRefPtr<nsSocketTransport> trans = new nsSocketTransport;
   if (NS_WARN_IF(!trans)) {
     mCondition = NS_ERROR_OUT_OF_MEMORY;
