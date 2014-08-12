@@ -385,6 +385,9 @@ TLSServerConnectionInfo::~TLSServerConnectionInfo()
 NS_IMETHODIMP
 TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
 {
+  if (NS_WARN_IF(!aSocket)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
   *aSocket = mServerSocket;
   NS_IF_ADDREF(*aSocket);
   return NS_OK;
@@ -393,6 +396,9 @@ TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
 NS_IMETHODIMP
 TLSServerConnectionInfo::GetTransport(nsISocketTransport** aTransport)
 {
+  if (NS_WARN_IF(!aTransport)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
   *aTransport = mTransport;
   NS_IF_ADDREF(*aTransport);
   return NS_OK;
@@ -401,6 +407,9 @@ TLSServerConnectionInfo::GetTransport(nsISocketTransport** aTransport)
 NS_IMETHODIMP
 TLSServerConnectionInfo::GetTlsStatus(nsISSLStatus** aTlsStatus)
 {
+  if (NS_WARN_IF(!aTlsStatus)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
   *aTlsStatus = mTlsStatus;
   NS_IF_ADDREF(*aTlsStatus);
   return NS_OK;
