@@ -94,6 +94,14 @@ function startClient(port, cert) {
   let input = transport.openInputStream(0, 0, 0);
   let output = transport.openOutputStream(0, 0, 0);
 
+  // transport.securityInfo is available by the next tick
+  do_execute_soon(() => {
+    // Set the cert we want to avoid any cert UI prompts
+    let clientSecInfo = transport.securityInfo;
+    let tlsControl = clientSecInfo.QueryInterface(Ci.nsISSLSocketControl);
+    tlsControl.clientCert = cert;
+  });
+
   let inputDeferred = promise.defer();
   input.asyncWait({
     onInputStreamReady: function(input) {
@@ -116,10 +124,6 @@ function startClient(port, cert) {
   let outputDeferred = promise.defer();
   output.asyncWait({
     onOutputStreamReady: function(output) {
-      // Set the cert we want to avoid any cert UI prompts
-      let clientSecInfo = transport.securityInfo;
-      let tlsControl = clientSecInfo.QueryInterface(Ci.nsISSLSocketControl);
-      tlsControl.clientCert = cert;
       try {
         output.write("HELLO", 5);
         do_print("Output to server written");
