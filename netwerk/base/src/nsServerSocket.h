@@ -13,6 +13,8 @@
 
 //-----------------------------------------------------------------------------
 
+class nsIEventTarget;
+
 class nsServerSocket : public nsASocketHandler
                      , public nsIServerSocket
 {

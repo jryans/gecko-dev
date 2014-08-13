@@ -24,8 +24,6 @@ extern PRThread *gSocketThread;
 namespace mozilla {
 namespace net {
 
-static NS_DEFINE_CID(kSocketTransportServiceCID, NS_SOCKETTRANSPORTSERVICE_CID);
-
 //-----------------------------------------------------------------------------
 
 /**
