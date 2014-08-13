@@ -13,7 +13,7 @@ chrome.jar:
 * content/shell.html                    (content/shell.html)
 * content/shell.js                      (content/shell.js)
   content/shell.css                     (content/shell.css)
-  content/devtools.js                   (content/devtools.js)
+  content/devtools/hud.js               (content/devtools/hud.js)
 #ifdef FXOS_SIMULATOR
   content/desktop.css                   (content/desktop.css)
   content/images/desktop/home-black.png (content/images/desktop/home-black.png)

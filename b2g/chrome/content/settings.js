@@ -176,14 +176,14 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   }
 })();
 
-// =================== DevTools ====================
+// =================== DevTools HUD ====================
 
 let developerHUD;
 SettingsListener.observe('devtools.overlay', false, (value) => {
   if (value) {
     if (!developerHUD) {
       let scope = {};
-      Services.scriptloader.loadSubScript('chrome://b2g/content/devtools.js', scope);
+      Services.scriptloader.loadSubScript('chrome://b2g/content/devtools/hud.js', scope);
       developerHUD = scope.developerHUD;
     }
     developerHUD.init();
