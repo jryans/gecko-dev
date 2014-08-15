@@ -21,9 +21,6 @@ XPCOMUtils.defineLazyGetter(this, "discovery", function() {
   return devtools.require("devtools/toolkit/discovery/discovery");
 });
 
-XPCOMUtils.defineLazyModuleGetter(
-  this, "SystemAppProxy", "resource://gre/modules/SystemAppProxy.jsm");
-
 let RemoteDebugger = {
   _promptDone: false,
   _promptAnswer: false,
