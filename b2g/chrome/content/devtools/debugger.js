@@ -27,18 +27,22 @@ let RemoteDebugger = {
   _listening: false,
 
   prompt: function() {
+    debug("ABOUT TO LISTEN");
     this._listen();
 
     this._promptDone = false;
 
+    debug("SEND CHROME");
     shell.sendChromeEvent({
       "type": "remote-debugger-prompt"
     });
 
+    debug("POLL FOR ANSWER");
     while(!this._promptDone) {
       Services.tm.currentThread.processNextEvent(true);
     }
 
+    debug("GOT ANSWER: " + this._promptAnswer);
     return this._promptAnswer;
   },
 
@@ -47,15 +51,18 @@ let RemoteDebugger = {
       return;
     }
 
+    debug("LISTEN");
     let content = shell.contentBrowser.contentWindow;
     content.addEventListener("mozContentEvent", this, false, true);
     this._listening = true;
   },
 
   handleEvent: function(detail) {
+    debug("HANDLE EVENT");
     if (detail.type !== "remote-debugger-prompt") {
       return;
     }
+    debug("GOT VALUE: " + detail.value);
     this._promptAnswer = detail.value;
     this._promptDone = true;
   },
