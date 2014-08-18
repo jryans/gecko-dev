@@ -65,7 +65,7 @@ let RemoteDebugger = {
     debug("GOT VALUE: " + detail.value);
     this._promptAnswer = detail.value;
     this._promptDone = true;
-  },
+  }.bind(RemoteDebugger),
 
   initServer: function() {
     if (DebuggerServer.initialized) {
