@@ -57,9 +57,11 @@ let RemoteDebugger = {
     this._listening = true;
   },
 
-  handleEvent: function(detail) {
+  handleEvent: function(event) {
+    let detail = event.detail;
     debug("HANDLE EVENT");
-    debug(detail);
+    debug(detail.type);
+    debug(detail.value);
     if (detail.type !== "remote-debugger-prompt") {
       return;
     }
