@@ -115,11 +115,14 @@ let UI = {
 
     this.device.startLiveStream().then(offer => {
       console.log("Got offer");
-      pc.setRemoteDescription(new mozRTCSessionDescription(offer));
-      pc.createAnswer(answer => {
-        pc.setLocalDescription(answer);
-        console.log("Sending answer");
-        this.device.setLiveStreamAnswer(JSON.parse(JSON.stringify(answer)));
+      pc.setRemoteDescription(new mozRTCSessionDescription(offer), () => {
+        pc.createAnswer(answer => {
+          pc.setLocalDescription(answer);
+          console.log("Sending answer");
+          this.device.setLiveStreamAnswer(JSON.parse(JSON.stringify(answer)));
+        }, () => {
+          console.log("ERR!");
+        });
       }, () => {
         console.log("ERR!");
       });
