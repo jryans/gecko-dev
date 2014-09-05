@@ -104,6 +104,11 @@ let UI = {
       }
     }, 1000);
 
+    this.device.on("ice", candidate => {
+      console.log("Got ICE candidate from server");
+      pc.addIceCandidate(new mozRTCIceCandidate(candidate));
+    });
+
     this.device.startLiveStream().then(offer => {
       console.log("Got offer");
       pc.setRemoteDescription(new mozRTCSessionDescription(offer));
