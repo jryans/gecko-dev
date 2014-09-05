@@ -109,6 +109,10 @@ let UI = {
       pc.addIceCandidate(new mozRTCIceCandidate(candidate));
     });
 
+    pc.onicecandidate = obj => {
+      console.log("Client has ICE candidate");
+    };
+
     this.device.startLiveStream().then(offer => {
       console.log("Got offer");
       pc.setRemoteDescription(new mozRTCSessionDescription(offer));
@@ -116,7 +120,9 @@ let UI = {
         pc.setLocalDescription(answer);
         console.log("Sending answer");
         this.device.setLiveStreamAnswer(JSON.parse(JSON.stringify(answer)));
-      }, console.log);
+      }, () => {
+        console.log("ERR!");
+      });
     }, console.log);
   },
 
