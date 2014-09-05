@@ -9,6 +9,7 @@ const {method, Arg, RetVal} = protocol;
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {LongStringActor} = require("devtools/server/actors/string");
 const {DebuggerServer} = require("devtools/server/main");
+const events = require("sdk/event/core");
 
 Cu.import("resource://gre/modules/PermissionsTable.jsm")
 
@@ -26,6 +27,13 @@ let DeviceActor = exports.DeviceActor = protocol.ActorClass({
   typeName: "device",
 
   _desc: null,
+
+  events: {
+    "ice": {
+      type: "ice",
+      data: Arg(0, "json")
+    }
+  },
 
   _getAppIniString : function(section, key) {
     let inifile = Services.dirsvc.get("GreD", Ci.nsIFile);
@@ -206,6 +214,16 @@ let DeviceActor = exports.DeviceActor = protocol.ActorClass({
       dump("Adding stream\n");
       pc.addStream(stream);
 
+      pc.onicecandidate = obj => {
+        if (obj.candidate) {
+          dump("Server found ICE candidate: " +
+               JSON.stringify(obj.candidate) + "\n");
+          events.emit(this, "ice", obj.candidate);
+        } else {
+          dump("Server got end-of-candidates signal\n");
+        }
+      };
+
       dump("Creating offer\n");
       pc.createOffer(function(desc) {
         pc.setLocalDescription(desc);
@@ -215,7 +233,7 @@ let DeviceActor = exports.DeviceActor = protocol.ActorClass({
       } catch (e) {
         dump("Error: " + e);
         deferredOffer.reject(e);
-      } 
+      }
     }, deferredOffer.reject);
 
     return deferredOffer.promise;
