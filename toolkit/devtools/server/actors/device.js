@@ -218,7 +218,7 @@ let DeviceActor = exports.DeviceActor = protocol.ActorClass({
         if (obj.candidate) {
           dump("Server found ICE candidate: " +
                JSON.stringify(obj.candidate) + "\n");
-          events.emit(this, "ice", obj.candidate);
+          events.emit(this, "ice", JSON.parse(JSON.stringify(obj)));
         } else {
           dump("Server got end-of-candidates signal\n");
         }
