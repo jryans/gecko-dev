@@ -58,7 +58,7 @@ include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 # recipe evaluation is deferred, we can set it here after the inclusion.
 ifneq (,$(JS_BINARY))
 ifndef MOZ_DEBUG
-MOZ_PACKAGER_MINIFY_JS=1
+# MOZ_PACKAGER_MINIFY_JS=1
 endif
 endif
 
