@@ -6,6 +6,7 @@
 #ifndef nsServerSocket_h__
 #define nsServerSocket_h__
 
+#include "prio.h"
 #include "nsASocketHandler.h"
 #include "nsIServerSocket.h"
 #include "mozilla/Mutex.h"
