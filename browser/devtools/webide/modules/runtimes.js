@@ -14,7 +14,7 @@ const promise = require("promise");
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
 // These type strings are used for logging events to Telemetry
-let RuntimeTypes = {
+let RuntimeTypes = exports.RuntimeTypes = {
   usb: "USB",
   wifi: "WIFI",
   simulator: "SIMULATOR",
@@ -163,6 +163,53 @@ let gRemoteRuntime = {
     return Strings.GetStringFromName("remote_runtime");
   },
 }
+
+let scanners = new Set();
+
+exports.addScanner = function(scanner) {
+  scanners.add(scanner);
+};
+
+exports.removeScanner = function(scanner) {
+  scanners.delete(scanner);
+};
+
+exports.scanForRuntimes = function() {
+  let promises = [];
+
+  for (let scanner of scanners) {
+    promises.push(scanner.scan());
+  }
+
+  return promise.all(promises).then(runtimeGroups => {
+    return runtimeGroups.reduce((prev, curr) => prev.concat(curr), []);
+  });
+};
+
+exports.enableScanners = function() {
+  for (let scanner of scanners) {
+    scanner.enable();
+  }
+};
+
+exports.disableScanners = function() {
+  for (let scanner of scanners) {
+    scanner.disable();
+  }
+};
+
+// TODO: Doc Runtime API
+// * type
+// * category
+// * clean up alex's runtime remembering
+
+let SimulatorScanner = {
+
+  enable() {
+
+  }
+
+};
 
 exports.USBRuntime = USBRuntime;
 exports.WiFiRuntime = WiFiRuntime;
