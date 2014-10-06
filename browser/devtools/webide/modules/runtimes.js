@@ -9,6 +9,7 @@ const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
 const {ConnectionManager, Connection} = require("devtools/client/connection-manager");
 const {DebuggerServer} = require("resource://gre/modules/devtools/dbg-server.jsm");
 const discovery = require("devtools/toolkit/discovery/discovery");
+const {EventEmitter} = require("devtools/toolkit/event-emitter");
 const promise = require("promise");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
@@ -206,10 +207,26 @@ exports.disableScanners = function() {
 let SimulatorScanner = {
 
   enable() {
+    Simulator.on("register", () => this._runtimeListUpdated);
+    Simulator.on("unregister", () => this._runtimeListUpdated);
+  },
 
+  disable() {
+    Simulator.off("register", () => this._runtimeListUpdated);
+    Simulator.off("unregister", () => this._runtimeListUpdated);
+  },
+
+  runtimesUpdated() {
+    this.runtimes = [];
+    for (let version of Simulator.availableVersions()) {
+      this.runtimes.push(new SimulatorRuntime(version));
+    }
+    this.emit("runtime-list-updated");
   }
 
 };
+
+EventEmitter.decorate(SimulatorScanner);
 
 exports.USBRuntime = USBRuntime;
 exports.WiFiRuntime = WiFiRuntime;
