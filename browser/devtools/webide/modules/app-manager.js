@@ -11,7 +11,7 @@ const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm");
 const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
-const {EventEmitter} = Cu.import("resource://gre/modules/devtools/event-emitter.js");
+const EventEmitter = require("devtools/toolkit/event-emitter");
 const {TextEncoder, OS}  = Cu.import("resource://gre/modules/osfile.jsm", {});
 const {AppProjects} = require("devtools/app-manager/app-projects");
 const TabStore = require("devtools/webide/tab-store");
@@ -22,8 +22,7 @@ const {getDeviceFront} = require("devtools/server/actors/device");
 const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {setTimeout} = require("sdk/timers");
 const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
-const {USBRuntime, WiFiRuntime, SimulatorRuntime,
-       gLocalRuntime, gRemoteRuntime} = require("devtools/webide/runtimes");
+const {RuntimeScanners, RuntimeTypes} = require("devtools/webide/runtimes");
 const discovery = require("devtools/toolkit/discovery/discovery");
 const {NetUtil} = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 const Telemetry = require("devtools/shared/telemetry");
@@ -32,7 +31,7 @@ const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/
 
 const WIFI_SCANNING_PREF = "devtools.remote.wifi.scan";
 
-exports.AppManager = AppManager = {
+let AppManager = exports.AppManager = {
 
   // FIXME: will break when devtools/app-manager will be removed:
   DEFAULT_PROJECT_ICON: "chrome://browser/skin/devtools/app-manager/default-app-icon.png",
@@ -52,18 +51,10 @@ exports.AppManager = AppManager = {
     this.tabStore.on("navigate", this.onTabNavigate);
     this.tabStore.on("closed", this.onTabClosed);
 
-    this.runtimeList = {
-      usb: [],
-      wifi: [],
-      simulator: [],
-      custom: [gRemoteRuntime]
-    };
-    if (Services.prefs.getBoolPref("devtools.webide.enableLocalRuntime")) {
-      this.runtimeList.custom.push(gLocalRuntime);
-    }
-    this.trackUSBRuntimes();
-    this.trackWiFiRuntimes();
-    this.trackSimulatorRuntimes();
+    this._rebuildRuntimeList = this._rebuildRuntimeList.bind(this);
+    RuntimeScanners.on("runtime-list-updated", this._rebuildRuntimeList);
+    RuntimeScanners.enable();
+    this._rebuildRuntimeList();
 
     this.onInstallProgress = this.onInstallProgress.bind(this);
 
@@ -76,9 +67,8 @@ exports.AppManager = AppManager = {
   uninit: function() {
     this.selectedProject = null;
     this.selectedRuntime = null;
-    this.untrackUSBRuntimes();
-    this.untrackWiFiRuntimes();
-    this.untrackSimulatorRuntimes();
+    RuntimeScanners.off("runtime-list-updated", this._rebuildRuntimeList);
+    RuntimeScanners.disable();
     this.runtimeList = null;
     this.tabStore.off("navigate", this.onTabNavigate);
     this.tabStore.off("closed", this.onTabClosed);
@@ -673,23 +663,37 @@ exports.AppManager = AppManager = {
     this.update("runtimelist");
   },
 
-  trackSimulatorRuntimes: function() {
-    this._updateSimulatorRuntimes = this._updateSimulatorRuntimes.bind(this);
-    Simulator.on("register", this._updateSimulatorRuntimes);
-    Simulator.on("unregister", this._updateSimulatorRuntimes);
-    this._updateSimulatorRuntimes();
-  },
-  untrackSimulatorRuntimes: function() {
-    Simulator.off("register", this._updateSimulatorRuntimes);
-    Simulator.off("unregister", this._updateSimulatorRuntimes);
-  },
-  _updateSimulatorRuntimes: function() {
-    this.runtimeList.simulator = [];
-    for (let version of Simulator.availableVersions()) {
-      this.runtimeList.simulator.push(new SimulatorRuntime(version));
+  _rebuildRuntimeList: Task.async(function*() {
+    dump(new Error().stack);
+
+    this.runtimeList = {
+      usb: [],
+      wifi: [],
+      simulator: [],
+      other: []
+    };
+
+    let runtimes = yield RuntimeScanners.scan();
+
+    // Reorganize runtimes by type
+    for (let runtime of runtimes) {
+      switch (runtime.type) {
+        case RuntimeTypes.USB:
+          this.runtimeList.usb.push(runtime);
+          break;
+        case RuntimeTypes.WIFI:
+          this.runtimeList.wifi.push(runtime);
+          break;
+        case RuntimeTypes.SIMULATOR:
+          this.runtimeList.simulator.push(runtime);
+          break;
+        default:
+          this.runtimeList.other.push(runtime);
+      }
     }
+
     this.update("runtimelist");
-  },
+  }),
 
   writeManifest: function(project) {
     if (project.type != "packaged") {
@@ -707,6 +711,6 @@ exports.AppManager = AppManager = {
     let array = encoder.encode(text);
     return OS.File.writeAtomic(manifestPath, array, {tmpPath: manifestPath + ".tmp"});
   },
-}
+};
 
 EventEmitter.decorate(AppManager);

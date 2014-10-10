@@ -9,26 +9,28 @@ const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
 const {ConnectionManager, Connection} = require("devtools/client/connection-manager");
 const {DebuggerServer} = require("resource://gre/modules/devtools/dbg-server.jsm");
 const discovery = require("devtools/toolkit/discovery/discovery");
-const {EventEmitter} = require("devtools/toolkit/event-emitter");
+const EventEmitter = require("devtools/toolkit/event-emitter");
 const promise = require("promise");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
 // These type strings are used for logging events to Telemetry
 let RuntimeTypes = exports.RuntimeTypes = {
-  usb: "USB",
-  wifi: "WIFI",
-  simulator: "SIMULATOR",
-  remote: "REMOTE",
-  local: "LOCAL"
+  USB: "USB",
+  WIFI: "WIFI",
+  SIMULATOR: "SIMULATOR",
+  REMOTE: "REMOTE",
+  LOCAL: "LOCAL"
 };
+
+// TODO: Create a separate UI category
 
 function USBRuntime(id) {
   this.id = id;
 }
 
 USBRuntime.prototype = {
-  type: RuntimeTypes.usb,
+  type: RuntimeTypes.USB,
   connect: function(connection) {
     let device = Devices.getByName(this.id);
     if (!device) {
@@ -70,7 +72,7 @@ function WiFiRuntime(deviceName) {
 }
 
 WiFiRuntime.prototype = {
-  type: RuntimeTypes.wifi,
+  type: RuntimeTypes.WIFI,
   connect: function(connection) {
     let service = discovery.getRemoteService("devtools", this.deviceName);
     if (!service) {
@@ -94,7 +96,7 @@ function SimulatorRuntime(version) {
 }
 
 SimulatorRuntime.prototype = {
-  type: RuntimeTypes.simulator,
+  type: RuntimeTypes.SIMULATOR,
   connect: function(connection) {
     let port = ConnectionManager.getFreeTCPPort();
     let simulator = Simulator.getByVersion(this.version);
@@ -118,7 +120,7 @@ SimulatorRuntime.prototype = {
 }
 
 let gLocalRuntime = {
-  type: RuntimeTypes.local,
+  type: RuntimeTypes.LOCAL,
   connect: function(connection) {
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
@@ -138,7 +140,7 @@ let gLocalRuntime = {
 }
 
 let gRemoteRuntime = {
-  type: RuntimeTypes.remote,
+  type: RuntimeTypes.REMOTE,
   connect: function(connection) {
     let win = Services.wm.getMostRecentWindow("devtools:webide");
     if (!win) {
@@ -165,39 +167,56 @@ let gRemoteRuntime = {
   },
 }
 
-let scanners = new Set();
+/* SCANNERS */
 
-exports.addScanner = function(scanner) {
-  scanners.add(scanner);
-};
+let RuntimeScanners = {
 
-exports.removeScanner = function(scanner) {
-  scanners.delete(scanner);
-};
+  scanners: new Set(),
 
-exports.scanForRuntimes = function() {
-  let promises = [];
+  add(scanner) {
+    this.scanners.add(scanner);
+  },
 
-  for (let scanner of scanners) {
-    promises.push(scanner.scan());
+  remove(scanner) {
+    this.scanners.delete(scanner);
+  },
+
+  scan() {
+    let promises = [];
+
+    for (let scanner of this.scanners) {
+      promises.push(scanner.scan());
+    }
+
+    return promise.all(promises).then(runtimeGroups => {
+      return runtimeGroups.reduce((prev, curr) => prev.concat(curr), []);
+    });
+  },
+
+  _forwardUpdate() {
+    this.emit("runtime-list-updated");
+  },
+
+  enable() {
+    this._forwardUpdate = this._forwardUpdate.bind(this);
+    for (let scanner of this.scanners) {
+      scanner.enable();
+      scanner.on("runtime-list-updated", this._forwardUpdate);
+    }
+  },
+
+  disable() {
+    for (let scanner of this.scanners) {
+      scanner.off("runtime-list-updated", this._forwardUpdate);
+      scanner.disable();
+    }
   }
 
-  return promise.all(promises).then(runtimeGroups => {
-    return runtimeGroups.reduce((prev, curr) => prev.concat(curr), []);
-  });
 };
 
-exports.enableScanners = function() {
-  for (let scanner of scanners) {
-    scanner.enable();
-  }
-};
+EventEmitter.decorate(RuntimeScanners);
 
-exports.disableScanners = function() {
-  for (let scanner of scanners) {
-    scanner.disable();
-  }
-};
+exports.RuntimeScanners = RuntimeScanners;
 
 // TODO: Doc Runtime API
 // * type
@@ -206,27 +225,37 @@ exports.disableScanners = function() {
 
 let SimulatorScanner = {
 
+  runtimes: [],
+
   enable() {
-    Simulator.on("register", () => this._runtimeListUpdated);
-    Simulator.on("unregister", () => this._runtimeListUpdated);
+    this._runtimesUpdated = this._runtimesUpdated.bind(this);
+    Simulator.on("register", this._runtimesUpdated);
+    Simulator.on("unregister", this._runtimesUpdated);
+    this._runtimesUpdated();
   },
 
   disable() {
-    Simulator.off("register", () => this._runtimeListUpdated);
-    Simulator.off("unregister", () => this._runtimeListUpdated);
+    Simulator.off("register", this._runtimesUpdated);
+    Simulator.off("unregister", this._runtimesUpdated);
   },
 
-  runtimesUpdated() {
+  _runtimesUpdated() {
     this.runtimes = [];
     for (let version of Simulator.availableVersions()) {
       this.runtimes.push(new SimulatorRuntime(version));
     }
     this.emit("runtime-list-updated");
+  },
+
+  scan() {
+    return promise.resolve(this.runtimes);
   }
 
 };
 
 EventEmitter.decorate(SimulatorScanner);
+
+RuntimeScanners.add(SimulatorScanner);
 
 exports.USBRuntime = USBRuntime;
 exports.WiFiRuntime = WiFiRuntime;
