@@ -38,9 +38,7 @@ let AppManager = exports.AppManager = {
   DEFAULT_PROJECT_NAME: "--",
 
   init: function() {
-    let host = Services.prefs.getCharPref("devtools.debugger.remote-host");
     let port = Services.prefs.getIntPref("devtools.debugger.remote-port");
-
     this.connection = ConnectionManager.createConnection("localhost", port);
     this.onConnectionChanged = this.onConnectionChanged.bind(this);
     this.connection.on(Connection.Events.STATUS_CHANGED, this.onConnectionChanged);
@@ -597,37 +595,6 @@ let AppManager = exports.AppManager = {
 
   /* RUNTIME LIST */
 
-  trackUSBRuntimes: function() {
-    this._updateUSBRuntimes = this._updateUSBRuntimes.bind(this);
-    Devices.on("register", this._updateUSBRuntimes);
-    Devices.on("unregister", this._updateUSBRuntimes);
-    Devices.on("addon-status-updated", this._updateUSBRuntimes);
-    this._updateUSBRuntimes();
-  },
-  untrackUSBRuntimes: function() {
-    Devices.off("register", this._updateUSBRuntimes);
-    Devices.off("unregister", this._updateUSBRuntimes);
-    Devices.off("addon-status-updated", this._updateUSBRuntimes);
-  },
-  _updateUSBRuntimes: function() {
-    this.runtimeList.usb = [];
-    for (let id of Devices.available()) {
-      let r = new USBRuntime(id);
-      this.runtimeList.usb.push(r);
-      r.updateNameFromADB().then(
-        () => {
-          this.update("runtimelist");
-          // Also update the runtime button label, if the currently selected
-          // runtime name changes
-          if (r == this.selectedRuntime) {
-            this.update("runtime");
-          }
-        },
-        () => {});
-    }
-    this.update("runtimelist");
-  },
-
   get isWiFiScanningEnabled() {
     return Services.prefs.getBoolPref(WIFI_SCANNING_PREF);
   },
@@ -664,8 +631,6 @@ let AppManager = exports.AppManager = {
   },
 
   _rebuildRuntimeList: Task.async(function*() {
-    dump(new Error().stack);
-
     this.runtimeList = {
       usb: [],
       wifi: [],
@@ -692,6 +657,7 @@ let AppManager = exports.AppManager = {
       }
     }
 
+    this.update("runtime");
     this.update("runtimelist");
   }),
 

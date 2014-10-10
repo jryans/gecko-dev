@@ -50,7 +50,7 @@ USBRuntime.prototype = {
   },
   updateNameFromADB: function() {
     if (this._productModel) {
-      return promise.resolve();
+      return promise.reject();
     }
     let device = Devices.getByName(this.id);
     let deferred = promise.defer();
@@ -115,6 +115,10 @@ SimulatorRuntime.prototype = {
     return this.version;
   },
   getName: function() {
+    let simulator = Simulator.getByVersion(this.version);
+    if (!simulator) {
+      return "Unknown";
+    }
     return Simulator.getByVersion(this.version).appinfo.label;
   },
 }
@@ -175,10 +179,12 @@ let RuntimeScanners = {
 
   add(scanner) {
     this.scanners.add(scanner);
+    this._emitUpdated();
   },
 
   remove(scanner) {
     this.scanners.delete(scanner);
+    this._emitUpdated();
   },
 
   scan() {
@@ -193,21 +199,21 @@ let RuntimeScanners = {
     });
   },
 
-  _forwardUpdate() {
+  _emitUpdated() {
     this.emit("runtime-list-updated");
   },
 
   enable() {
-    this._forwardUpdate = this._forwardUpdate.bind(this);
+    this._emitUpdated = this._emitUpdated.bind(this);
     for (let scanner of this.scanners) {
       scanner.enable();
-      scanner.on("runtime-list-updated", this._forwardUpdate);
+      scanner.on("runtime-list-updated", this._emitUpdated);
     }
   },
 
   disable() {
     for (let scanner of this.scanners) {
-      scanner.off("runtime-list-updated", this._forwardUpdate);
+      scanner.off("runtime-list-updated", this._emitUpdated);
       scanner.disable();
     }
   }
@@ -239,10 +245,57 @@ let SimulatorScanner = {
     Simulator.off("unregister", this._runtimesUpdated);
   },
 
+  _emitUpdated() {
+    this.emit("runtime-list-updated");
+  },
+
   _runtimesUpdated() {
     this.runtimes = [];
     for (let version of Simulator.availableVersions()) {
       this.runtimes.push(new SimulatorRuntime(version));
+    }
+    this._emitUpdated();
+  },
+
+  scan() {
+    return promise.resolve(this.runtimes);
+  }
+
+};
+
+EventEmitter.decorate(SimulatorScanner);
+RuntimeScanners.add(SimulatorScanner);
+
+let DeprecatedAdbScanner = {
+
+  runtimes: [],
+
+  enable() {
+    this._runtimesUpdated = this._runtimesUpdated.bind(this);
+    Devices.on("register", this._runtimesUpdated);
+    Devices.on("unregister", this._runtimesUpdated);
+    Devices.on("addon-status-updated", this._runtimesUpdated);
+    this._runtimesUpdated();
+  },
+
+  disable() {
+    Devices.off("register", this._runtimesUpdated);
+    Devices.off("unregister", this._runtimesUpdated);
+    Devices.off("addon-status-updated", this._runtimesUpdated);
+  },
+
+  _emitUpdated() {
+    this.emit("runtime-list-updated");
+  },
+
+  _runtimesUpdated() {
+    this.runtimes = [];
+    for (let id of Devices.available()) {
+      let runtime = new USBRuntime(id);
+      this.runtimes.push(runtime);
+      runtime.updateNameFromADB().then(() => {
+        this._emitUpdated();
+      }, () => {});
     }
     this.emit("runtime-list-updated");
   },
@@ -253,12 +306,5 @@ let SimulatorScanner = {
 
 };
 
-EventEmitter.decorate(SimulatorScanner);
-
-RuntimeScanners.add(SimulatorScanner);
-
-exports.USBRuntime = USBRuntime;
-exports.WiFiRuntime = WiFiRuntime;
-exports.SimulatorRuntime = SimulatorRuntime;
-exports.gRemoteRuntime = gRemoteRuntime;
-exports.gLocalRuntime = gLocalRuntime;
+EventEmitter.decorate(DeprecatedAdbScanner);
+RuntimeScanners.add(DeprecatedAdbScanner);
