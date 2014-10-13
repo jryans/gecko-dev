@@ -14,7 +14,8 @@ const promise = require("promise");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
-// These type strings are used for logging events to Telemetry
+// These type strings are used for logging events to Telemetry.
+// You must update Histograms.json if new types are added.
 let RuntimeTypes = exports.RuntimeTypes = {
   USB: "USB",
   WIFI: "WIFI",
@@ -24,7 +25,6 @@ let RuntimeTypes = exports.RuntimeTypes = {
 };
 
 // TODO: Create a separate UI category
-
 
 /**
  * TODO: Bug XXX to remove this in the future?
