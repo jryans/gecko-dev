@@ -207,7 +207,7 @@ let RuntimeScanners = {
 
   scan() {
     if (!this._enabled) {
-      return promise.resolve([]);
+      return promise.resolve();
     }
 
     let promises = [];
@@ -216,9 +216,15 @@ let RuntimeScanners = {
       promises.push(scanner.scan());
     }
 
-    return promise.all(promises).then(runtimeGroups => {
-      return runtimeGroups.reduce((prev, curr) => prev.concat(curr), []);
-    });
+    return promise.all(promises);
+  },
+
+  listRuntimes: function*() {
+    for (let scanner of this._scanners) {
+      for (let runtime of scanner.listRuntimes()) {
+        yield runtime;
+      }
+    }
   },
 
   _emitUpdated() {
@@ -290,7 +296,11 @@ let SimulatorScanner = {
   },
 
   scan() {
-    return promise.resolve(this.runtimes);
+    return promise.resolve();
+  },
+
+  listRuntimes: function() {
+    return this.runtimes;
   }
 
 };
@@ -338,7 +348,11 @@ let DeprecatedAdbScanner = {
   },
 
   scan() {
-    return promise.resolve(this.runtimes);
+    return promise.resolve();
+  },
+
+  listRuntimes: function() {
+    return this.runtimes;
   }
 
 };
@@ -383,7 +397,11 @@ let WiFiScanner = {
 
   scan() {
     discovery.scan();
-    return promise.resolve(this.runtimes);
+    return promise.resolve();
+  },
+
+  listRuntimes: function() {
+    return this.runtimes;
   },
 
   ALLOWED_PREF: "devtools.remote.wifi.scan",

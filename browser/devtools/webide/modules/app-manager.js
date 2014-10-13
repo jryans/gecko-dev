@@ -586,8 +586,8 @@ let AppManager = exports.AppManager = {
     };
   },
 
-  _rebuildRuntimeList: Task.async(function*() {
-    let runtimes = yield RuntimeScanners.scan();
+  _rebuildRuntimeList: function() {
+    let runtimes = RuntimeScanners.listRuntimes();
     this._clearRuntimeList();
 
     // Reorganize runtimes by type
@@ -609,7 +609,7 @@ let AppManager = exports.AppManager = {
 
     this.update("runtime");
     this.update("runtimelist");
-  }),
+  },
 
   /* MANIFEST UTILS */
 
