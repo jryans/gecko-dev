@@ -22,6 +22,7 @@ const {GetAvailableAddons} = require("devtools/webide/addons");
 const {GetTemplatesJSON, GetAddonsJSON} = require("devtools/webide/remote-resources");
 const utils = require("devtools/webide/utils");
 const Telemetry = require("devtools/shared/telemetry");
+const {RuntimeScanners, WiFiScanner} = require("devtools/webide/runtimes");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
@@ -299,7 +300,7 @@ let UI = {
 
   updateRuntimeList: function() {
     let wifiHeaderNode = document.querySelector("#runtime-header-wifi");
-    if (AppManager.isWiFiScanningEnabled) {
+    if (WiFiScanner.allowed) {
       wifiHeaderNode.removeAttribute("hidden");
     } else {
       wifiHeaderNode.setAttribute("hidden", "true");
@@ -1118,7 +1119,7 @@ let Cmds = {
   },
 
   showRuntimePanel: function() {
-    AppManager.scanForWiFiRuntimes();
+    RuntimeScanners.scan();
 
     let panel = document.querySelector("#runtime-panel");
     let anchor = document.querySelector("#runtime-panel-button > .panel-button-anchor");

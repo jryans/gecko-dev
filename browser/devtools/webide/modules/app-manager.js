@@ -7,10 +7,8 @@ const {Cu} = require("chrome");
 let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm");
-const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const {TextEncoder, OS}  = Cu.import("resource://gre/modules/osfile.jsm", {});
 const {AppProjects} = require("devtools/app-manager/app-projects");
@@ -23,13 +21,10 @@ const {getPreferenceFront} = require("devtools/server/actors/preference");
 const {setTimeout} = require("sdk/timers");
 const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
 const {RuntimeScanners, RuntimeTypes} = require("devtools/webide/runtimes");
-const discovery = require("devtools/toolkit/discovery/discovery");
 const {NetUtil} = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 const Telemetry = require("devtools/shared/telemetry");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
-
-const WIFI_SCANNING_PREF = "devtools.remote.wifi.scan";
 
 let AppManager = exports.AppManager = {
 
@@ -56,9 +51,6 @@ let AppManager = exports.AppManager = {
 
     this.onInstallProgress = this.onInstallProgress.bind(this);
 
-    this.observe = this.observe.bind(this);
-    Services.prefs.addObserver(WIFI_SCANNING_PREF, this, false);
-
     this._telemetry = new Telemetry();
   },
 
@@ -76,17 +68,6 @@ let AppManager = exports.AppManager = {
     this._listTabsResponse = null;
     this.connection.disconnect();
     this.connection = null;
-    Services.prefs.removeObserver(WIFI_SCANNING_PREF, this);
-  },
-
-  observe: function(subject, topic, data) {
-    if (data !== WIFI_SCANNING_PREF) {
-      return;
-    }
-    // Cycle WiFi tracking to reflect the new value
-    this.untrackWiFiRuntimes();
-    this.trackWiFiRuntimes();
-    this._updateWiFiRuntimes();
   },
 
   update: function(what, details) {
@@ -595,41 +576,6 @@ let AppManager = exports.AppManager = {
 
   /* RUNTIME LIST */
 
-  get isWiFiScanningEnabled() {
-    return Services.prefs.getBoolPref(WIFI_SCANNING_PREF);
-  },
-  scanForWiFiRuntimes: function() {
-    if (!this.isWiFiScanningEnabled) {
-      return;
-    }
-    discovery.scan();
-  },
-  trackWiFiRuntimes: function() {
-    if (!this.isWiFiScanningEnabled) {
-      return;
-    }
-    this._updateWiFiRuntimes = this._updateWiFiRuntimes.bind(this);
-    discovery.on("devtools-device-added", this._updateWiFiRuntimes);
-    discovery.on("devtools-device-updated", this._updateWiFiRuntimes);
-    discovery.on("devtools-device-removed", this._updateWiFiRuntimes);
-    this._updateWiFiRuntimes();
-  },
-  untrackWiFiRuntimes: function() {
-    if (!this.isWiFiScanningEnabled) {
-      return;
-    }
-    discovery.off("devtools-device-added", this._updateWiFiRuntimes);
-    discovery.off("devtools-device-updated", this._updateWiFiRuntimes);
-    discovery.off("devtools-device-removed", this._updateWiFiRuntimes);
-  },
-  _updateWiFiRuntimes: function() {
-    this.runtimeList.wifi = [];
-    for (let device of discovery.getRemoteDevicesWithService("devtools")) {
-      this.runtimeList.wifi.push(new WiFiRuntime(device));
-    }
-    this.update("runtimelist");
-  },
-
   _rebuildRuntimeList: Task.async(function*() {
     this.runtimeList = {
       usb: [],
@@ -660,6 +606,8 @@ let AppManager = exports.AppManager = {
     this.update("runtime");
     this.update("runtimelist");
   }),
+
+  /* MANIFEST UTILS */
 
   writeManifest: function(project) {
     if (project.type != "packaged") {

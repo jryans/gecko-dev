@@ -181,22 +181,36 @@ let gRemoteRuntime = {
 
 let RuntimeScanners = {
 
-  scanners: new Set(),
+  _scanners: new Set(),
 
   add(scanner) {
-    this.scanners.add(scanner);
+    if (this._enabled) {
+      scanner.enable();
+    }
+    this._scanners.add(scanner);
     this._emitUpdated();
   },
 
   remove(scanner) {
-    this.scanners.delete(scanner);
+    this._scanners.delete(scanner);
+    if (this._enabled) {
+      scanner.disable();
+    }
     this._emitUpdated();
   },
 
+  has(scanner) {
+    return this._scanners.has(scanner);
+  },
+
   scan() {
+    if (!this._enabled) {
+      return promise.resolve([]);
+    }
+
     let promises = [];
 
-    for (let scanner of this.scanners) {
+    for (let scanner of this._scanners) {
       promises.push(scanner.scan());
     }
 
@@ -210,18 +224,20 @@ let RuntimeScanners = {
   },
 
   enable() {
+    this._enabled = true;
     this._emitUpdated = this._emitUpdated.bind(this);
-    for (let scanner of this.scanners) {
+    for (let scanner of this._scanners) {
       scanner.enable();
       scanner.on("runtime-list-updated", this._emitUpdated);
     }
   },
 
   disable() {
-    for (let scanner of this.scanners) {
+    for (let scanner of this._scanners) {
       scanner.off("runtime-list-updated", this._emitUpdated);
       scanner.disable();
     }
+    this._enabled = false;
   }
 
 };
@@ -308,7 +324,7 @@ let DeprecatedAdbScanner = {
         this._emitUpdated();
       }, () => {});
     }
-    this.emit("runtime-list-updated");
+    this._emitUpdated();
   },
 
   scan() {
@@ -319,3 +335,72 @@ let DeprecatedAdbScanner = {
 
 EventEmitter.decorate(DeprecatedAdbScanner);
 RuntimeScanners.add(DeprecatedAdbScanner);
+
+let WiFiScanner = {
+
+  runtimes: [],
+
+  init() {
+    this.updateRegistration();
+    Services.prefs.addObserver(this.ALLOWED_PREF, this, false);
+  },
+
+  enable() {
+    this._runtimesUpdated = this._runtimesUpdated.bind(this);
+    discovery.on("devtools-device-added", this._runtimesUpdated);
+    discovery.on("devtools-device-updated", this._runtimesUpdated);
+    discovery.on("devtools-device-removed", this._runtimesUpdated);
+    this._runtimesUpdated();
+  },
+
+  disable() {
+    discovery.off("devtools-device-added", this._runtimesUpdated);
+    discovery.off("devtools-device-updated", this._runtimesUpdated);
+    discovery.off("devtools-device-removed", this._runtimesUpdated);
+  },
+
+  _emitUpdated() {
+    this.emit("runtime-list-updated");
+  },
+
+  _runtimesUpdated() {
+    this.runtimes = [];
+    for (let device of discovery.getRemoteDevicesWithService("devtools")) {
+      this.runtimes.push(new WiFiRuntime(device));
+    }
+    this._emitUpdated();
+  },
+
+  scan() {
+    discovery.scan();
+    return promise.resolve(this.runtimes);
+  },
+
+  ALLOWED_PREF: "devtools.remote.wifi.scan",
+
+  get allowed() {
+    return Services.prefs.getBoolPref(this.ALLOWED_PREF);
+  },
+
+  updateRegistration() {
+    if (this.allowed) {
+      RuntimeScanners.add(WiFiScanner);
+    } else {
+      RuntimeScanners.remove(WiFiScanner);
+    }
+    this._emitUpdated();
+  },
+
+  observe(subject, topic, data) {
+    if (data !== WiFiScanner.ALLOWED_PREF) {
+      return;
+    }
+    WiFiScanner.updateRegistration();
+  }
+
+};
+
+EventEmitter.decorate(WiFiScanner);
+WiFiScanner.init();
+
+exports.WiFiScanner = WiFiScanner;
