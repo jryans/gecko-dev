@@ -320,7 +320,9 @@ let UI = {
       noHelperNode.removeAttribute("hidden");
     }
 
-    if (AppManager.runtimeList.usb.length == 0 && Devices.helperAddonInstalled) {
+    let runtimeList = AppManager.runtimeList;
+
+    if (runtimeList.usb.length === 0 && Devices.helperAddonInstalled) {
       noUSBNode.removeAttribute("hidden");
     } else {
       noUSBNode.setAttribute("hidden", "true");
@@ -335,7 +337,7 @@ let UI = {
       while (parent.hasChildNodes()) {
         parent.firstChild.remove();
       }
-      for (let runtime of AppManager.runtimeList[type]) {
+      for (let runtime of runtimeList[type]) {
         let panelItemNode = document.createElement("toolbarbutton");
         panelItemNode.className = "panel-item runtime-panel-item-" + type;
         panelItemNode.setAttribute("label", runtime.getName());

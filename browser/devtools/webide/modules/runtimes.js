@@ -185,7 +185,8 @@ let RuntimeScanners = {
 
   add(scanner) {
     if (this._enabled) {
-      scanner.enable();
+      // Enable any scanner added while globally enabled
+      this._enableScanner(scanner);
     }
     this._scanners.add(scanner);
     this._emitUpdated();
@@ -194,7 +195,8 @@ let RuntimeScanners = {
   remove(scanner) {
     this._scanners.delete(scanner);
     if (this._enabled) {
-      scanner.disable();
+      // Disable any scanner removed while globally enabled
+      this._disableScanner(scanner);
     }
     this._emitUpdated();
   },
@@ -227,18 +229,26 @@ let RuntimeScanners = {
     this._enabled = true;
     this._emitUpdated = this._emitUpdated.bind(this);
     for (let scanner of this._scanners) {
-      scanner.enable();
-      scanner.on("runtime-list-updated", this._emitUpdated);
+      this._enableScanner(scanner);
     }
+  },
+
+  _enableScanner(scanner) {
+    scanner.enable();
+    scanner.on("runtime-list-updated", this._emitUpdated);
   },
 
   disable() {
     for (let scanner of this._scanners) {
-      scanner.off("runtime-list-updated", this._emitUpdated);
-      scanner.disable();
+      this._disableScanner(scanner);
     }
     this._enabled = false;
-  }
+  },
+
+  _disableScanner(scanner) {
+    scanner.off("runtime-list-updated", this._emitUpdated);
+    scanner.disable();
+  },
 
 };
 

@@ -44,6 +44,7 @@ let AppManager = exports.AppManager = {
     this.tabStore.on("navigate", this.onTabNavigate);
     this.tabStore.on("closed", this.onTabClosed);
 
+    this._clearRuntimeList();
     this._rebuildRuntimeList = this._rebuildRuntimeList.bind(this);
     RuntimeScanners.on("runtime-list-updated", this._rebuildRuntimeList);
     RuntimeScanners.enable();
@@ -576,15 +577,18 @@ let AppManager = exports.AppManager = {
 
   /* RUNTIME LIST */
 
-  _rebuildRuntimeList: Task.async(function*() {
+  _clearRuntimeList: function() {
     this.runtimeList = {
       usb: [],
       wifi: [],
       simulator: [],
       other: []
     };
+  },
 
+  _rebuildRuntimeList: Task.async(function*() {
     let runtimes = yield RuntimeScanners.scan();
+    this._clearRuntimeList();
 
     // Reorganize runtimes by type
     for (let runtime of runtimes) {
