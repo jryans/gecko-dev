@@ -25,11 +25,17 @@ let RuntimeTypes = exports.RuntimeTypes = {
 
 // TODO: Create a separate UI category
 
-function USBRuntime(id) {
+
+/**
+ * TODO: Bug XXX to remove this in the future?
+ * OR: Force re-install of ADB Helper with new enough version?
+ * This runtime exists to support the ADB Helper add-on below version XXX.
+ */
+function DeprecatedUSBRuntime(id) {
   this.id = id;
 }
 
-USBRuntime.prototype = {
+DeprecatedUSBRuntime.prototype = {
   type: RuntimeTypes.USB,
   connect: function(connection) {
     let device = Devices.getByName(this.id);
@@ -266,6 +272,11 @@ let SimulatorScanner = {
 EventEmitter.decorate(SimulatorScanner);
 RuntimeScanners.add(SimulatorScanner);
 
+/**
+ * TODO: Bug XXX to remove this in the future?
+ * OR: Force re-install of ADB Helper with new enough version?
+ * This runtime exists to support the ADB Helper add-on below version XXX.
+ */
 let DeprecatedAdbScanner = {
 
   runtimes: [],
@@ -291,7 +302,7 @@ let DeprecatedAdbScanner = {
   _runtimesUpdated() {
     this.runtimes = [];
     for (let id of Devices.available()) {
-      let runtime = new USBRuntime(id);
+      let runtime = new DeprecatedUSBRuntime(id);
       this.runtimes.push(runtime);
       runtime.updateNameFromADB().then(() => {
         this._emitUpdated();
