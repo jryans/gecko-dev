@@ -31,177 +31,19 @@ const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/
  * * 
  */
 
-// These type strings are used for logging events to Telemetry.
-// You must update Histograms.json if new types are added.
-let RuntimeTypes = exports.RuntimeTypes = {
-  USB: "USB",
-  WIFI: "WIFI",
-  SIMULATOR: "SIMULATOR",
-  REMOTE: "REMOTE",
-  LOCAL: "LOCAL"
-};
-
-// TODO: Create a separate UI category
-
-/**
- * TODO: Bug XXX to remove this in the future?
- * OR: Force re-install of ADB Helper with new enough version?
- * This runtime exists to support the ADB Helper add-on below version XXX.
- */
-function DeprecatedUSBRuntime(id) {
-  this.id = id;
-}
-
-DeprecatedUSBRuntime.prototype = {
-  type: RuntimeTypes.USB,
-  connect: function(connection) {
-    let device = Devices.getByName(this.id);
-    if (!device) {
-      return promise.reject("Can't find device: " + this.getName());
-    }
-    return device.connect().then((port) => {
-      connection.host = "localhost";
-      connection.port = port;
-      connection.connect();
-    });
-  },
-  getID: function() {
-    return this.id;
-  },
-  getName: function() {
-    return this._productModel || this.id;
-  },
-  updateNameFromADB: function() {
-    if (this._productModel) {
-      return promise.reject();
-    }
-    let device = Devices.getByName(this.id);
-    let deferred = promise.defer();
-    if (device && device.shell) {
-      device.shell("getprop ro.product.model").then(stdout => {
-        this._productModel = stdout;
-        deferred.resolve();
-      }, () => {});
-    } else {
-      this._productModel = null;
-      deferred.reject();
-    }
-    return deferred.promise;
-  },
-}
-
-function WiFiRuntime(deviceName) {
-  this.deviceName = deviceName;
-}
-
-WiFiRuntime.prototype = {
-  type: RuntimeTypes.WIFI,
-  connect: function(connection) {
-    let service = discovery.getRemoteService("devtools", this.deviceName);
-    if (!service) {
-      return promise.reject("Can't find device: " + this.getName());
-    }
-    connection.host = service.host;
-    connection.port = service.port;
-    connection.connect();
-    return promise.resolve();
-  },
-  getID: function() {
-    return this.deviceName;
-  },
-  getName: function() {
-    return this.deviceName;
-  },
-}
-
-function SimulatorRuntime(version) {
-  this.version = version;
-}
-
-SimulatorRuntime.prototype = {
-  type: RuntimeTypes.SIMULATOR,
-  connect: function(connection) {
-    let port = ConnectionManager.getFreeTCPPort();
-    let simulator = Simulator.getByVersion(this.version);
-    if (!simulator || !simulator.launch) {
-      return promise.reject("Can't find simulator: " + this.getName());
-    }
-    return simulator.launch({port: port}).then(() => {
-      connection.host = "localhost";
-      connection.port = port;
-      connection.keepConnecting = true;
-      connection.once(Connection.Events.DISCONNECTED, simulator.close);
-      connection.connect();
-    });
-  },
-  getID: function() {
-    return this.version;
-  },
-  getName: function() {
-    let simulator = Simulator.getByVersion(this.version);
-    if (!simulator) {
-      return "Unknown";
-    }
-    return Simulator.getByVersion(this.version).appinfo.label;
-  },
-}
-
-let gLocalRuntime = {
-  type: RuntimeTypes.LOCAL,
-  connect: function(connection) {
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-    }
-    connection.host = null; // Force Pipe transport
-    connection.port = null;
-    connection.connect();
-    return promise.resolve();
-  },
-  getName: function() {
-    return Strings.GetStringFromName("local_runtime");
-  },
-  getID: function () {
-    return "local";
-  }
-}
-
-let gRemoteRuntime = {
-  type: RuntimeTypes.REMOTE,
-  connect: function(connection) {
-    let win = Services.wm.getMostRecentWindow("devtools:webide");
-    if (!win) {
-      return promise.reject();
-    }
-    let ret = {value: connection.host + ":" + connection.port};
-    let title = Strings.GetStringFromName("remote_runtime_promptTitle");
-    let message = Strings.GetStringFromName("remote_runtime_promptMessage");
-    let ok = Services.prompt.prompt(win, title, message, ret, null, {});
-    let [host,port] = ret.value.split(":");
-    if (!ok) {
-      return promise.reject({canceled: true});
-    }
-    if (!host || !port) {
-      return promise.reject();
-    }
-    connection.host = host;
-    connection.port = port;
-    connection.connect();
-    return promise.resolve();
-  },
-  getName: function() {
-    return Strings.GetStringFromName("remote_runtime");
-  },
-}
-
-/* SCANNERS */
+/* SCANNER REGISTRY */
 
 let RuntimeScanners = {
 
+  _enabledCount: 0,
   _scanners: new Set(),
 
+  get enabled() {
+    return !!this._enabledCount;
+  },
+
   add(scanner) {
-    if (this._enabled) {
+    if (this.enabled) {
       // Enable any scanner added while globally enabled
       this._enableScanner(scanner);
     }
@@ -211,7 +53,7 @@ let RuntimeScanners = {
 
   remove(scanner) {
     this._scanners.delete(scanner);
-    if (this._enabled) {
+    if (this.enabled) {
       // Disable any scanner removed while globally enabled
       this._disableScanner(scanner);
     }
@@ -223,7 +65,7 @@ let RuntimeScanners = {
   },
 
   scan() {
-    if (!this._enabled) {
+    if (!this.enabled) {
       return promise.resolve();
     }
 
@@ -249,7 +91,10 @@ let RuntimeScanners = {
   },
 
   enable() {
-    this._enabled = true;
+    if (this._enabledCount++ !== 0) {
+      // Already enabled scanners during a previous call
+      return;
+    }
     this._emitUpdated = this._emitUpdated.bind(this);
     for (let scanner of this._scanners) {
       this._enableScanner(scanner);
@@ -262,10 +107,13 @@ let RuntimeScanners = {
   },
 
   disable() {
+    if (--this._enabledCount !== 0) {
+      // Already disabled scanners during a previous call
+      return;
+    }
     for (let scanner of this._scanners) {
       this._disableScanner(scanner);
     }
-    this._enabled = false;
   },
 
   _disableScanner(scanner) {
@@ -278,6 +126,8 @@ let RuntimeScanners = {
 EventEmitter.decorate(RuntimeScanners);
 
 exports.RuntimeScanners = RuntimeScanners;
+
+/* SCANNERS */
 
 // TODO: Doc Runtime API
 // * type
@@ -449,3 +299,170 @@ EventEmitter.decorate(WiFiScanner);
 WiFiScanner.init();
 
 exports.WiFiScanner = WiFiScanner;
+
+/* RUNTIMES */
+
+// These type strings are used for logging events to Telemetry.
+// You must update Histograms.json if new types are added.
+let RuntimeTypes = exports.RuntimeTypes = {
+  USB: "USB",
+  WIFI: "WIFI",
+  SIMULATOR: "SIMULATOR",
+  REMOTE: "REMOTE",
+  LOCAL: "LOCAL"
+};
+
+// TODO: Create a separate UI category
+
+/**
+ * TODO: Bug XXX to remove this in the future?
+ * OR: Force re-install of ADB Helper with new enough version?
+ * This runtime exists to support the ADB Helper add-on below version XXX.
+ */
+function DeprecatedUSBRuntime(id) {
+  this.id = id;
+}
+
+DeprecatedUSBRuntime.prototype = {
+  type: RuntimeTypes.USB,
+  connect: function(connection) {
+    let device = Devices.getByName(this.id);
+    if (!device) {
+      return promise.reject("Can't find device: " + this.getName());
+    }
+    return device.connect().then((port) => {
+      connection.host = "localhost";
+      connection.port = port;
+      connection.connect();
+    });
+  },
+  getID: function() {
+    return this.id;
+  },
+  getName: function() {
+    return this._productModel || this.id;
+  },
+  updateNameFromADB: function() {
+    if (this._productModel) {
+      return promise.reject();
+    }
+    let device = Devices.getByName(this.id);
+    let deferred = promise.defer();
+    if (device && device.shell) {
+      device.shell("getprop ro.product.model").then(stdout => {
+        this._productModel = stdout;
+        deferred.resolve();
+      }, () => {});
+    } else {
+      this._productModel = null;
+      deferred.reject();
+    }
+    return deferred.promise;
+  },
+}
+
+function WiFiRuntime(deviceName) {
+  this.deviceName = deviceName;
+}
+
+WiFiRuntime.prototype = {
+  type: RuntimeTypes.WIFI,
+  connect: function(connection) {
+    let service = discovery.getRemoteService("devtools", this.deviceName);
+    if (!service) {
+      return promise.reject("Can't find device: " + this.getName());
+    }
+    connection.host = service.host;
+    connection.port = service.port;
+    connection.connect();
+    return promise.resolve();
+  },
+  getID: function() {
+    return this.deviceName;
+  },
+  getName: function() {
+    return this.deviceName;
+  },
+}
+
+function SimulatorRuntime(version) {
+  this.version = version;
+}
+
+SimulatorRuntime.prototype = {
+  type: RuntimeTypes.SIMULATOR,
+  connect: function(connection) {
+    let port = ConnectionManager.getFreeTCPPort();
+    let simulator = Simulator.getByVersion(this.version);
+    if (!simulator || !simulator.launch) {
+      return promise.reject("Can't find simulator: " + this.getName());
+    }
+    return simulator.launch({port: port}).then(() => {
+      connection.host = "localhost";
+      connection.port = port;
+      connection.keepConnecting = true;
+      connection.once(Connection.Events.DISCONNECTED, simulator.close);
+      connection.connect();
+    });
+  },
+  getID: function() {
+    return this.version;
+  },
+  getName: function() {
+    let simulator = Simulator.getByVersion(this.version);
+    if (!simulator) {
+      return "Unknown";
+    }
+    return Simulator.getByVersion(this.version).appinfo.label;
+  },
+}
+
+let gLocalRuntime = {
+  type: RuntimeTypes.LOCAL,
+  connect: function(connection) {
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
+    connection.host = null; // Force Pipe transport
+    connection.port = null;
+    connection.connect();
+    return promise.resolve();
+  },
+  getName: function() {
+    return Strings.GetStringFromName("local_runtime");
+  },
+  getID: function () {
+    return "local";
+  }
+}
+
+let gRemoteRuntime = {
+  type: RuntimeTypes.REMOTE,
+  connect: function(connection) {
+    let win = Services.wm.getMostRecentWindow("devtools:webide");
+    if (!win) {
+      return promise.reject();
+    }
+    let ret = {value: connection.host + ":" + connection.port};
+    let title = Strings.GetStringFromName("remote_runtime_promptTitle");
+    let message = Strings.GetStringFromName("remote_runtime_promptMessage");
+    let ok = Services.prompt.prompt(win, title, message, ret, null, {});
+    let [host,port] = ret.value.split(":");
+    if (!ok) {
+      return promise.reject({canceled: true});
+    }
+    if (!host || !port) {
+      return promise.reject();
+    }
+    connection.host = host;
+    connection.port = port;
+    connection.connect();
+    return promise.resolve();
+  },
+  getName: function() {
+    return Strings.GetStringFromName("remote_runtime");
+  },
+}
+
+
