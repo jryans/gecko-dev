@@ -26,9 +26,51 @@ const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/
  * * enable()
  *   Bind any event handlers and start any background work the scanner needs to
  *   maintain an updated set of |Runtime|s.
- *   Called when there is a consumer (such as WebIDE) actively interested in
- *   maintaining the |Runtime| list.
- * * 
+ *   Called when the first consumer (such as WebIDE) actively interested in
+ *   maintaining the |Runtime| list enables the registry.
+ * * disable()
+ *   Unbind any event handlers and stop any background work the scanner needs to
+ *   maintain an updated set of |Runtime|s.
+ *   Called when the last consumer (such as WebIDE) actively interested in
+ *   maintaining the |Runtime| list disables the registry.
+ * * emits "runtime-list-updated"
+ *   If the set of runtimes a |Scanner| manages has changed, it must emit this
+ *   event to notify consumers of changes.
+ * * scan()
+ *   Actively refreshes the list of runtimes the scanner knows about.  If your
+ *   scanner uses an active scanning approach (as opposed to listening for
+ *   events when changes occur), the bulk of the work would be done here.
+ *   @return Promise
+ *           Should be resolved when scanning is complete.  If scanning has no
+ *           well-defined end point, you can resolve immediately, as long as
+ *           update event is emitted later when changes are noticed.
+ * * listRuntimes()
+ *   Return the current list of runtimes known to the |Scanner| instance.
+ *   @return Iterable
+ *
+ * Each |Runtime| must support the following API:
+ *
+ * * type field / getter
+ *   The |type| must be one of the values from the |RuntimeTypes| object.  This
+ *   is used for Telemetry and to support displaying sets of |Runtime|s
+ *   categorized by type.
+ * * id field / getter
+ *   An identifier that is unique in the set of all runtimes with the same
+ *   |type|.  WebIDE tries to save the last used runtime via type + id, and
+ *   tries to locate it again in the next session, so this value should attempt
+ *   to be stable across Firefox sessions.
+ * * name field / getter
+ *   A user-visible label to identify the runtime that will be displayed in a
+ *   runtime list.
+ * * connect()
+ *   Configure the passed |connection| object with any settings need to
+ *   successfully connect to the runtime, and call the |connection|'s connect()
+ *   method.
+ *   TODO: Revise?  This is a strange API.
+ *   @param  Connection connection
+ *           A |Connection| object from the DevTools |ConnectionManager|.
+ *   @return Promise
+ *           Resolved once you've called the |connection|'s connect() method.
  */
 
 /* SCANNER REGISTRY */
@@ -312,6 +354,8 @@ let RuntimeTypes = exports.RuntimeTypes = {
   LOCAL: "LOCAL"
 };
 
+// TODO: Add "other" for telemetry
+
 // TODO: Create a separate UI category
 
 /**
@@ -436,6 +480,8 @@ let gLocalRuntime = {
     return "local";
   }
 }
+
+// TODO: Create instances by deserializing from port?  Or just a constructor...
 
 let gRemoteRuntime = {
   type: RuntimeTypes.REMOTE,
