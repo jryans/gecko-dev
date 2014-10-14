@@ -14,6 +14,23 @@ const promise = require("promise");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
+/**
+ * Runtime and Scanner API
+ *
+ * |RuntimeScanners| maintains a set of |Scanner| objects that produce one or
+ * more |Runtime|s to connect to.  Add-ons can extend the set of known runtimes
+ * by registering additional |Scanner|s that emit them.
+ *
+ * Each |Scanner| must support the following API:
+ *
+ * * enable()
+ *   Bind any event handlers and start any background work the scanner needs to
+ *   maintain an updated set of |Runtime|s.
+ *   Called when there is a consumer (such as WebIDE) actively interested in
+ *   maintaining the |Runtime| list.
+ * * 
+ */
+
 // These type strings are used for logging events to Telemetry.
 // You must update Histograms.json if new types are added.
 let RuntimeTypes = exports.RuntimeTypes = {
@@ -269,7 +286,7 @@ exports.RuntimeScanners = RuntimeScanners;
 
 let SimulatorScanner = {
 
-  runtimes: [],
+  _runtimes: [],
 
   enable() {
     this._runtimesUpdated = this._runtimesUpdated.bind(this);
@@ -288,9 +305,9 @@ let SimulatorScanner = {
   },
 
   _runtimesUpdated() {
-    this.runtimes = [];
+    this._runtimes = [];
     for (let version of Simulator.availableVersions()) {
-      this.runtimes.push(new SimulatorRuntime(version));
+      this._runtimes.push(new SimulatorRuntime(version));
     }
     this._emitUpdated();
   },
@@ -300,7 +317,7 @@ let SimulatorScanner = {
   },
 
   listRuntimes: function() {
-    return this.runtimes;
+    return this._runtimes;
   }
 
 };
@@ -315,7 +332,7 @@ RuntimeScanners.add(SimulatorScanner);
  */
 let DeprecatedAdbScanner = {
 
-  runtimes: [],
+  _runtimes: [],
 
   enable() {
     this._runtimesUpdated = this._runtimesUpdated.bind(this);
@@ -336,10 +353,10 @@ let DeprecatedAdbScanner = {
   },
 
   _runtimesUpdated() {
-    this.runtimes = [];
+    this._runtimes = [];
     for (let id of Devices.available()) {
       let runtime = new DeprecatedUSBRuntime(id);
-      this.runtimes.push(runtime);
+      this._runtimes.push(runtime);
       runtime.updateNameFromADB().then(() => {
         this._emitUpdated();
       }, () => {});
@@ -352,7 +369,7 @@ let DeprecatedAdbScanner = {
   },
 
   listRuntimes: function() {
-    return this.runtimes;
+    return this._runtimes;
   }
 
 };
@@ -362,7 +379,7 @@ RuntimeScanners.add(DeprecatedAdbScanner);
 
 let WiFiScanner = {
 
-  runtimes: [],
+  _runtimes: [],
 
   init() {
     this.updateRegistration();
@@ -388,9 +405,9 @@ let WiFiScanner = {
   },
 
   _runtimesUpdated() {
-    this.runtimes = [];
+    this._runtimes = [];
     for (let device of discovery.getRemoteDevicesWithService("devtools")) {
-      this.runtimes.push(new WiFiRuntime(device));
+      this._runtimes.push(new WiFiRuntime(device));
     }
     this._emitUpdated();
   },
@@ -401,7 +418,7 @@ let WiFiScanner = {
   },
 
   listRuntimes: function() {
-    return this.runtimes;
+    return this._runtimes;
   },
 
   ALLOWED_PREF: "devtools.remote.wifi.scan",
