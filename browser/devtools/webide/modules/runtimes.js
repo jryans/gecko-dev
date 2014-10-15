@@ -181,22 +181,22 @@ let SimulatorScanner = {
   _runtimes: [],
 
   enable() {
-    this._runtimesUpdated = this._runtimesUpdated.bind(this);
-    Simulator.on("register", this._runtimesUpdated);
-    Simulator.on("unregister", this._runtimesUpdated);
-    this._runtimesUpdated();
+    this._updateRuntimes = this._updateRuntimes.bind(this);
+    Simulator.on("register", this._updateRuntimes);
+    Simulator.on("unregister", this._updateRuntimes);
+    this._updateRuntimes();
   },
 
   disable() {
-    Simulator.off("register", this._runtimesUpdated);
-    Simulator.off("unregister", this._runtimesUpdated);
+    Simulator.off("register", this._updateRuntimes);
+    Simulator.off("unregister", this._updateRuntimes);
   },
 
   _emitUpdated() {
     this.emit("runtime-list-updated");
   },
 
-  _runtimesUpdated() {
+  _updateRuntimes() {
     this._runtimes = [];
     for (let version of Simulator.availableVersions()) {
       this._runtimes.push(new SimulatorRuntime(version));
@@ -231,24 +231,24 @@ let DeprecatedAdbScanner = {
   _runtimes: [],
 
   enable() {
-    this._runtimesUpdated = this._runtimesUpdated.bind(this);
-    Devices.on("register", this._runtimesUpdated);
-    Devices.on("unregister", this._runtimesUpdated);
-    Devices.on("addon-status-updated", this._runtimesUpdated);
-    this._runtimesUpdated();
+    this._updateRuntimes = this._updateRuntimes.bind(this);
+    Devices.on("register", this._updateRuntimes);
+    Devices.on("unregister", this._updateRuntimes);
+    Devices.on("addon-status-updated", this._updateRuntimes);
+    this._updateRuntimes();
   },
 
   disable() {
-    Devices.off("register", this._runtimesUpdated);
-    Devices.off("unregister", this._runtimesUpdated);
-    Devices.off("addon-status-updated", this._runtimesUpdated);
+    Devices.off("register", this._updateRuntimes);
+    Devices.off("unregister", this._updateRuntimes);
+    Devices.off("addon-status-updated", this._updateRuntimes);
   },
 
   _emitUpdated() {
     this.emit("runtime-list-updated");
   },
 
-  _runtimesUpdated() {
+  _updateRuntimes() {
     this._runtimes = [];
     for (let id of Devices.available()) {
       let runtime = new DeprecatedUSBRuntime(id);
@@ -273,6 +273,9 @@ let DeprecatedAdbScanner = {
 EventEmitter.decorate(DeprecatedAdbScanner);
 RuntimeScanners.add(DeprecatedAdbScanner);
 
+// ADB Helper XXX and later will replace this scanner on startup
+exports.DeprecatedAdbScanner = DeprecatedAdbScanner;
+
 let WiFiScanner = {
 
   _runtimes: [],
@@ -283,24 +286,24 @@ let WiFiScanner = {
   },
 
   enable() {
-    this._runtimesUpdated = this._runtimesUpdated.bind(this);
-    discovery.on("devtools-device-added", this._runtimesUpdated);
-    discovery.on("devtools-device-updated", this._runtimesUpdated);
-    discovery.on("devtools-device-removed", this._runtimesUpdated);
-    this._runtimesUpdated();
+    this._updateRuntimes = this._updateRuntimes.bind(this);
+    discovery.on("devtools-device-added", this._updateRuntimes);
+    discovery.on("devtools-device-updated", this._updateRuntimes);
+    discovery.on("devtools-device-removed", this._updateRuntimes);
+    this._updateRuntimes();
   },
 
   disable() {
-    discovery.off("devtools-device-added", this._runtimesUpdated);
-    discovery.off("devtools-device-updated", this._runtimesUpdated);
-    discovery.off("devtools-device-removed", this._runtimesUpdated);
+    discovery.off("devtools-device-added", this._updateRuntimes);
+    discovery.off("devtools-device-updated", this._updateRuntimes);
+    discovery.off("devtools-device-removed", this._updateRuntimes);
   },
 
   _emitUpdated() {
     this.emit("runtime-list-updated");
   },
 
-  _runtimesUpdated() {
+  _updateRuntimes() {
     this._runtimes = [];
     for (let device of discovery.getRemoteDevicesWithService("devtools")) {
       this._runtimes.push(new WiFiRuntime(device));
