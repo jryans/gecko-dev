@@ -221,6 +221,10 @@ RuntimeScanners.add(SimulatorScanner);
  * TODO: Bug XXX to remove this in the future?
  * OR: Force re-install of ADB Helper with new enough version?
  * This runtime exists to support the ADB Helper add-on below version XXX.
+ *
+ * This scanner will list all ADB devices as runtimes, even if they may or may
+ * not actually connect (since the |DeprecatedUSBRuntime| assumes a Firefox OS
+ * device).
  */
 let DeprecatedAdbScanner = {
 
@@ -372,6 +376,8 @@ let RuntimeTypes = exports.RuntimeTypes = {
  * TODO: Bug XXX to remove this in the future?
  * OR: Force re-install of ADB Helper with new enough version?
  * This runtime exists to support the ADB Helper add-on below version XXX.
+ *
+ * This runtime assumes it is connecting to a Firefox OS device.
  */
 function DeprecatedUSBRuntime(id) {
   this.id = id;
