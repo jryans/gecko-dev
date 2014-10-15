@@ -342,6 +342,16 @@ WiFiScanner.init();
 
 exports.WiFiScanner = WiFiScanner;
 
+let StaticScanner = {
+  enable() {},
+  disable() {},
+  scan() { return promise.resolve(); },
+  listRuntimes() { return [gLocalRuntime, gRemoteRuntime]; }
+};
+
+EventEmitter.decorate(StaticScanner);
+RuntimeScanners.add(StaticScanner);
+
 /* RUNTIMES */
 
 // These type strings are used for logging events to Telemetry.
@@ -473,12 +483,12 @@ let gLocalRuntime = {
     connection.connect();
     return promise.resolve();
   },
+  getID: function () {
+    return "local";
+  },
   getName: function() {
     return Strings.GetStringFromName("local_runtime");
   },
-  getID: function () {
-    return "local";
-  }
 }
 
 // TODO: Create instances by deserializing from port?  Or just a constructor...
@@ -510,5 +520,3 @@ let gRemoteRuntime = {
     return Strings.GetStringFromName("remote_runtime");
   },
 }
-
-
