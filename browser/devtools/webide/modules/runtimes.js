@@ -111,13 +111,24 @@ let RuntimeScanners = {
       return promise.resolve();
     }
 
+    if (this._scanPromise) {
+      return this._scanPromise;
+    }
+
     let promises = [];
 
     for (let scanner of this._scanners) {
       promises.push(scanner.scan());
     }
 
-    return promise.all(promises);
+    this._scanPromise = promise.all(promises);
+
+    // Reset pending promise
+    this._scanPromise
+        .then(() => this._scanPromise = null,
+              () => this._scanPromise = null);
+
+    return this._scanPromise;
   },
 
   listRuntimes: function*() {
