@@ -124,9 +124,11 @@ let RuntimeScanners = {
     this._scanPromise = promise.all(promises);
 
     // Reset pending promise
-    this._scanPromise
-        .then(() => this._scanPromise = null,
-              () => this._scanPromise = null);
+    this._scanPromise.then(() => {
+      this._scanPromise = null;
+    }, () => {
+      this._scanPromise = null;
+    });
 
     return this._scanPromise;
   },
