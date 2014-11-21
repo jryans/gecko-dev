@@ -242,6 +242,13 @@ SocketListener.defaultAllowConnection = () => {
   return false;
 };
 
+/* Authentication Modes */
+// TODO: Docs
+SocketListener.Authentication = {
+  PROMPT: "PROMPT",
+  OOB_CERT: "OOB_CERT"
+};
+
 SocketListener.prototype = {
 
   /* Socket Options */
@@ -275,6 +282,11 @@ SocketListener.prototype = {
   encryption: false,
 
   /**
+   * Controls the authentication mode used by this listener.
+   */
+  authentication: SocketListener.Authentication.PROMPT,
+
+  /**
    * Validate that all options have been set to a supported configuration.
    */
   _validateOptions: function() {
@@ -283,6 +295,14 @@ SocketListener.prototype = {
     }
     if (this.discoverable && !Number(this.portOrPath)) {
       throw new Error("Discovery only supported for TCP sockets.");
+    }
+    if (!(this.authentication in SocketListener.Authentication)) {
+      throw new Error(this.authentication +
+                      " is not a supported authentication mode.");
+    }
+    if (this.authentication == SocketListener.Authentication.OOB_CERT &&
+        !this.encryption) {
+      throw new Error("OOB_CERT authentication requires encryption.");
     }
   },
 
@@ -317,17 +337,35 @@ SocketListener.prototype = {
       self._socket.asyncListen(self);
       dumpn("Socket listening on: " + (self.port || self.portOrPath));
     }).then(() => {
-      if (this.discoverable && this.port) {
-        discovery.addService("devtools", {
-          port: this.port,
-          encryption: this.encryption
-        });
-      }
+      this._advertise();
     }).catch(e => {
       dumpn("Could not start debugging listener on '" + this.portOrPath +
             "': " + e);
       this.close();
     });
+  },
+
+  _advertise: function() {
+    if (!this.discoverable || !this.port) {
+      return;
+    }
+
+    let advertisement = {
+      port: this.port,
+      encryption: this.encryption,
+      authentication: this.authentication
+    };
+
+    if (this.authentication == SocketListener.Authentication.OOB_CERT) {
+      // OOB_CERT step A.4
+      // Server announces itself via service discovery
+      // Announcement contains hash(ServerCert) as additional data
+      advertisement.cert = {
+        sha256: this._socket.serverCert.sha256Fingerprint
+      };
+    }
+
+    discovery.addService("devtools", advertisement);
   },
 
   _createSocketInstance: function() {
