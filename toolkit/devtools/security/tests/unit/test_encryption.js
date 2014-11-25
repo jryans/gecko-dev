@@ -31,7 +31,7 @@ add_task(function*() {
   let listener = DebuggerServer.createListener();
   ok(listener, "Socket listener created");
   listener.portOrPath = -1 /* any available port */;
-  listener.allowConnection = () => true;
+  listener.allowConnection = () => DebuggerServer.AuthenticationResult.ALLOW;
   listener.encryption = true;
   yield listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
@@ -72,7 +72,7 @@ add_task(function*() {
   let listener = DebuggerServer.createListener();
   ok(listener, "Socket listener created");
   listener.portOrPath = -1 /* any available port */;
-  listener.allowConnection = () => true;
+  listener.allowConnection = () => DebuggerServer.AuthenticationResult.ALLOW;
   listener.encryption = true;
   yield listener.open();
   equal(DebuggerServer.listeningSockets, 1, "1 listening socket");

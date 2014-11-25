@@ -53,6 +53,102 @@ const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 let DebuggerSocket = {};
 
 /**
+ * A simple enum-like object with keys mirrored to values.
+ * This makes comparison to a specfic value simpler without having to repeat and
+ * mis-type the value.
+ */
+function createEnum(obj) {
+  for (let key in obj) {
+    obj[key] = key;
+  }
+  return obj;
+}
+
+/* Authentication Modes */
+let Authentication = DebuggerSocket.Authentication = createEnum({
+
+  /**
+   * In PROMPT mode, the |allowConnection| method is provided:
+   * {
+   *   authentication: "PROMPT",
+   *   client: {
+   *     host,
+   *     port
+   *   },
+   *   server: {
+   *     host,
+   *     port
+   *   }
+   * }
+   * It is expected that the implementation of |allowConnection| will show a
+   * prompt to the user so that they can allow or deny the connection.
+   */
+  PROMPT: null,
+
+  /**
+   * In OOB_CERT mode, the |allowConnection| method is provided:
+   * {
+   *   authentication: "OOB_CERT",
+   *   client: {
+   *     host,
+   *     port,
+   *     cert: {
+   *       sha256
+   *     },
+   *   },
+   *   server: {
+   *     host,
+   *     port,
+   *     cert: {
+   *       sha256
+   *     }
+   *   }
+   * }
+   * It is expected that the implementation of |allowConnection| will show a
+   * prompt to the user so that they can allow or deny the connection.  If the
+   * user chooses to allow the connection, the UI should assist the user in
+   * tranferring out-of-band (OOB) verification of the client's certificate.
+   * For example, this could take the form of a QR code that the client displays
+   * which is then scanned by camera on the server.  See docs/wifi.md for
+   * details of one version of this method.
+   */
+  OOB_CERT: null
+
+});
+
+/**
+ * |allowConnection| implementations can return various values as their |result|
+ * field to indicate what action to take.  By specifying these, we can
+ * centralize the common actions available, while still allowing embedders to
+ * present their UI in whatever way they choose.
+ */
+let AuthenticationResult = DebuggerSocket.AuthenticationResult = createEnum({
+
+  /**
+   * Close all listening sockets, and disable them from opening again.
+   */
+  DISABLE_ALL: null,
+
+  /**
+   * Deny the current connection.
+   */
+  DENY: null,
+
+  /**
+   * Allow the current connection.
+   */
+  ALLOW: null,
+
+  /**
+   * Allow the current connection, and persist this choice for future
+   * connections from the same client.  This requires a trustable mechanism to
+   * identify the client in the future, such as the cert used during OOB_CERT.
+   */
+  ALLOW_PERSIST: null
+
+});
+
+/**
  * Connects to a debugger server socket.
  *
  * @param host string
@@ -218,7 +314,10 @@ function SocketListener() {}
  * choose to override.  A separate security handler can be specified for each
  * socket via |allowConnection| on a socket listener instance.
  *
- * @return true if the connection should be permitted, false otherwise
+ * @return Either an AuthenticationResult value, or an object containing:
+ *         * result: One of the AuthenticationResult values
+ *         * ...:    Any other data needed by the authentication mode
+ *         A promise that will be resolved to the above is also allowed.
  */
 SocketListener.defaultAllowConnection = ({ client, server }) => {
   const key = "remoteIncomingPrompt";
@@ -242,65 +341,12 @@ SocketListener.defaultAllowConnection = ({ client, server }) => {
   let result = prompt.confirmEx(null, title, msg, flags, null, null,
                                 disableButton, null, { value: false });
   if (result === 0) {
-    return true;
+    return AuthenticationResult.ALLOW;
   }
   if (result === 2) {
-    DebuggerServer.closeAllListeners();
-    Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
+    return AuthenticationResult.DISABLE_ALL;
   }
-  return false;
-};
-
-/* Authentication Modes */
-SocketListener.Authentication = {
-
-  /**
-   * In PROMPT mode, the |allowConnection| method is provided:
-   * {
-   *   authentication: "PROMPT",
-   *   client: {
-   *     host,
-   *     port
-   *   },
-   *   server: {
-   *     host,
-   *     port
-   *   }
-   * }
-   * It is expected that the implementation of |allowConnection| will show a
-   * prompt to the user so that they can allow or deny the connection.
-   */
-  PROMPT: "PROMPT",
-
-  /**
-   * In OOB_CERT mode, the |allowConnection| method is provided:
-   * {
-   *   authentication: "OOB_CERT",
-   *   client: {
-   *     host,
-   *     port,
-   *     cert: {
-   *       sha256
-   *     },
-   *   },
-   *   server: {
-   *     host,
-   *     port,
-   *     cert: {
-   *       sha256
-   *     }
-   *   }
-   * }
-   * It is expected that the implementation of |allowConnection| will show a
-   * prompt to the user so that they can allow or deny the connection.  If the
-   * user chooses to allow the connection, the UI should assist the user in
-   * tranferring out-of-band (OOB) verification of the client's certificate.
-   * For example, this could take the form of a QR code that the client displays
-   * which is then scanned by camera on the server.  See docs/wifi.md for
-   * details of one version of this method.
-   */
-  OOB_CERT: "OOB_CERT"
-
+  return AuthenticationResult.DENY;
 };
 
 SocketListener.prototype = {
@@ -323,7 +369,10 @@ SocketListener.prototype = {
    * The data supplied to |allowConnection| depends on the authentication mode
    * in use.  See additional details above for each authentication mode.
    *
-   * @return true if the connection should be permitted, false otherwise
+   * @return Either an AuthenticationResult value, or an object containing:
+   *         * result: One of the AuthenticationResult values
+   *         * ...:    Any other data needed by the authentication mode
+   *         A promise that will be resolved to the above is also allowed.
    */
   allowConnection: SocketListener.defaultAllowConnection,
 
@@ -341,7 +390,7 @@ SocketListener.prototype = {
   /**
    * Controls the authentication mode used by this listener.
    */
-  authentication: SocketListener.Authentication.PROMPT,
+  authentication: Authentication.PROMPT,
 
   /**
    * Validate that all options have been set to a supported configuration.
@@ -353,11 +402,11 @@ SocketListener.prototype = {
     if (this.discoverable && !Number(this.portOrPath)) {
       throw new Error("Discovery only supported for TCP sockets.");
     }
-    if (!(this.authentication in SocketListener.Authentication)) {
+    if (!(this.authentication in Authentication)) {
       throw new Error(this.authentication +
                       " is not a supported authentication mode.");
     }
-    if (this.authentication == SocketListener.Authentication.OOB_CERT &&
+    if (this.authentication == Authentication.OOB_CERT &&
         !this.encryption) {
       throw new Error("OOB_CERT authentication requires encryption.");
     }
@@ -413,7 +462,7 @@ SocketListener.prototype = {
       authentication: this.authentication
     };
 
-    if (this.authentication == SocketListener.Authentication.OOB_CERT) {
+    if (this.authentication == Authentication.OOB_CERT) {
       // OOB_CERT step A.4
       // Server announces itself via service discovery
       // Announcement contains hash(ServerCert) as additional data
@@ -631,27 +680,37 @@ ServerSocketConnection.prototype = {
     this._handshakeDeferred.resolve();
   },
 
-  _authenticate() {
-    if (this.authentication == SocketListener.Authentication.PROMPT) {
+  _authenticate: Task.async(function*() {
+    let reply;
+
+    if (this.authentication == Authentication.PROMPT) {
       if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
         // Skip prompt if pref is false
         return promise.resolve();
       }
-      let result = this._listener.allowConnection({
+      reply = yield this._listener.allowConnection({
         authentication: this.authentication,
         client: this.client,
         server: this.server
       });
-      if (result) {
-        return promise.resolve();
-      } else {
-        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
-      }
     }
 
-    // Shouldn't reach here, but just in case, deny.
-    return promise.reject("NS_ERROR_CONNECTION_REFUSED");
-  },
+    // |reply| may be an object containing |result| or the |result| directly
+    let result = reply.result || reply;
+
+    switch (result) {
+      case AuthenticationResult.DISABLE_ALL:
+        DebuggerServer.closeAllListeners();
+        Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      case AuthenticationResult.DENY:
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      case AuthenticationResult.ALLOW:
+        return promise.resolve();
+      default:
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+    }
+  }),
 
   deny(errorName) {
     dumpn("Debugging connection denied on " + this.address +

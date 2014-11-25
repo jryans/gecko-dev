@@ -1083,6 +1083,14 @@ var DebuggerServer = {
   }
 };
 
+// Expose these to save callers the trouble of importing DebuggerSocket
+DevToolsUtils.defineLazyGetter(DebuggerServer, "Authentication", () => {
+  return DebuggerSocket.Authentication;
+});
+DevToolsUtils.defineLazyGetter(DebuggerServer, "AuthenticationResult", () => {
+  return DebuggerSocket.AuthenticationResult;
+});
+
 EventEmitter.decorate(DebuggerServer);
 
 if (this.exports) {
