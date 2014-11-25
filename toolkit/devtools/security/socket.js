@@ -220,11 +220,20 @@ function SocketListener() {}
  *
  * @return true if the connection should be permitted, false otherwise
  */
-SocketListener.defaultAllowConnection = () => {
+SocketListener.defaultAllowConnection = ({ client, server }) => {
+  const key = "remoteIncomingPrompt";
   let bundle = Services.strings.createBundle(DBG_STRINGS_URI);
-  let title = bundle.GetStringFromName("remoteIncomingPromptTitle");
-  let msg = bundle.GetStringFromName("remoteIncomingPromptMessage");
-  let disableButton = bundle.GetStringFromName("remoteIncomingPromptDisable");
+  let title = bundle.GetStringFromName(key + "Title");
+  let header = bundle.GetStringFromName(key + "Header");
+  let clientAddress = `${client.host}:${client.port}`;
+  let clientMsg = bundle.formatStringFromName(key + "ClientAddress",
+                                              [clientAddress], 1);
+  let serverAddress = `${server.host}:${server.port}`;
+  let serverMsg = bundle.formatStringFromName(key + "ServerAddress",
+                                              [serverAddress], 1);
+  let footer = bundle.GetStringFromName(key + "Footer");
+  let msg =`${header}\n\n${clientMsg}\n${serverMsg}\n\n${footer}`;
+  let disableButton = bundle.GetStringFromName(key + "Disable");
   let prompt = Services.prompt;
   let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
               prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
@@ -450,6 +459,13 @@ SocketListener.prototype = {
     DebuggerServer._removeListener(this);
   },
 
+  get host() {
+    if (!this._socket) {
+      return null;
+    }
+    return "localhost";
+  },
+
   /**
    * Gets whether this listener uses a port number vs. a path.
    */
@@ -500,6 +516,10 @@ function ServerSocketConnection(listener, socketTransport) {
 
 ServerSocketConnection.prototype = {
 
+  get authentication() {
+    return this._listener.authentication;
+  },
+
   get host() {
     return this._socketTransport.host;
   },
@@ -510,6 +530,20 @@ ServerSocketConnection.prototype = {
 
   get address() {
     return this.host + ":" + this.port;
+  },
+
+  get client() {
+    return {
+      host: this.host,
+      port: this.port
+    };
+  },
+
+  get server() {
+    return {
+      host: this._listener.host,
+      port: this._listener.port
+    };
   },
 
   /**
@@ -598,11 +632,25 @@ ServerSocketConnection.prototype = {
   },
 
   _authenticate() {
-    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
-        !this._listener.allowConnection()) {
-      return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+    if (this.authentication == SocketListener.Authentication.PROMPT) {
+      if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
+        // Skip prompt if pref is false
+        return promise.resolve();
+      }
+      let result = this._listener.allowConnection({
+        authentication: this.authentication,
+        client: this.client,
+        server: this.server
+      });
+      if (result) {
+        return promise.resolve();
+      } else {
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      }
     }
-    return promise.resolve();
+
+    // Shouldn't reach here, but just in case, deny.
+    return promise.reject("NS_ERROR_CONNECTION_REFUSED");
   },
 
   deny(errorName) {
