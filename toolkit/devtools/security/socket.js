@@ -243,10 +243,55 @@ SocketListener.defaultAllowConnection = () => {
 };
 
 /* Authentication Modes */
-// TODO: Docs
 SocketListener.Authentication = {
+
+  /**
+   * In PROMPT mode, the |allowConnection| method is provided:
+   * {
+   *   authentication: "PROMPT",
+   *   client: {
+   *     host,
+   *     port
+   *   },
+   *   server: {
+   *     host,
+   *     port
+   *   }
+   * }
+   * It is expected that the implementation of |allowConnection| will show a
+   * prompt to the user so that they can allow or deny the connection.
+   */
   PROMPT: "PROMPT",
+
+  /**
+   * In OOB_CERT mode, the |allowConnection| method is provided:
+   * {
+   *   authentication: "OOB_CERT",
+   *   client: {
+   *     host,
+   *     port,
+   *     cert: {
+   *       sha256
+   *     },
+   *   },
+   *   server: {
+   *     host,
+   *     port,
+   *     cert: {
+   *       sha256
+   *     }
+   *   }
+   * }
+   * It is expected that the implementation of |allowConnection| will show a
+   * prompt to the user so that they can allow or deny the connection.  If the
+   * user chooses to allow the connection, the UI should assist the user in
+   * tranferring out-of-band (OOB) verification of the client's certificate.
+   * For example, this could take the form of a QR code that the client displays
+   * which is then scanned by camera on the server.  See docs/wifi.md for
+   * details of one version of this method.
+   */
   OOB_CERT: "OOB_CERT"
+
 };
 
 SocketListener.prototype = {
@@ -265,6 +310,9 @@ SocketListener.prototype = {
    * Prompt the user to accept or decline the incoming connection. The default
    * implementation is used unless this is overridden on a particular socket
    * listener instance.
+   *
+   * The data supplied to |allowConnection| depends on the authentication mode
+   * in use.  See additional details above for each authentication mode.
    *
    * @return true if the connection should be permitted, false otherwise
    */
