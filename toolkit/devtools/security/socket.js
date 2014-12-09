@@ -135,6 +135,11 @@ let AuthenticationResult = DebuggerSocket.AuthenticationResult = createEnum({
   DENY: null,
 
   /**
+   * Additional data needs to be exchanged before a result can be determined.
+   */
+  PENDING: null,
+
+  /**
    * Allow the current connection.
    */
   ALLOW: null,
@@ -717,6 +722,21 @@ ServerSocketConnection.prototype = {
       return promise.resolve();
     }
 
+    if (this.authentication == Authentication.OOB_CERT) {
+      // OOB_CERT step B.3 / C.3
+      // TLS connection established, authentication begins
+      // TODO: Consult a list of persisted, approved clients
+      // OOB_CERT step B.4
+      // Server sees that ClientCert is from a unknown client
+      // Tell client they are unknown and should display OOB client UX
+      this._transport.send({
+        authResult: AuthenticationResult.PENDING
+      });
+    }
+
+    // OOB_CERT step B.5
+    // User is shown a Allow / Deny / Always Allow prompt on the Server
+    // with Client name and hash(ClientCert)
     let reply = yield this._listener.allowConnection({
       authentication: this.authentication,
       client: this.client,
