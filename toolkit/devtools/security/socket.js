@@ -466,9 +466,7 @@ SocketListener.prototype = {
       // OOB_CERT step A.4
       // Server announces itself via service discovery
       // Announcement contains hash(ServerCert) as additional data
-      advertisement.cert = {
-        sha256: this._socket.serverCert.sha256Fingerprint
-      };
+      advertisement.cert = this.cert;
     }
 
     discovery.addService("devtools", advertisement);
@@ -489,6 +487,9 @@ SocketListener.prototype = {
       this._socket.setSessionCache(false);
       this._socket.setSessionTickets(false);
       let requestCert = Ci.nsITLSServerSocket.REQUEST_NEVER;
+      if (this.authentication == Authentication.OOB_CERT) {
+        requestCert = Ci.nsITLSServerSocket.REQUIRE_ALWAYS;
+      }
       this._socket.setRequestClientCertificate(requestCert);
     }
   }),
@@ -531,6 +532,15 @@ SocketListener.prototype = {
       return null;
     }
     return this._socket.port;
+  },
+
+  get cert() {
+    if (!this._socket || !this._socket.serverCert) {
+      return null;
+    }
+    return {
+      sha256: this._socket.serverCert.sha256Fingerprint
+    };
   },
 
   // nsIServerSocketListener implementation
@@ -577,22 +587,39 @@ ServerSocketConnection.prototype = {
     return this._socketTransport.port;
   },
 
+  get cert() {
+    if (!this._clientCert) {
+      return null;
+    }
+    return {
+      sha256: this._clientCert.sha256Fingerprint
+    };
+  },
+
   get address() {
     return this.host + ":" + this.port;
   },
 
   get client() {
-    return {
+    let client = {
       host: this.host,
       port: this.port
     };
+    if (this.cert) {
+      client.cert = this.cert;
+    }
+    return client;
   },
 
   get server() {
-    return {
+    let server = {
       host: this._listener.host,
       port: this._listener.port
     };
+    if (this._listener.cert) {
+      server.cert = this._listener.cert;
+    }
+    return server;
   },
 
   /**
@@ -664,6 +691,9 @@ ServerSocketConnection.prototype = {
     dumpv("TLS cipher:     " + clientStatus.cipherName);
     dumpv("TLS key length: " + clientStatus.keyLength);
     dumpv("TLS MAC length: " + clientStatus.macLength);
+    if (this.authentication == Authentication.OOB_CERT) {
+      this._clientCert = clientStatus.peerCert;
+    }
     /*
      * TODO: These rules should be really be set on the TLS socket directly, but
      * this would need more platform work to expose it via XPCOM.
@@ -681,19 +711,17 @@ ServerSocketConnection.prototype = {
   },
 
   _authenticate: Task.async(function*() {
-    let reply;
-
-    if (this.authentication == Authentication.PROMPT) {
-      if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
-        // Skip prompt if pref is false
-        return promise.resolve();
-      }
-      reply = yield this._listener.allowConnection({
-        authentication: this.authentication,
-        client: this.client,
-        server: this.server
-      });
+    if (this.authentication == Authentication.PROMPT &&
+        !Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
+      // Skip prompt if pref is false
+      return promise.resolve();
     }
+
+    let reply = yield this._listener.allowConnection({
+      authentication: this.authentication,
+      client: this.client,
+      server: this.server
+    });
 
     // |reply| may be an object containing |result| or the |result| directly
     let result = reply.result || reply;
