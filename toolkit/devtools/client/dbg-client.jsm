@@ -372,11 +372,14 @@ DebuggerClient.Argument.prototype.getArgument = function (aParams) {
   return aParams[this.position];
 };
 
-// Expose this to save callers the trouble of importing DebuggerSocket
+// Expose these to save callers the trouble of importing DebuggerSocket
 DebuggerClient.socketConnect = function(options) {
   // Defined here instead of just copying the function to allow lazy-load
   return DebuggerSocket.connect(options);
 };
+DevToolsUtils.defineLazyGetter(DebuggerClient, "Authentication", () => {
+  return DebuggerSocket.Authentication;
+});
 
 DebuggerClient.prototype = {
   /**
