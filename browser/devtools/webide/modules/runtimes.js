@@ -447,9 +447,7 @@ WiFiRuntime.prototype = {
     if (!service) {
       return promise.reject("Can't find device: " + this.name);
     }
-    connection.host = service.host;
-    connection.port = service.port;
-    connection.encryption = service.encryption;
+    connection.advertisement = service;
     connection.connect();
     return promise.resolve();
   },
