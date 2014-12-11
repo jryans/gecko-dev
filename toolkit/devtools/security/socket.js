@@ -182,9 +182,11 @@ DebuggerSocket.connect = Task.async(function*(settings) {
   // We must be using OOB_CERT authentication
   let deferred = promise.defer();
   transport.hooks = {
-    onPacket({authResult}) {
+    onPacket(packet) {
+      let { authResult } = packet;
     }
   };
+  transport.ready();
   return deferred.promise;
 });
 
@@ -783,6 +785,7 @@ ServerSocketConnection.prototype = {
       this._transport.send({
         authResult: AuthenticationResult.PENDING
       });
+      this._transport.ready();
     }
 
     // OOB_CERT step B.5
