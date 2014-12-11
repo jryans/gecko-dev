@@ -6,7 +6,7 @@
 
 "use strict";
 
-let { Ci, Cc, CC, Cr } = require("chrome");
+let { Ci, Cc, CC, Cr, Cu } = require("chrome");
 
 // Ensure PSM is initialized to support TLS sockets
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
@@ -49,8 +49,6 @@ DevToolsUtils.defineLazyGetter(this, "nssErrorsService", () => {
 
 DevToolsUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
-
-const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
 let DebuggerSocket = {};
 
@@ -166,6 +164,8 @@ let AuthenticationResult = DebuggerSocket.AuthenticationResult = createEnum({
  *        Whether the server requires encryption.  Defaults to false.
  * @param authentication Authentication (optional)
  *        Authentication mode expected by the server.  Defaults to PROMPT.
+ * @param cert object (optional)
+ *        The server's cert details.  Used with OOB_CERT authentication.
  * @return promise
  *         Resolved to a DebuggerTransport instance.
  */
@@ -181,17 +181,53 @@ DebuggerSocket.connect = Task.async(function*(settings) {
 
   // We must be using OOB_CERT authentication
   let deferred = promise.defer();
+  let oob;
+  let activePrompt;
   transport.hooks = {
-    onPacket(packet) {
+    onPacket: Task.async(function*(packet) {
+      // Close any prompts the client may have been showing from previous
+      // authentication steps
+      if (activePrompt && activePrompt.close) {
+        activePrompt.close();
+        activePrompt = null;
+      }
       let { authResult } = packet;
-    }
+      switch (authResult) {
+        case AuthenticationResult.PENDING:
+          // OOB_CERT step B.8
+          // Client creates hash(ClientCert) + K(random 128-bit number)
+          oob = yield createOOB();
+          let details = Cu.cloneInto(settings, {});
+          details.authResult = authResult;
+          details.oob = oob;
+          activePrompt = prompt.Client.defaultNotification(details);
+          break;
+        default:
+          transport.close();
+          deferred.reject(new Error("Invalid auth result: " + authResult));
+          return;
+      }
+    }),
+    onClosed() {}
   };
   transport.ready();
   return deferred.promise;
 });
 
-function defaultPendingNotification() {
+let createOOB = Task.async(function*() {
+  let clientCert = yield cert.local.getOrCreate();
+  return {
+    sha256: clientCert.sha256Fingerprint,
+    k: createRandom()
+  };
+});
 
+function createRandom() {
+  const length = 16; // 16 bytes / 128 bits
+  let rng = Cc["@mozilla.org/security/random-generator;1"]
+            .createInstance(Ci.nsIRandomGenerator);
+  let bytes = rng.generateRandomBytes(length);
+  return [for (byte of bytes) byte.toString(16)].join("");
 }
 
 /**
