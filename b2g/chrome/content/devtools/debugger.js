@@ -184,6 +184,7 @@ let WiFiRemoteDebugger = {
       this._listener.allowConnection = RemoteDebugger.prompt;
       this._listener.discoverable = true;
       this._listener.encryption = true;
+      this._listener.authentication = DebuggerServer.Authentication.OOB_CERT;
       this._listener.open();
       let port = this._listener.port;
       debug("Started WiFi debugger on " + port);
