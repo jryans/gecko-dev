@@ -23,6 +23,8 @@ loader.lazyRequireGetter(this, "discovery",
   "devtools/toolkit/discovery/discovery");
 loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
+loader.lazyRequireGetter(this, "prompt",
+  "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "setTimeout", "Timer", true);
 loader.lazyRequireGetter(this, "clearTimeout", "Timer", true);
 
@@ -313,47 +315,6 @@ function _storeCertOverride(s, host, port) {
  */
 function SocketListener() {}
 
-/**
- * Prompt the user to accept or decline the incoming connection. This is the
- * default implementation that products embedding the debugger server may
- * choose to override.  A separate security handler can be specified for each
- * socket via |allowConnection| on a socket listener instance.
- *
- * @return Either an AuthenticationResult value, or an object containing:
- *         * result: One of the AuthenticationResult values
- *         * ...:    Any other data needed by the authentication mode
- *         A promise that will be resolved to the above is also allowed.
- */
-SocketListener.defaultAllowConnection = ({ client, server }) => {
-  const key = "remoteIncomingPrompt";
-  let bundle = Services.strings.createBundle(DBG_STRINGS_URI);
-  let title = bundle.GetStringFromName(key + "Title");
-  let header = bundle.GetStringFromName(key + "Header");
-  let clientAddress = `${client.host}:${client.port}`;
-  let clientMsg = bundle.formatStringFromName(key + "ClientAddress",
-                                              [clientAddress], 1);
-  let serverAddress = `${server.host}:${server.port}`;
-  let serverMsg = bundle.formatStringFromName(key + "ServerAddress",
-                                              [serverAddress], 1);
-  let footer = bundle.GetStringFromName(key + "Footer");
-  let msg =`${header}\n\n${clientMsg}\n${serverMsg}\n\n${footer}`;
-  let disableButton = bundle.GetStringFromName(key + "Disable");
-  let prompt = Services.prompt;
-  let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
-              prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
-              prompt.BUTTON_POS_2 * prompt.BUTTON_TITLE_IS_STRING +
-              prompt.BUTTON_POS_1_DEFAULT;
-  let result = prompt.confirmEx(null, title, msg, flags, null, null,
-                                disableButton, null, { value: false });
-  if (result === 0) {
-    return AuthenticationResult.ALLOW;
-  }
-  if (result === 2) {
-    return AuthenticationResult.DISABLE_ALL;
-  }
-  return AuthenticationResult.DENY;
-};
-
 SocketListener.prototype = {
 
   /* Socket Options */
@@ -379,7 +340,7 @@ SocketListener.prototype = {
    *         * ...:    Any other data needed by the authentication mode
    *         A promise that will be resolved to the above is also allowed.
    */
-  allowConnection: SocketListener.defaultAllowConnection,
+  allowConnection: prompt.Server.defaultAllowConnection,
 
   /**
    * Controls whether this listener is announced via the service discovery
