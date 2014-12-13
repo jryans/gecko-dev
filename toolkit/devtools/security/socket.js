@@ -240,6 +240,10 @@ function createRandom() {
  *        The port number of the debugger server.
  * @param encryption boolean (optional)
  *        Whether the server requires encryption.  Defaults to false.
+ * @param authentication Authentication (optional)
+ *        Authentication mode expected by the server.  Defaults to PROMPT.
+ * @param cert object (optional)
+ *        The server's cert details.  Used with OOB_CERT authentication.
  * @return transport DebuggerTransport
  *         A possible DevTools transport (if connection succeeded and streams
  *         are actually alive and working)
@@ -283,6 +287,10 @@ let _getTransport = Task.async(function*(settings) {
  *        The port number of the debugger server.
  * @param encryption boolean (optional)
  *        Whether the server requires encryption.  Defaults to false.
+ * @param authentication Authentication (optional)
+ *        Authentication mode expected by the server.  Defaults to PROMPT.
+ * @param cert object (optional)
+ *        The server's cert details.  Used with OOB_CERT authentication.
  * @return transport DebuggerTransport
  *         A possible DevTools transport (if connection succeeded and streams
  *         are actually alive and working)
@@ -291,15 +299,30 @@ let _getTransport = Task.async(function*(settings) {
  * @return s nsISocketTransport
  *         Underlying socket transport, in case more details are needed.
  */
-let _attemptTransport = Task.async(function*({ host, port, encryption }) {
+let _attemptTransport = Task.async(function*(settings) {
+  let { authentication } = settings;
   // _attemptConnect only opens the streams.  Any failures at that stage
   // aborts the connection process immedidately.
-  let { s, input, output } = yield _attemptConnect({ host, port, encryption });
+  let { s, input, output } = yield _attemptConnect(settings);
 
   // Check if the input stream is alive.  If encryption is enabled, we need to
   // watch out for cert errors by testing the input stream.
   let { alive, certError } = yield _isInputAlive(input);
   dumpv("Server cert accepted? " + !certError);
+
+  // OOB_CERT step B.7
+  // Client verifies that Server's cert matches hash(ServerCert) from the
+  // advertisement
+  if (alive && authentication == Authentication.OOB_CERT) {
+    dumpv("Validate server cert hash");
+    let cert = s.securityInfo.QueryInterface(Ci.nsISSLStatusProvider)
+                .SSLStatus.serverCert;
+    let advertised = settings.cert;
+    if (cert.sha256Fingerprint != advertised.sha256) {
+      dumpn("Server cert hash doesn't match advertisement");
+      alive = false;
+    }
+  }
 
   let transport;
   if (alive) {
