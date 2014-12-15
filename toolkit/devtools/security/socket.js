@@ -859,6 +859,7 @@ ServerSocketConnection.prototype = {
     // |reply| may be an object containing |result| or the |result| directly
     let result = reply.result || reply;
 
+    // Handle a negative result immediately
     switch (result) {
       case AuthenticationResult.DISABLE_ALL:
         DebuggerServer.closeAllListeners();
@@ -867,10 +868,43 @@ ServerSocketConnection.prototype = {
       case AuthenticationResult.DENY:
         return promise.reject("NS_ERROR_CONNECTION_REFUSED");
       case AuthenticationResult.ALLOW:
-        return promise.resolve();
+      case AuthenticationResult.ALLOW_PERSIST:
+        // TODO: Persist the client
+        break; // Further processing
       default:
         return promise.reject("NS_ERROR_CONNECTION_REFUSED");
     }
+
+    // Examine additional data for authentication
+    if (this.authentication == Authentication.OOB_CERT) {
+      let { sha256, k } = reply;
+      // The OOB auth prompt should have tranferred:
+      // hash(ClientCert) + K(random 128-bit number)
+      // from the client.
+      if (!sha256 || !k) {
+        dumpn("Invalid OOB data received");
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      }
+
+      // OOB_CERT step B.10
+      // Server verifies that Client's cert matches hash(ClientCert) from
+      // out-of-band channel
+      if (this._clientCert.sha256Fingerprint != sha256) {
+        dumpn("Client cert hash doesn't match OOB data");
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      }
+
+      // OOB_CERT step B.11
+      // Server sends K to Client over TLS connection
+      this._transport.send({ authResult: result, k });
+
+      // Client may decide to abort if K does not match
+      // Server's portion of authentication is now complete
+    }
+
+    // OOB_CERT step B.13
+    // Debugging begins
+    return promise.resolve();
   }),
 
   deny(errorName) {
