@@ -207,6 +207,19 @@ DebuggerSocket.connect = Task.async(function*(settings) {
           details.oob = oob;
           activePrompt = showPrompt(details);
           break;
+        case AuthenticationResult.ALLOW:
+        case AuthenticationResult.ALLOW_PERSIST:
+          // OOB_CERT step B.12
+          // Client verifies received value matches K
+          if (packet.k != oob.k) {
+            transport.close();
+            deferred.reject(new Error("Auth secret mismatch"));
+            return;
+          }
+          // OOB_CERT step B.13
+          // Debugging begins
+          deferred.resolve(transport);
+          break;
         default:
           transport.close();
           deferred.reject(new Error("Invalid auth result: " + authResult));
