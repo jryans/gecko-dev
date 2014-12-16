@@ -490,6 +490,9 @@ SocketListener.prototype = {
    */
   allowConnection: prompt.Server.defaultAllowConnection,
 
+  // TODO: Docs
+  receiveOOB: prompt.Server.defaultReceiveOOB,
+
   /**
    * Controls whether this listener is announced via the service discovery
    * mechanism.
@@ -877,7 +880,13 @@ ServerSocketConnection.prototype = {
 
     // Examine additional data for authentication
     if (this.authentication == Authentication.OOB_CERT) {
-      let { sha256, k } = reply;
+      let oob = yield this._listener.receiveOOB();
+      if (!oob) {
+        dumpn("Invalid OOB data received");
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      }
+
+      let { sha256, k } = oob;
       // The OOB auth prompt should have tranferred:
       // hash(ClientCert) + K(random 128-bit number)
       // from the client.
