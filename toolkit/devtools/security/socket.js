@@ -499,6 +499,18 @@ SocketListener.prototype = {
   allowConnection: prompt.Server.defaultAllowConnection,
 
   /**
+   * During OOB_CERT authentication, the user must transfer some data through
+   * some out of band mechanism from the client to the server to authenticate
+   * the devices.
+   *
+   * @return An object containing:
+   *         * sha256: hash(ClientCert)
+   *         * k     : K(random 128-bit number)
+   *         A promise that will be resolved to the above is also allowed.
+   */
+  receiveOOB: prompt.Server.defaultReceiveOOB,
+
+  /**
    * Controls whether this listener is announced via the service discovery
    * mechanism.
    */
@@ -885,7 +897,13 @@ ServerSocketConnection.prototype = {
 
     // Examine additional data for authentication
     if (this.authentication == Authentication.OOB_CERT) {
-      let { sha256, k } = reply;
+      let oob = yield this._listener.receiveOOB();
+      if (!oob) {
+        dumpn("Invalid OOB data received");
+        return promise.reject("NS_ERROR_CONNECTION_REFUSED");
+      }
+
+      let { sha256, k } = oob;
       // The OOB auth prompt should have tranferred:
       // hash(ClientCert) + K(random 128-bit number)
       // from the client.
