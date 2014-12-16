@@ -41,7 +41,11 @@ let RemoteDebugger = {
       Services.tm.currentThread.processNextEvent(true);
     }
 
-    return this._promptAnswer;
+    // TODO: Make use of promises
+    if (this._promptAnswer) {
+      return Promise.resolve(DebuggerServer.AuthenticationResult.ALLOW);
+    }
+    return Promise.resolve(DebuggerServer.AuthenticationResult.DENY);
   },
 
   _listen: function() {
