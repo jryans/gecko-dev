@@ -263,7 +263,7 @@ let socket_transport = Task.async(function*() {
   if (!DebuggerServer.listeningSockets) {
     let listener = DebuggerServer.createListener();
     listener.portOrPath = -1 /* any available port */;
-    listener.allowConnection = () => true;
+    listener.allowConnection = () => DebuggerServer.AuthenticationResult.ALLOW;
     yield listener.open();
   }
   let port = DebuggerServer._listeners[0].port;
