@@ -171,7 +171,9 @@ let AuthenticationResult = DebuggerSocket.AuthenticationResult = createEnum({
  */
 DebuggerSocket.connect = Task.async(function*(settings) {
   let { host, port, encryption, authentication } = settings;
+  dumpv("Get t")
   let transport = yield _getTransport(settings);
+  dumpv("Got t")
 
   authentication = authentication || Authentication.PROMPT;
   if (authentication == Authentication.PROMPT) {
@@ -267,7 +269,9 @@ function createRandom() {
  */
 let _getTransport = Task.async(function*(settings) {
   let { host, port, encryption } = settings;
+  dumpv("Att t")
   let attempt = yield _attemptTransport(settings);
+  dumpv("Attd t")
   if (attempt.transport) {
     return attempt.transport; // Success
   }
@@ -316,7 +320,9 @@ let _attemptTransport = Task.async(function*(settings) {
   let { authentication } = settings;
   // _attemptConnect only opens the streams.  Any failures at that stage
   // aborts the connection process immedidately.
+  dumpv("Att c")
   let { s, input, output } = yield _attemptConnect(settings);
+  dumpv("Attd c")
 
   // Check if the input stream is alive.  If encryption is enabled, we need to
   // watch out for cert errors by testing the input stream.
@@ -394,6 +400,7 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   // has connected.
   s.setEventSink({
     onTransportStatus(transport, status) {
+      dumpv(status)
       if (status != Ci.nsISocketTransport.STATUS_CONNECTED_TO) {
         return;
       }
@@ -405,6 +412,7 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
       try {
         input = s.openInputStream(0, 0, 0);
       } catch(e) {
+        dumpv(e)
         DevToolsUtils.reportException("_attemptConnect", e);
         deferred.reject(e);
       }
@@ -418,6 +426,7 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   try {
     output = s.openOutputStream(0, 0, 0);
   } catch(e) {
+        dumpv(e)
     DevToolsUtils.reportException("_attemptConnect", e);
     deferred.reject(e);
   }

@@ -21,8 +21,8 @@ const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 // we can be sending large amounts of data. The test harness has
 // trouble dealing with logging all the data, and we end up with
 // intermittent time outs (e.g. bug 775924).
-// Services.prefs.setBoolPref("devtools.debugger.log", true);
-// Services.prefs.setBoolPref("devtools.debugger.log.verbose", true);
+Services.prefs.setBoolPref("devtools.debugger.log", true);
+Services.prefs.setBoolPref("devtools.debugger.log.verbose", true);
 // Enable remote debugging for the relevant tests.
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
@@ -283,7 +283,7 @@ function really_long() {
     return gReallyLong;
   }
   let ret = "0123456789";
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 1; i++) {
     ret += ret;
   }
   gReallyLong = ret;
