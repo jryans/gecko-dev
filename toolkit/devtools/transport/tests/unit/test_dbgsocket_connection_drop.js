@@ -49,7 +49,7 @@ function test_socket_conn_drops_after_too_long_header() {
 let test_helper = Task.async(function*(payload) {
   let listener = DebuggerServer.createListener();
   listener.portOrPath = -1;
-  listener.allowConnection = () => true;
+  listener.allowConnection = () => DebuggerServer.AuthenticationResult.ALLOW;
   listener.open();
 
   let transport = yield DebuggerClient.socketConnect({
