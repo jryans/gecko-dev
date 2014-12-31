@@ -391,6 +391,23 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   let deferred = promise.defer();
   let input;
   let output;
+
+  let _isOutputAlive = () => {
+      dumpv("Checking alive")
+      output.write("hello", 5);
+/*    output.asyncWait({
+      onOutputStreamReady(stream) {
+        dumpv("Ready")
+        try {
+          stream.write(null, 0);
+        } catch(e) {
+          dumpv(e)
+          deferred.reject(e);
+        }
+      }
+    }, 0, 0, Services.tm.currentThread); */
+  };
+
   // Delay opening the input stream until the transport has fully connected.
   // The goal is to avoid showing the user a client cert UI prompt when
   // encryption is used.  This prompt is shown when the client opens the input
@@ -401,6 +418,8 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   s.setEventSink({
     onTransportStatus(transport, status) {
       dumpv(status)
+      dumpv(transport.securityInfo)
+      _isOutputAlive();
       if (status != Ci.nsISocketTransport.STATUS_CONNECTED_TO) {
         return;
       }
@@ -463,6 +482,8 @@ function _isInputAlive(input) {
   }, 0, 0, Services.tm.currentThread);
   return deferred.promise;
 }
+
+
 
 /**
  * To allow the connection to proceed with self-signed cert, we store a cert
