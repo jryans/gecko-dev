@@ -62,7 +62,7 @@ try {
   runningInParent = Components.classes["@mozilla.org/xre/runtime;1"].
                     getService(Components.interfaces.nsIXULRuntime).processType
                     == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
-} 
+}
 catch (e) { }
 
 // Only if building of places is enabled.
@@ -415,7 +415,7 @@ function _initDebugging(port) {
 
   let listener = DebuggerServer.createListener();
   listener.portOrPath = port;
-  listener.allowConnection = () => true;
+  listener.allowConnection = () => DebuggerServer.AuthenticationResult.ALLOW;
   listener.open();
 
   // spin an event loop until the debugger connects.
@@ -1192,7 +1192,7 @@ function do_load_child_test_harness()
  * Runs an entire xpcshell unit test in a child process (rather than in chrome,
  * which is the default).
  *
- * This function returns immediately, before the test has completed.  
+ * This function returns immediately, before the test has completed.
  *
  * @param testFile
  *        The name of the script to run.  Path format same as load().
@@ -1200,9 +1200,9 @@ function do_load_child_test_harness()
  *        Optional function to be called (in parent) when test on child is
  *        complete.  If provided, the function must call do_test_finished();
  */
-function run_test_in_child(testFile, optionalCallback) 
+function run_test_in_child(testFile, optionalCallback)
 {
-  var callback = (typeof optionalCallback == 'undefined') ? 
+  var callback = (typeof optionalCallback == 'undefined') ?
                     do_test_finished : optionalCallback;
 
   do_load_child_test_harness();
@@ -1331,7 +1331,7 @@ function run_next_test()
                     "run_next_test() should not be called from inside add_task() " +
                     "under any circumstances!");
   }
- 
+
   function _run_next_test()
   {
     if (_gTestIndex < _gTests.length) {
