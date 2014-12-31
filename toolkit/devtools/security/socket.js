@@ -393,19 +393,13 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   let output;
 
   let _isOutputAlive = () => {
-      dumpv("Checking alive")
-      output.write("hello", 5);
-/*    output.asyncWait({
-      onOutputStreamReady(stream) {
-        dumpv("Ready")
-        try {
-          stream.write(null, 0);
-        } catch(e) {
-          dumpv(e)
-          deferred.reject(e);
-        }
-      }
-    }, 0, 0, Services.tm.currentThread); */
+    dumpv("Checking alive")
+    try {
+      output.write(null, 0);
+    } catch(e if e.result != Cr.NS_BASE_STREAM_WOULD_BLOCK) {
+      dumpv(e)
+      deferred.reject(e);
+    }
   };
 
   // Delay opening the input stream until the transport has fully connected.
@@ -419,8 +413,11 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
     onTransportStatus(transport, status) {
       dumpv(status)
       dumpv(transport.securityInfo)
-      _isOutputAlive();
-      if (status != Ci.nsISocketTransport.STATUS_CONNECTED_TO) {
+      if (transport.securityInfo) {
+        dumpv(transport.securityInfo.QueryInterface(Ci.nsISSLSocketControl))
+      }
+      // _isOutputAlive();
+      if (status != Ci.nsISocketTransport.STATUS_CONNECTING_TO) {
         return;
       }
       if (encryption) {
@@ -443,7 +440,12 @@ let _attemptConnect = Task.async(function*({ host, port, encryption }) {
   // where the nsISocketTransport gets shutdown in between its instantiation and
   // the call to this method.
   try {
+    // Now that we delay opening the input stream until STATUS_CONNECTED_TO
+    // above, we need to use an unbuffered output stream to be able to detect
+    // connection errors like NS_ERROR_CONNECTION_REFUSED.
     output = s.openOutputStream(0, 0, 0);
+    // output = s.openOutputStream(Ci.nsITransport.OPEN_UNBUFFERED, 0, 0)
+              // .QueryInterface(Ci.nsIAsyncOutputStream);
   } catch(e) {
         dumpv(e)
     DevToolsUtils.reportException("_attemptConnect", e);
