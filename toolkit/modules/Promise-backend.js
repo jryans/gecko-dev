@@ -343,6 +343,8 @@ this.Promise = function Promise(aExecutor)
     witness: undefined
   }});
 
+  this.stack = new Error().stack;
+
   Object.seal(this);
 
   let resolve = PromiseWalker.completePromise
@@ -675,6 +677,7 @@ this.PromiseWalker = {
     } else if (aStatus == STATUS_REJECTED) {
       // This is a rejection and the promise is the last in the chain.
       // For the time being we therefore have an uncaught error.
+      dump(">>>>>>>>>> UNCAUGHT PROMISE REJECTION <<<<<<<<<<\n" + aPromise.stack + "\n");
       let id = PendingErrors.register(aValue);
       let witness =
           FinalizationWitnessService.make("promise-finalization-witness", id);
