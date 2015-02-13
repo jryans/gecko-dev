@@ -1536,7 +1536,11 @@ Toolbox.prototype = {
 
     let outstanding = () => {
       return Task.spawn(function*() {
-        yield this.highlighterUtils.stopPicker();
+        // |stopPicker| may send an RDP message to the highlighter actor, and
+        // at this stage of toolbox destruction, the transport to the server
+        // may have already been destroyed.  So, consider this a best effort
+        // request, and do not yield on its completion.
+        this.highlighterUtils.stopPicker();
         yield this._inspector.destroy();
         if (this._highlighter) {
           yield this._highlighter.destroy();
