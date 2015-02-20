@@ -1070,6 +1070,13 @@ DebuggerClient.prototype = {
    */
   onClosed: function (aStatus) {
     this.emit("closed");
+    // In case destruction does not happen in the usual way (because the
+    // connection aborts unexpectedly, for example), call |cleanup| on each pool
+    // once connection has closed.  Pools are meant to remove themselves from
+    // the pool set as part of the |cleanup| call.
+    for (let pool of this._pools) {
+      pool.cleanup();
+    }
   },
 
   registerClient: function (client) {
