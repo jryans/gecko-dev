@@ -15,6 +15,8 @@ loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
+loader.lazyRequireGetter(this, "asyncStorage",
+  "devtools/toolkit/shared/async-storage");
 DevToolsUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 
@@ -342,6 +344,15 @@ OOBCert.Client.prototype = {
             break;
           case AuthenticationResult.ALLOW:
           case AuthenticationResult.ALLOW_PERSIST:
+            // TODO: Seems like security hole...
+            if (!packet.k) {
+              // Server previously persisted Client as allowed
+              // Step C.5
+              // Debugging begins
+              transport.hooks = null;
+              deferred.resolve(transport);
+              return;
+            }
             // Step B.12
             // Client verifies received value matches K
             if (packet.k != oobData.k) {
@@ -488,7 +499,18 @@ OOBCert.Server.prototype = {
   authenticate: Task.async(function*({ client, server, transport }) {
     // Step B.3 / C.3
     // TLS connection established, authentication begins
-    // TODO: Bug 1032128: Consult a list of persisted, approved clients
+    const storageKey = `devtools.auth.${this.mode}.approved-clients`;
+    let approvedClients = (yield asyncStorage.getItem(storageKey)) || {};
+    // Step C.4
+    // Server sees that ClientCert is from a known client via hash(ClientCert)
+    if (approvedClients[client.cert.sha256]) {
+      let authResult = AuthenticationResult.ALLOW_PERSIST;
+      transport.send({ authResult });
+      // Step C.5
+      // Debugging begins
+      return authResult;
+    }
+
     // Step B.4
     // Server sees that ClientCert is from a unknown client
     // Tell client they are unknown and should display OOB client UX
@@ -499,19 +521,18 @@ OOBCert.Server.prototype = {
     // Step B.5
     // User is shown a Allow / Deny / Always Allow prompt on the Server
     // with Client name and hash(ClientCert)
-    let result = yield this.allowConnection({
+    let authResult = yield this.allowConnection({
       authentication: this.mode,
       client,
       server
     });
 
-    switch (result) {
+    switch (authResult) {
       case AuthenticationResult.ALLOW_PERSIST:
-        // TODO: Bug 1032128: Persist the client
       case AuthenticationResult.ALLOW:
         break; // Further processing
       default:
-        return result; // Abort for any negative results
+        return authResult; // Abort for any negative results
     }
 
     // Examine additional data for authentication
@@ -540,14 +561,20 @@ OOBCert.Server.prototype = {
 
     // Step B.11
     // Server sends K to Client over TLS connection
-    transport.send({ authResult: result, k });
+    transport.send({ authResult, k });
+
+    // Persist Client if we want to always allow in the future
+    if (authResult === AuthenticationResult.ALLOW_PERSIST) {
+      approvedClients[client.cert.sha256] = true;
+      yield asyncStorage.setItem(storageKey, approvedClients);
+    }
 
     // Client may decide to abort if K does not match.
     // Server's portion of authentication is now complete.
 
     // Step B.13
     // Debugging begins
-    return result;
+    return authResult;
   }),
 
   /**
