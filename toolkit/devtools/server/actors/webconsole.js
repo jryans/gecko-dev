@@ -711,7 +711,12 @@ WebConsoleActor.prototype =
           let cache = this.consoleAPIListener
                       .getCachedMessages(!this.parentActor.isRootActor);
           cache.forEach((aMessage) => {
-            let message = this.prepareConsoleMessageForRemote(aMessage);
+            let message;
+            try {
+              message = this.prepareConsoleMessageForRemote(aMessage);
+            } catch (e) {
+              return;
+            }
             message._type = type;
             messages.push(message);
           });
