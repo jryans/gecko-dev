@@ -132,6 +132,7 @@ function ResponsiveUI(aWindow, aTab)
   this.browser = aTab.linkedBrowser;
   this.chromeDoc = aWindow.document;
   this.container = aWindow.gBrowser.getBrowserContainer(this.browser);
+  this.viewports = this.container.querySelector(".responsive-viewports");
   this.stack = this.container.querySelector(".browserStack");
   this._telemetry = new Telemetry();
   this.e10s = !this.browser.contentWindow;
@@ -372,18 +373,20 @@ ResponsiveUI.prototype = {
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
    *  </toolbar>
-   *  <stack class="browserStack"> From tabbrowser.xml
-   *    <browser/>
-   *    <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
-   *    <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
-   *    <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
-   *    // Additional button in FxOS mode:
-   *    <button class="devtools-responsiveui-sleep-button" />
-   *    <vbox class="devtools-responsiveui-volume-buttons">
-   *      <button class="devtools-responsiveui-volume-up-button" />
-   *      <button class="devtools-responsiveui-volume-down-button" />
-   *    </vbox>
-   *  </stack>
+   *  <hbox class="responsive-viewports"> From tabbrowser.xml
+   *    <stack class="browserStack"> From tabbrowser.xml
+   *      <browser/>
+   *      <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
+   *      <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
+   *      <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
+   *      // Additional button in FxOS mode:
+   *      <button class="devtools-responsiveui-sleep-button" />
+   *      <vbox class="devtools-responsiveui-volume-buttons">
+   *        <button class="devtools-responsiveui-volume-up-button" />
+   *        <button class="devtools-responsiveui-volume-down-button" />
+   *      </vbox>
+   *    </stack>
+   *  </hbox>
    *  <toolbar class="devtools-responsiveui-hardware-button">
    *    <toolbarbutton class="devtools-responsiveui-home-button" />
    *  </toolbar>
@@ -475,7 +478,7 @@ ResponsiveUI.prototype = {
     this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
     this.resizeBarH.onmousedown = this.bound_startResizing;
 
-    this.container.insertBefore(this.toolbar, this.stack);
+    this.container.insertBefore(this.toolbar, this.viewports);
     this.stack.appendChild(this.resizer);
     this.stack.appendChild(this.resizeBarV);
     this.stack.appendChild(this.resizeBarH);

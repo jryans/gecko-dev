@@ -28,10 +28,12 @@
           <xul:notificationbox flex="1">
             <xul:hbox flex="1" class="browserSidebarContainer">
               <xul:vbox flex="1" class="browserContainer">
-                <xul:stack flex="1" class="browserStack" anonid="browserStack">
-                  <xul:browser anonid="initialBrowser" type="content-primary" message="true" messagemanagergroup="browsers"
-                               xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup,selectmenulist"/>
-                </xul:stack>
+                <xul:hbox flex="1" class="responsive-viewports">
+                  <xul:stack flex="1" class="browserStack" anonid="browserStack">
+                    <xul:browser anonid="initialBrowser" type="content-primary" message="true" messagemanagergroup="browsers"
+                                 xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup,selectmenulist"/>
+                  </xul:stack>
+                </xul:hbox>
               </xul:vbox>
             </xul:hbox>
           </xul:notificationbox>
@@ -469,7 +471,7 @@
         <parameter name="aBrowser"/>
         <body>
           <![CDATA[
-            return (aBrowser || this.mCurrentBrowser).parentNode.parentNode;
+            return (aBrowser || this.mCurrentBrowser).parentNode.parentNode.parentNode;
           ]]>
         </body>
       </method>
@@ -1676,10 +1678,16 @@
             stack.appendChild(b);
             stack.setAttribute("flex", "1");
 
+            // Create the responsive design viewports container
+            var viewports = document.createElementNS(NS_XUL, "hbox");
+            viewports.className = "responsive-viewports";
+            viewports.appendChild(stack);
+            viewports.setAttribute("flex", "1");
+
             // Create the browserContainer
             var browserContainer = document.createElementNS(NS_XUL, "vbox");
             browserContainer.className = "browserContainer";
-            browserContainer.appendChild(stack);
+            browserContainer.appendChild(viewports);
             browserContainer.setAttribute("flex", "1");
 
             // Create the sidebar container
