@@ -181,7 +181,7 @@ function ResponsiveUI(aWindow, aTab) {
   this.bound_removePreset = this.removePreset.bind(this);
   this.bound_rotate = this.rotate.bind(this);
   this.bound_screenshot = () => this.screenshot();
-  this.bound_addViewport = () => this.mainWindow.console.log("HI!");
+  this.bound_addViewport = () => this.addViewport();
   this.bound_touch = this.toggleTouch.bind(this);
   this.bound_close = this.close.bind(this);
 
@@ -191,10 +191,7 @@ function ResponsiveUI(aWindow, aTab) {
 
   // Create a viewport for the tab's primary browser
   this.viewports = [];
-  this.viewports.push(new ResponsiveViewport(this));
-
-  // For now, aim the toolbar's controls at one particular viewport
-  this.editableViewport = this.viewports[0];
+  this.addViewport();
 
   this.buildUI();
   this.checkMenus();
@@ -261,6 +258,17 @@ ResponsiveUI.prototype = {
       this.touchEventHandler.stop();
     }
     this._telemetry.toolClosed("responsive");
+  },
+
+  addViewport() {
+    let viewport = new ResponsiveViewport(this);
+    this.viewports.push(viewport);
+    // For now, aim the toolbar's controls at the most recent viewport
+    this.editableViewport = viewport;
+  },
+
+  get primaryViewport() {
+    return this.viewports[0];
   },
 
   /**
@@ -876,11 +884,10 @@ ResponsiveUI.prototype = {
 function ResponsiveViewport(ui) {
   this.ui = ui;
 
-  this.browser = this.tab.linkedBrowser;
-  this.mm = this.browser.messageManager;
-
   // If there's only one viewport so far, mark this one as primary.
-  this.primary = this.viewportsContainer.children.length === 1;
+  let stacks = this.viewportsContainer.querySelectorAll(".browserStack");
+  this.primary = stacks.length === 1 &&
+                 !stacks[0].hasAttribute("responsivemode");
   this.buildStack();
 
   this.e10s = !this.browser.contentWindow;
@@ -912,6 +919,8 @@ function ResponsiveViewport(ui) {
     this.touchEnableBefore = false;
     this.touchEventHandler = new TouchEventHandler(this.browser);
   }
+
+  this.initSize();
 }
 
 ResponsiveViewport.prototype = {
@@ -930,6 +939,14 @@ ResponsiveViewport.prototype = {
 
   get viewportsContainer() {
     return this.ui.viewportsContainer;
+  },
+
+  get browser() {
+    return this.stack.querySelector("browser");
+  },
+
+  get mm() {
+    return this.browser.messageManager;
   },
 
   _transitionsEnabled: true,
@@ -975,6 +992,9 @@ ResponsiveViewport.prototype = {
     this.mm.sendAsyncMessage("ResponsiveMode:Stop");
   },
 
+  /**
+   * Build (or absorb) the browser stack and browser element.
+   */
   buildStack() {
     if (this.primary) {
       // If we're primary, tabbrowser.xml created a stack, so use that.
@@ -987,6 +1007,24 @@ ResponsiveViewport.prototype = {
     this.stack.className = "browserStack";
     this.stack.setAttribute("flex", "1");
     this.viewportsContainer.appendChild(this.stack);
+
+    // Create a browser element with the same location as the primary
+    let primaryViewport = this.ui.primaryViewport;
+    let primaryBrowser = primaryViewport.browser;
+    let browser = primaryBrowser.cloneNode();
+    this.stack.appendChild(browser);
+    browser.loadURI(primaryBrowser.currentURI.spec);
+  },
+
+  /**
+   * For non-primary viewports, copy the size from the primary.
+   */
+  initSize() {
+    if (this.primary) {
+      return;
+    }
+    let primaryViewport = this.ui.primaryViewport;
+    this.setSize(primaryViewport.width, primaryViewport.height);
   },
 
   /**
@@ -1041,8 +1079,8 @@ ResponsiveViewport.prototype = {
    * Change the size of the browser.
    */
   setSize(width, height) {
-    width = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
-    height = Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT);
+    this.width = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
+    this.height = Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT);
 
     // We resize the containing stack.
     let style = "max-width: %width;" +
