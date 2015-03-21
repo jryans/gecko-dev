@@ -15,6 +15,9 @@ Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
+XPCOMUtils.defineLazyGetter(this, "Strings", function () {
+  return Services.strings.createBundle("chrome://browser/locale/devtools/responsiveUI.properties");
+});
 
 var require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 let Telemetry = require("devtools/shared/telemetry");
@@ -123,33 +126,15 @@ let presets = [
   {key: "1920x900", width: 1920, height: 900},
 ];
 
-function ResponsiveUI(aWindow, aTab)
-{
+function ResponsiveUI(aWindow, aTab) {
   this.mainWindow = aWindow;
   this.tab = aTab;
-  this.mm = this.tab.linkedBrowser.messageManager;
   this.tabContainer = aWindow.gBrowser.tabContainer;
-  this.browser = aTab.linkedBrowser;
   this.chromeDoc = aWindow.document;
-  this.container = aWindow.gBrowser.getBrowserContainer(this.browser);
-  this.viewports = this.container.querySelector(".responsive-viewports");
-  this.stack = this.container.querySelector(".browserStack");
+  this.container = aWindow.gBrowser.getBrowserContainer(this.tab.linkedBrowser);
+  this.viewportsContainer =
+    this.container.querySelector(".responsive-viewports");
   this._telemetry = new Telemetry();
-  this.e10s = !this.browser.contentWindow;
-
-  let childOn = () => {
-    this.mm.removeMessageListener("ResponsiveMode:Start:Done", childOn);
-    ResponsiveUIManager.emit("on", { tab: this.tab });
-  }
-  this.mm.addMessageListener("ResponsiveMode:Start:Done", childOn);
-
-  let requiresFloatingScrollbars = !this.mainWindow.matchMedia("(-moz-overlay-scrollbars)").matches;
-  this.mm.loadFrameScript("resource:///modules/devtools/responsivedesign-child.js", true);
-  this.mm.addMessageListener("ResponsiveMode:ChildScriptReady", () => {
-    this.mm.sendAsyncMessage("ResponsiveMode:Start", {
-      requiresFloatingScrollbars: requiresFloatingScrollbars
-    });
-  });
 
   // Try to load presets from prefs
   if (Services.prefs.prefHasUserValue("devtools.responsiveUI.presets")) {
@@ -188,7 +173,6 @@ function ResponsiveUI(aWindow, aTab)
   }
 
   this.container.setAttribute("responsivemode", "true");
-  this.stack.setAttribute("responsivemode", "true");
 
   // Let's bind some callbacks.
   this.bound_presetSelected = this.presetSelected.bind(this);
@@ -200,13 +184,17 @@ function ResponsiveUI(aWindow, aTab)
   this.bound_addViewport = () => this.mainWindow.console.log("HI!");
   this.bound_touch = this.toggleTouch.bind(this);
   this.bound_close = this.close.bind(this);
-  this.bound_startResizing = this.startResizing.bind(this);
-  this.bound_stopResizing = this.stopResizing.bind(this);
-  this.bound_onDrag = this.onDrag.bind(this);
 
   // Events
   this.tab.addEventListener("TabClose", this);
   this.tabContainer.addEventListener("TabSelect", this);
+
+  // Create a viewport for the tab's primary browser
+  this.viewports = [];
+  this.viewports.push(new ResponsiveViewport(this));
+
+  // For now, aim the toolbar's controls at one particular viewport
+  this.editableViewport = this.viewports[0];
 
   this.buildUI();
   this.checkMenus();
@@ -221,12 +209,6 @@ function ResponsiveUI(aWindow, aTab)
 
   this._telemetry.toolOpened("responsive");
 
-  if (!this.e10s) {
-    // Touch events support
-    this.touchEnableBefore = false;
-    this.touchEventHandler = new TouchEventHandler(this.browser);
-  }
-
   // Hook to display promotional Developer Edition doorhanger. Only displayed once.
   showDoorhanger({
     window: this.mainWindow,
@@ -236,17 +218,6 @@ function ResponsiveUI(aWindow, aTab)
 }
 
 ResponsiveUI.prototype = {
-  _transitionsEnabled: true,
-  get transitionsEnabled() this._transitionsEnabled,
-  set transitionsEnabled(aValue) {
-    this._transitionsEnabled = aValue;
-    if (aValue && !this._resizing && this.stack.hasAttribute("responsivemode")) {
-      this.stack.removeAttribute("notransition");
-    } else if (!aValue) {
-      this.stack.setAttribute("notransition", "true");
-    }
-  },
-
   /**
    * Destroy the nodes. Remove listeners. Reset the style.
    */
@@ -256,15 +227,9 @@ ResponsiveUI.prototype = {
     this.closing = true;
 
     this.unCheckMenus();
-    // Reset style of the stack.
-    let style = "max-width: none;" +
-                "min-width: 0;" +
-                "max-height: none;" +
-                "min-height: 0;";
-    this.stack.setAttribute("style", style);
 
-    if (this.isResizing)
-      this.stopResizing();
+    // Destroy viewports
+    this.viewports = this.viewports.filter(v => v.destroy());
 
     // Remove listeners.
     this.menulist.removeEventListener("select", this.bound_presetSelected, true);
@@ -281,33 +246,21 @@ ResponsiveUI.prototype = {
       this.touchbutton.removeEventListener("command", this.bound_touch, true);
     }
 
-    // Removed elements.
+    // Remove elements.
     this.container.removeChild(this.toolbar);
     if (this.bottomToolbar) {
       this.bottomToolbar.remove();
       delete this.bottomToolbar;
     }
-    this.stack.removeChild(this.resizer);
-    this.stack.removeChild(this.resizeBarV);
-    this.stack.removeChild(this.resizeBarH);
-
-    this.stack.classList.remove("fxos-mode");
 
     // Unset the responsive mode.
     this.container.removeAttribute("responsivemode");
-    this.stack.removeAttribute("responsivemode");
 
     ActiveTabs.delete(this.tab);
     if (!this.e10s && this.touchEventHandler) {
       this.touchEventHandler.stop();
     }
     this._telemetry.toolClosed("responsive");
-    let childOff = () => {
-      this.mm.removeMessageListener("ResponsiveMode:Stop:Done", childOff);
-      ResponsiveUIManager.emit("off", { tab: this.tab });
-    }
-    this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
-    this.tab.linkedBrowser.messageManager.sendAsyncMessage("ResponsiveMode:Stop");
   },
 
   /**
@@ -366,7 +319,7 @@ ResponsiveUI.prototype = {
    },
 
   /**
-   * Build the toolbar and the resizers.
+   * Build the toolbar and other UI surrounding the viewports.
    *
    * <vbox class="browserContainer"> From tabbrowser.xml
    *  <toolbar class="devtools-responsiveui-toolbar">
@@ -378,18 +331,10 @@ ResponsiveUI.prototype = {
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
-   *    <stack class="browserStack"> From tabbrowser.xml
-   *      <browser/>
-   *      <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
-   *      <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
-   *      <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
-   *      // Additional button in FxOS mode:
-   *      <button class="devtools-responsiveui-sleep-button" />
-   *      <vbox class="devtools-responsiveui-volume-buttons">
-   *        <button class="devtools-responsiveui-volume-up-button" />
-   *        <button class="devtools-responsiveui-volume-down-button" />
-   *      </vbox>
+   *    <stack class="browserStack"> Viewport 0, from tabbrowser.xml
+   *      See ResponsiveViewport.buildUI
    *    </stack>
+   *    <stack>...</stack> Viewport 1..N
    *  </hbox>
    *  <toolbar class="devtools-responsiveui-hardware-button">
    *    <toolbarbutton class="devtools-responsiveui-home-button" />
@@ -415,11 +360,11 @@ ResponsiveUI.prototype = {
     this.menulist.appendChild(menupopup);
 
     this.addbutton = this.chromeDoc.createElement("menuitem");
-    this.addbutton.setAttribute("label", this.strings.GetStringFromName("responsiveUI.addPreset"));
+    this.addbutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.addPreset"));
     this.addbutton.addEventListener("command", this.bound_addPreset, true);
 
     this.removebutton = this.chromeDoc.createElement("menuitem");
-    this.removebutton.setAttribute("label", this.strings.GetStringFromName("responsiveUI.removePreset"));
+    this.removebutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.removePreset"));
     this.removebutton.addEventListener("command", this.bound_removePreset, true);
 
     menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
@@ -428,13 +373,13 @@ ResponsiveUI.prototype = {
 
     this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
     this.rotatebutton.setAttribute("tabindex", "0");
-    this.rotatebutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.rotate2"));
+    this.rotatebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.rotate2"));
     this.rotatebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-rotate";
     this.rotatebutton.addEventListener("command", this.bound_rotate, true);
 
     this.screenshotbutton = this.chromeDoc.createElement("toolbarbutton");
     this.screenshotbutton.setAttribute("tabindex", "0");
-    this.screenshotbutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.screenshot"));
+    this.screenshotbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.screenshot"));
     this.screenshotbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-screenshot";
     this.screenshotbutton.addEventListener("command", this.bound_screenshot, true);
 
@@ -447,7 +392,7 @@ ResponsiveUI.prototype = {
     this.closebutton = this.chromeDoc.createElement("toolbarbutton");
     this.closebutton.setAttribute("tabindex", "0");
     this.closebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-close";
-    this.closebutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.close"));
+    this.closebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.close"));
     this.closebutton.addEventListener("command", this.bound_close, true);
 
     this.toolbar.appendChild(this.closebutton);
@@ -457,7 +402,7 @@ ResponsiveUI.prototype = {
     if (!this.e10s) {
       this.touchbutton = this.chromeDoc.createElement("toolbarbutton");
       this.touchbutton.setAttribute("tabindex", "0");
-      this.touchbutton.setAttribute("tooltiptext", this.strings.GetStringFromName("responsiveUI.touch"));
+      this.touchbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.touch"));
       this.touchbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-touch";
       this.touchbutton.addEventListener("command", this.bound_touch, true);
       this.toolbar.appendChild(this.touchbutton);
@@ -466,36 +411,11 @@ ResponsiveUI.prototype = {
     this.toolbar.appendChild(this.screenshotbutton);
     this.toolbar.appendChild(this.addviewportbutton);
 
-    // Resizers
-    let resizerTooltip = this.strings.GetStringFromName("responsiveUI.resizerTooltip");
-    this.resizer = this.chromeDoc.createElement("box");
-    this.resizer.className = "devtools-responsiveui-resizehandle";
-    this.resizer.setAttribute("right", "0");
-    this.resizer.setAttribute("bottom", "0");
-    this.resizer.setAttribute("tooltiptext", resizerTooltip);
-    this.resizer.onmousedown = this.bound_startResizing;
-
-    this.resizeBarV =  this.chromeDoc.createElement("box");
-    this.resizeBarV.className = "devtools-responsiveui-resizebarV";
-    this.resizeBarV.setAttribute("top", "0");
-    this.resizeBarV.setAttribute("right", "0");
-    this.resizeBarV.setAttribute("tooltiptext", resizerTooltip);
-    this.resizeBarV.onmousedown = this.bound_startResizing;
-
-    this.resizeBarH =  this.chromeDoc.createElement("box");
-    this.resizeBarH.className = "devtools-responsiveui-resizebarH";
-    this.resizeBarH.setAttribute("bottom", "0");
-    this.resizeBarH.setAttribute("left", "0");
-    this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
-    this.resizeBarH.onmousedown = this.bound_startResizing;
-
-    this.container.insertBefore(this.toolbar, this.viewports);
-    this.stack.appendChild(this.resizer);
-    this.stack.appendChild(this.resizeBarV);
-    this.stack.appendChild(this.resizeBarH);
+    this.container.insertBefore(this.toolbar, this.viewportsContainer);
   },
 
   // FxOS custom controls
+  // TODO: Figure out where this goes
   buildPhoneUI: function () {
     this.stack.classList.add("fxos-mode");
 
@@ -630,9 +550,9 @@ ResponsiveUI.prototype = {
     }
 
     if (aPreset.custom) {
-      size = this.strings.formatStringFromName("responsiveUI.customResolution", [size], 1);
+      size = Strings.formatStringFromName("responsiveUI.customResolution", [size], 1);
     } else if (aPreset.name != null && aPreset.name !== "") {
-      size = this.strings.formatStringFromName("responsiveUI.namedResolution", [size, aPreset.name], 2);
+      size = Strings.formatStringFromName("responsiveUI.namedResolution", [size, aPreset.name], 2);
     }
 
     aMenuitem.setAttribute("label", size);
@@ -679,8 +599,8 @@ ResponsiveUI.prototype = {
     let h = this.customPreset.height;
     let newName = {};
 
-    let title = this.strings.GetStringFromName("responsiveUI.customNamePromptTitle");
-    let message = this.strings.formatStringFromName("responsiveUI.customNamePromptMsg", [w, h], 2);
+    let title = Strings.GetStringFromName("responsiveUI.customNamePromptTitle");
+    let message = Strings.formatStringFromName("responsiveUI.customNamePromptMsg", [w, h], 2);
     let promptOk = Services.prompt.prompt(null, title, message, newName, null, {});
 
     if (!promptOk) {
@@ -790,7 +710,7 @@ ResponsiveUI.prototype = {
       let day = ("0" + date.getDate()).substr(-2, 2);
       let dateString = [date.getFullYear(), month, day].join("-");
       let timeString = date.toTimeString().replace(/:/g, ".").split(" ")[0];
-      filename = this.strings.formatStringFromName("responsiveUI.screenshotGeneratedFilename", [dateString, timeString], 2);
+      filename = Strings.formatStringFromName("responsiveUI.screenshotGeneratedFilename", [dateString, timeString], 2);
     }
     let mm = this.tab.linkedBrowser.messageManager;
     let chromeWindow = this.chromeDoc.defaultView;
@@ -844,21 +764,21 @@ ResponsiveUI.prototype = {
          let nbox = this.mainWindow.gBrowser.getNotificationBox(this.browser);
 
          var buttons = [{
-           label: this.strings.GetStringFromName("responsiveUI.notificationReload"),
+           label: Strings.GetStringFromName("responsiveUI.notificationReload"),
            callback: () => {
              this.browser.reload();
            },
-           accessKey: this.strings.GetStringFromName("responsiveUI.notificationReload_accesskey"),
+           accessKey: Strings.GetStringFromName("responsiveUI.notificationReload_accesskey"),
          }, {
-           label: this.strings.GetStringFromName("responsiveUI.dontShowReloadNotification"),
+           label: Strings.GetStringFromName("responsiveUI.dontShowReloadNotification"),
            callback: function() {
              Services.prefs.setBoolPref("devtools.responsiveUI.no-reload-notification", true);
            },
-           accessKey: this.strings.GetStringFromName("responsiveUI.dontShowReloadNotification_accesskey"),
+           accessKey: Strings.GetStringFromName("responsiveUI.dontShowReloadNotification_accesskey"),
          }];
 
          nbox.appendNotification(
-           this.strings.GetStringFromName("responsiveUI.needReload"),
+           Strings.GetStringFromName("responsiveUI.needReload"),
            "responsive-ui-need-reload",
            null,
            nbox.PRIORITY_INFO_LOW,
@@ -868,48 +788,39 @@ ResponsiveUI.prototype = {
    },
 
   /**
-   * Change the size of the browser.
-   *
-   * @param aWidth width of the browser.
-   * @param aHeight height of the browser.
+   * Change the size of the editable viewport's browser.
    */
-  setSize: function RUI_setSize(aWidth, aHeight) {
-    aWidth = Math.min(Math.max(aWidth, MIN_WIDTH), MAX_WIDTH);
-    aHeight = Math.min(Math.max(aHeight, MIN_HEIGHT), MAX_HEIGHT);
+  setSize(width, height) {
+    this.editableViewport.setSize(width, height);
+  },
 
-    // We resize the containing stack.
-    let style = "max-width: %width;" +
-                "min-width: %width;" +
-                "max-height: %height;" +
-                "min-height: %height;";
-
-    style = style.replace(/%width/g, aWidth + "px");
-    style = style.replace(/%height/g, aHeight + "px");
-
-    this.stack.setAttribute("style", style);
-
-    if (!this.ignoreY)
-      this.resizeBarV.setAttribute("top", Math.round(aHeight / 2));
-    if (!this.ignoreX)
-      this.resizeBarH.setAttribute("left", Math.round(aWidth / 2));
-
+  /**
+   * Update the custom size preset, if used.
+   */
+  updateCustomPreset(width, height) {
     let selectedPreset = this.menuitems.get(this.selectedItem);
 
     // We update the custom menuitem if we are using it
     if (selectedPreset.custom) {
-      selectedPreset.width = aWidth;
-      selectedPreset.height = aHeight;
+      selectedPreset.width = width;
+      selectedPreset.height = height;
 
       this.setMenuLabel(this.selectedItem, selectedPreset);
     }
   },
 
+  nudgeWidth(delta) {
+    return this.customPreset.width + delta;
+  },
+
+  nudgeHeight(delta) {
+    return this.customPreset.height + delta;
+  },
+
   /**
-   * Start the process of resizing the browser.
-   *
-   * @param aEvent
+   * One of the viewports is starting to resize.
    */
-  startResizing: function RUI_startResizing(aEvent) {
+  startResizing() {
     let selectedPreset = this.menuitems.get(this.selectedItem);
 
     if (!selectedPreset.custom) {
@@ -922,93 +833,15 @@ ResponsiveUI.prototype = {
       this.currentPresetKey = this.customPreset.key;
       this.menulist.selectedItem = menuitem;
     }
-    this.mainWindow.addEventListener("mouseup", this.bound_stopResizing, true);
-    this.mainWindow.addEventListener("mousemove", this.bound_onDrag, true);
     this.container.style.pointerEvents = "none";
-
-    this._resizing = true;
-    this.stack.setAttribute("notransition", "true");
-
-    this.lastScreenX = aEvent.screenX;
-    this.lastScreenY = aEvent.screenY;
-
-    this.ignoreY = (aEvent.target === this.resizeBarV);
-    this.ignoreX = (aEvent.target === this.resizeBarH);
-
-    this.isResizing = true;
   },
 
   /**
-   * Resizing on mouse move.
-   *
-   * @param aEvent
+   * One of the viewports is stopping the resizing process.
    */
-  onDrag: function RUI_onDrag(aEvent) {
-    let shift = aEvent.shiftKey;
-    let ctrl = !aEvent.shiftKey && aEvent.ctrlKey;
-
-    let screenX = aEvent.screenX;
-    let screenY = aEvent.screenY;
-
-    let deltaX = screenX - this.lastScreenX;
-    let deltaY = screenY - this.lastScreenY;
-
-    if (this.ignoreY)
-      deltaY = 0;
-    if (this.ignoreX)
-      deltaX = 0;
-
-    if (ctrl) {
-      deltaX /= SLOW_RATIO;
-      deltaY /= SLOW_RATIO;
-    }
-
-    let width = this.customPreset.width + deltaX;
-    let height = this.customPreset.height + deltaY;
-
-    if (shift) {
-      let roundedWidth, roundedHeight;
-      roundedWidth = 10 * Math.floor(width / ROUND_RATIO);
-      roundedHeight = 10 * Math.floor(height / ROUND_RATIO);
-      screenX += roundedWidth - width;
-      screenY += roundedHeight - height;
-      width = roundedWidth;
-      height = roundedHeight;
-    }
-
-    if (width < MIN_WIDTH) {
-        width = MIN_WIDTH;
-    } else {
-        this.lastScreenX = screenX;
-    }
-
-    if (height < MIN_HEIGHT) {
-        height = MIN_HEIGHT;
-    } else {
-        this.lastScreenY = screenY;
-    }
-
-    this.setSize(width, height);
-  },
-
-  /**
-   * Stop End resizing
-   */
-  stopResizing: function RUI_stopResizing() {
+  stopResizing() {
     this.container.style.pointerEvents = "auto";
-
-    this.mainWindow.removeEventListener("mouseup", this.bound_stopResizing, true);
-    this.mainWindow.removeEventListener("mousemove", this.bound_onDrag, true);
-
     this.saveCustomSize();
-
-    delete this._resizing;
-    if (this.transitionsEnabled) {
-      this.stack.removeAttribute("notransition");
-    }
-    this.ignoreY = false;
-    this.ignoreX = false;
-    this.isResizing = false;
   },
 
   /**
@@ -1040,6 +873,289 @@ ResponsiveUI.prototype = {
   },
 }
 
-XPCOMUtils.defineLazyGetter(ResponsiveUI.prototype, "strings", function () {
-  return Services.strings.createBundle("chrome://browser/locale/devtools/responsiveUI.properties");
-});
+function ResponsiveViewport(ui) {
+  this.ui = ui;
+
+  this.browser = this.tab.linkedBrowser;
+  this.mm = this.browser.messageManager;
+
+  // If there's only one viewport so far, mark this one as primary.
+  this.primary = this.viewportsContainer.children.length === 1;
+  this.buildStack();
+
+  this.e10s = !this.browser.contentWindow;
+
+  let childOn = () => {
+    this.mm.removeMessageListener("ResponsiveMode:Start:Done", childOn);
+    ResponsiveUIManager.emit("on", { tab: this.tab });
+  };
+  this.mm.addMessageListener("ResponsiveMode:Start:Done", childOn);
+
+  let requiresFloatingScrollbars = !this.mainWindow.matchMedia("(-moz-overlay-scrollbars)").matches;
+  this.mm.loadFrameScript("resource:///modules/devtools/responsivedesign-child.js", true);
+  this.mm.addMessageListener("ResponsiveMode:ChildScriptReady", () => {
+    this.mm.sendAsyncMessage("ResponsiveMode:Start", {
+      requiresFloatingScrollbars: requiresFloatingScrollbars
+    });
+  });
+
+  this.stack.setAttribute("responsivemode", "true");
+
+  this.bound_startResizing = this.startResizing.bind(this);
+  this.bound_stopResizing = this.stopResizing.bind(this);
+  this.bound_onDrag = this.onDrag.bind(this);
+
+  this.buildUI();
+
+  if (!this.e10s) {
+    // Touch events support
+    this.touchEnableBefore = false;
+    this.touchEventHandler = new TouchEventHandler(this.browser);
+  }
+}
+
+ResponsiveViewport.prototype = {
+
+  get mainWindow() {
+    return this.ui.mainWindow;
+  },
+
+  get chromeDoc() {
+    return this.ui.chromeDoc;
+  },
+
+  get tab() {
+    return this.ui.tab;
+  },
+
+  get viewportsContainer() {
+    return this.ui.viewportsContainer;
+  },
+
+  _transitionsEnabled: true,
+  get transitionsEnabled() {
+    return this._transitionsEnabled;
+  },
+  set transitionsEnabled(aValue) {
+    this._transitionsEnabled = aValue;
+    if (aValue && !this._resizing && this.stack.hasAttribute("responsivemode")) {
+      this.stack.removeAttribute("notransition");
+    } else if (!aValue) {
+      this.stack.setAttribute("notransition", "true");
+    }
+  },
+
+  destroy() {
+    // Reset style of the stack.
+    let style = "max-width: none;" +
+                "min-width: 0;" +
+                "max-height: none;" +
+                "min-height: 0;";
+    this.stack.setAttribute("style", style);
+
+    if (this.isResizing) {
+      this.stopResizing();
+    }
+
+    // Remove elements
+    this.stack.removeChild(this.resizer);
+    this.stack.removeChild(this.resizeBarV);
+    this.stack.removeChild(this.resizeBarH);
+
+    this.stack.classList.remove("fxos-mode");
+
+    // Unset the responsive mode
+    this.stack.removeAttribute("responsivemode");
+
+    let childOff = () => {
+      this.mm.removeMessageListener("ResponsiveMode:Stop:Done", childOff);
+      ResponsiveUIManager.emit("off", { tab: this.tab });
+    };
+    this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
+    this.mm.sendAsyncMessage("ResponsiveMode:Stop");
+  },
+
+  buildStack() {
+    if (this.primary) {
+      // If we're primary, tabbrowser.xml created a stack, so use that.
+      this.stack = this.viewportsContainer.querySelector(".browserStack");
+      return;
+    }
+
+    // Otherwise, we'll make our own stack
+    this.stack = this.chromeDoc.createElement("stack");
+    this.stack.className = "browserStack";
+    this.stack.setAttribute("flex", "1");
+    this.viewportsContainer.appendChild(this.stack);
+  },
+
+  /**
+   * Build the per-viewport UI.
+   *
+   * <hbox class="responsive-viewports"> From tabbrowser.xml
+   *   <stack class="browserStack"> Viewport 0, from tabbrowser.xml
+   *     <browser/>
+   *     <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
+   *     <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
+   *     <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
+   *     // Additional button in FxOS mode:
+   *     <button class="devtools-responsiveui-sleep-button" />
+   *     <vbox class="devtools-responsiveui-volume-buttons">
+   *       <button class="devtools-responsiveui-volume-up-button" />
+   *       <button class="devtools-responsiveui-volume-down-button" />
+   *     </vbox>
+   *   </stack>
+   *   <stack>...</stack> Viewport 1..N
+   * </hbox>
+   */
+  buildUI() {
+    // Resizers
+    let resizerTooltip = Strings.GetStringFromName("responsiveUI.resizerTooltip");
+    this.resizer = this.chromeDoc.createElement("box");
+    this.resizer.className = "devtools-responsiveui-resizehandle";
+    this.resizer.setAttribute("right", "0");
+    this.resizer.setAttribute("bottom", "0");
+    this.resizer.setAttribute("tooltiptext", resizerTooltip);
+    this.resizer.onmousedown = this.bound_startResizing;
+
+    this.resizeBarV = this.chromeDoc.createElement("box");
+    this.resizeBarV.className = "devtools-responsiveui-resizebarV";
+    this.resizeBarV.setAttribute("top", "0");
+    this.resizeBarV.setAttribute("right", "0");
+    this.resizeBarV.setAttribute("tooltiptext", resizerTooltip);
+    this.resizeBarV.onmousedown = this.bound_startResizing;
+
+    this.resizeBarH = this.chromeDoc.createElement("box");
+    this.resizeBarH.className = "devtools-responsiveui-resizebarH";
+    this.resizeBarH.setAttribute("bottom", "0");
+    this.resizeBarH.setAttribute("left", "0");
+    this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
+    this.resizeBarH.onmousedown = this.bound_startResizing;
+
+    this.stack.appendChild(this.resizer);
+    this.stack.appendChild(this.resizeBarV);
+    this.stack.appendChild(this.resizeBarH);
+  },
+
+  /**
+   * Change the size of the browser.
+   */
+  setSize(width, height) {
+    width = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
+    height = Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT);
+
+    // We resize the containing stack.
+    let style = "max-width: %width;" +
+                "min-width: %width;" +
+                "max-height: %height;" +
+                "min-height: %height;";
+
+    style = style.replace(/%width/g, width + "px");
+    style = style.replace(/%height/g, height + "px");
+
+    this.stack.setAttribute("style", style);
+
+    if (!this.ignoreY) {
+      this.resizeBarV.setAttribute("top", Math.round(height / 2));
+    }
+    if (!this.ignoreX) {
+      this.resizeBarH.setAttribute("left", Math.round(width / 2));
+    }
+
+    // Notify UI to update the custom preset
+    this.ui.updateCustomPreset(width, height);
+  },
+
+  /**
+   * Start the process of resizing the browser.
+   */
+  startResizing(event) {
+    this.ui.startResizing();
+
+    this.mainWindow.addEventListener("mouseup", this.bound_stopResizing, true);
+    this.mainWindow.addEventListener("mousemove", this.bound_onDrag, true);
+
+    this._resizing = true;
+    this.stack.setAttribute("notransition", "true");
+
+    this.lastScreenX = event.screenX;
+    this.lastScreenY = event.screenY;
+
+    this.ignoreY = (event.target === this.resizeBarV);
+    this.ignoreX = (event.target === this.resizeBarH);
+
+    this.isResizing = true;
+  },
+
+  /**
+   * Resizing on mouse move.
+   */
+  onDrag(event) {
+    let shift = event.shiftKey;
+    let ctrl = !event.shiftKey && event.ctrlKey;
+
+    let screenX = event.screenX;
+    let screenY = event.screenY;
+
+    let deltaX = screenX - this.lastScreenX;
+    let deltaY = screenY - this.lastScreenY;
+
+    if (this.ignoreY) {
+      deltaY = 0;
+    }
+    if (this.ignoreX) {
+      deltaX = 0;
+    }
+
+    if (ctrl) {
+      deltaX /= SLOW_RATIO;
+      deltaY /= SLOW_RATIO;
+    }
+
+    let width = this.ui.nudgeWidth(deltaX);
+    let height = this.ui.nudgeHeight(deltaY);
+
+    if (shift) {
+      let roundedWidth, roundedHeight;
+      roundedWidth = 10 * Math.floor(width / ROUND_RATIO);
+      roundedHeight = 10 * Math.floor(height / ROUND_RATIO);
+      screenX += roundedWidth - width;
+      screenY += roundedHeight - height;
+      width = roundedWidth;
+      height = roundedHeight;
+    }
+
+    if (width < MIN_WIDTH) {
+      width = MIN_WIDTH;
+    } else {
+      this.lastScreenX = screenX;
+    }
+
+    if (height < MIN_HEIGHT) {
+      height = MIN_HEIGHT;
+    } else {
+      this.lastScreenY = screenY;
+    }
+
+    this.setSize(width, height);
+  },
+
+  /**
+   * Stop the browser resizing process.
+   */
+  stopResizing() {
+    this.ui.stopResizing();
+
+    this.mainWindow.removeEventListener("mouseup", this.bound_stopResizing, true);
+    this.mainWindow.removeEventListener("mousemove", this.bound_onDrag, true);
+
+    delete this._resizing;
+    if (this.transitionsEnabled) {
+      this.stack.removeAttribute("notransition");
+    }
+    this.ignoreY = false;
+    this.ignoreX = false;
+    this.isResizing = false;
+  }
+
+};
