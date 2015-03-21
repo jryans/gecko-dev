@@ -195,6 +195,11 @@
   }
 }
 
+.devtools-responsiveui-add-viewport {
+  list-style-image: url("chrome://browser/skin/tabbrowser/newtab-inverted@2x.png");
+  -moz-image-region: rect(0px, 36px, 40px, 0px);
+}
+
 .devtools-responsiveui-resizebarV {
   width: 7px;
   height: 24px;

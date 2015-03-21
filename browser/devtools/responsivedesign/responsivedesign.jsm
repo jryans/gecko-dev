@@ -197,6 +197,7 @@ function ResponsiveUI(aWindow, aTab)
   this.bound_removePreset = this.removePreset.bind(this);
   this.bound_rotate = this.rotate.bind(this);
   this.bound_screenshot = () => this.screenshot();
+  this.bound_addViewport = () => this.mainWindow.console.log("HI!");
   this.bound_touch = this.toggleTouch.bind(this);
   this.bound_close = this.close.bind(this);
   this.bound_startResizing = this.startResizing.bind(this);
@@ -272,6 +273,7 @@ ResponsiveUI.prototype = {
     this.tabContainer.removeEventListener("TabSelect", this);
     this.rotatebutton.removeEventListener("command", this.bound_rotate, true);
     this.screenshotbutton.removeEventListener("command", this.bound_screenshot, true);
+    this.addviewportbutton.removeEventListener("command", this.bound_addViewport, true);
     this.closebutton.removeEventListener("command", this.bound_close, true);
     this.addbutton.removeEventListener("command", this.bound_addPreset, true);
     this.removebutton.removeEventListener("command", this.bound_removePreset, true);
@@ -368,10 +370,12 @@ ResponsiveUI.prototype = {
    *
    * <vbox class="browserContainer"> From tabbrowser.xml
    *  <toolbar class="devtools-responsiveui-toolbar">
+   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
    *    <menulist class="devtools-responsiveui-menulist"/> // presets
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="rotate"/> // rotate
+   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="touch"/> // touch
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
+   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
    *    <stack class="browserStack"> From tabbrowser.xml
@@ -434,6 +438,12 @@ ResponsiveUI.prototype = {
     this.screenshotbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-screenshot";
     this.screenshotbutton.addEventListener("command", this.bound_screenshot, true);
 
+    this.addviewportbutton = this.chromeDoc.createElement("toolbarbutton");
+    this.addviewportbutton.setAttribute("tabindex", "0");
+    this.addviewportbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-add-viewport";
+    this.addviewportbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.addViewport"));
+    this.addviewportbutton.addEventListener("command", this.bound_addViewport, true);
+
     this.closebutton = this.chromeDoc.createElement("toolbarbutton");
     this.closebutton.setAttribute("tabindex", "0");
     this.closebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-close";
@@ -454,6 +464,7 @@ ResponsiveUI.prototype = {
     }
 
     this.toolbar.appendChild(this.screenshotbutton);
+    this.toolbar.appendChild(this.addviewportbutton);
 
     // Resizers
     let resizerTooltip = this.strings.GetStringFromName("responsiveUI.resizerTooltip");
