@@ -25,6 +25,7 @@ const Telemetry = require("devtools/shared/telemetry");
 const {RuntimeScanners, WiFiScanner} = require("devtools/webide/runtimes");
 const {showDoorhanger} = require("devtools/shared/doorhanger");
 const ProjectList = require("devtools/webide/project-list");
+const EventEmitter = require("devtools/toolkit/event-emitter");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
@@ -545,6 +546,7 @@ let UI = {
   // Panel & button
 
   updateProjectButton: function() {
+    this.update("test");
     let buttonNode = document.querySelector("#project-panel-button");
     let labelNode = buttonNode.querySelector(".panel-button-label");
     let imageNode = buttonNode.querySelector(".panel-button-image");
@@ -1047,8 +1049,15 @@ let UI = {
     if (msg == "start") {
       UI.selectDeckPanel("logs");
     }
+  },
+
+  update: function(what) {
+    this.emit("webide-update", what);
   }
+
 };
+
+EventEmitter.decorate(UI);
 
 let Cmds = {
   quit: function() {

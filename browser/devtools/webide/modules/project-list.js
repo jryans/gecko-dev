@@ -28,6 +28,9 @@ module.exports = ProjectList = function(window, parentWindow) {
     this._panelNodeEl = "div";
   }
 
+  this.onWebIDEUpdate = this.onWebIDEUpdate.bind(this);
+  this._UI.on("webide-update", this.onWebIDEUpdate);
+
   AppManager.init();
 
   return this;
@@ -36,6 +39,12 @@ module.exports = ProjectList = function(window, parentWindow) {
 ProjectList.prototype = {
   get doc() {
     return this._doc;
+  },
+
+  onWebIDEUpdate(event, what) {
+    if (what === "test") {
+      dump("TEST!!!\n");
+    }
   },
 
   get sidebarsEnabled() {
