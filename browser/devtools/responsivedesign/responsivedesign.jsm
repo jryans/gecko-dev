@@ -173,6 +173,7 @@ function ResponsiveUI(aWindow, aTab) {
   }
 
   this.container.setAttribute("responsivemode", "true");
+  this.viewportsContainer.setAttribute("responsivemode", "true");
 
   // Let's bind some callbacks.
   this.bound_presetSelected = this.presetSelected.bind(this);
@@ -252,6 +253,7 @@ ResponsiveUI.prototype = {
 
     // Unset the responsive mode.
     this.container.removeAttribute("responsivemode");
+    this.viewportsContainer.removeAttribute("responsivemode");
 
     ActiveTabs.delete(this.tab);
     if (!this.e10s && this.touchEventHandler) {
@@ -1086,10 +1088,11 @@ ResponsiveViewport.prototype = {
     let style = "max-width: %width;" +
                 "min-width: %width;" +
                 "max-height: %height;" +
-                "min-height: %height;";
+                "min-height: %height;" +
+                "vertical-align: top;";
 
-    style = style.replace(/%width/g, width + "px");
-    style = style.replace(/%height/g, height + "px");
+    style = style.replace(/%width/g, this.width + "px");
+    style = style.replace(/%height/g, this.height + "px");
 
     this.stack.setAttribute("style", style);
 
