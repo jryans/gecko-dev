@@ -992,6 +992,11 @@ ResponsiveViewport.prototype = {
     };
     this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
     this.mm.sendAsyncMessage("ResponsiveMode:Stop");
+
+    if (!this.primary) {
+      // If we're not primary, remove the stack entirely
+      this.stack.remove();
+    }
   },
 
   /**
