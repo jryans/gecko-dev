@@ -39,7 +39,7 @@ public:
   virtual void CancelTakePicture() override;
   virtual int StartPreview() override;
   virtual void StopPreview() override;
-  virtual int PushParameters(const mozilla::GonkCameraParameters& aParams) override;
+  virtual int PushParameters(mozilla::GonkCameraParameters& aParams) override;
   virtual nsresult PullParameters(mozilla::GonkCameraParameters& aParams) override;
   virtual int StartRecording() override;
   virtual int StopRecording() override;

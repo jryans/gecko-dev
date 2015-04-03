@@ -85,6 +85,8 @@ nsGonkCameraControl::nsGonkCameraControl(uint32_t aCameraId)
 nsresult
 nsGonkCameraControl::StartImpl(const Configuration* aInitialConfig)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
+  
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
   nsresult rv = StartInternal(aInitialConfig);
@@ -276,6 +278,8 @@ nsGonkCameraControl::~nsGonkCameraControl()
 nsresult
 nsGonkCameraControl::ValidateConfiguration(const Configuration& aConfig, Configuration& aValidatedConfig)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
+
   nsAutoTArray<Size, 16> supportedSizes;
   Get(CAMERA_PARAM_SUPPORTED_PICTURESIZES, supportedSizes);
 
@@ -964,6 +968,7 @@ nsGonkCameraControl::UpdateThumbnailSize()
 nsresult
 nsGonkCameraControl::SetPictureSizeImpl(const Size& aSize)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
   MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
 
   /**
@@ -1040,6 +1045,8 @@ nsGonkCameraControl::RationalizeRotation(int32_t aRotation)
 nsresult
 nsGonkCameraControl::SetPictureSize(const Size& aSize)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
+
   class SetPictureSize : public nsRunnable
   {
   public:
@@ -1459,6 +1466,14 @@ nsGonkCameraControl::GetSupportedSize(const Size& aSize,
                                       const nsTArray<Size>& aSupportedSizes,
                                       Size& best)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
+
+  DOM_CAMERA_LOGT("Input Size: %ux%u\n", aSize.width, aSize.height);
+  for (SizeIndex i = 0; i < aSupportedSizes.Length(); ++i) {
+    Size size = aSupportedSizes[i];
+    DOM_CAMERA_LOGT("Supp. Size: %ux%u\n", size.width, size.height);
+  }
+
   nsresult rv = NS_ERROR_INVALID_ARG;
   best = aSize;
   uint32_t minSizeDelta = UINT32_MAX;
@@ -1474,16 +1489,19 @@ nsGonkCameraControl::GetSupportedSize(const Size& aSize,
     best = aSupportedSizes[0];
     return NS_OK;
   } else if (aSize.width && aSize.height) {
+    DOM_CAMERA_LOGT("Have width and height\n");
     // both height and width specified, find the supported size closest to
     // the requested size, looking for an exact match first
     for (SizeIndex i = 0; i < aSupportedSizes.Length(); ++i) {
       Size size = aSupportedSizes[i];
       if (size.width == aSize.width && size.height == aSize.height) {
+        DOM_CAMERA_LOGT("Best Size: %ux%u\n", size.width, size.height);
         best = size;
         return NS_OK;
       }
     }
 
+    DOM_CAMERA_LOGT("No exact match\n");
     // no exact match on dimensions--look for a match closest in area
     const uint32_t targetArea = aSize.width * aSize.height;
     for (SizeIndex i = 0; i < aSupportedSizes.Length(); i++) {
@@ -1496,6 +1514,7 @@ nsGonkCameraControl::GetSupportedSize(const Size& aSize,
         rv = NS_OK;
       }
     }
+    DOM_CAMERA_LOGT("Best Size: %ux%u\n", best.width, best.height);
   } else if (!aSize.width) {
     // width not specified, find closest height match
     for (SizeIndex i = 0; i < aSupportedSizes.Length(); i++) {

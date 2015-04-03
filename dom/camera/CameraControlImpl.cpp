@@ -393,6 +393,8 @@ CameraControlImpl::Dispatch(ControlMessage* aMessage)
 nsresult
 CameraControlImpl::Start(const Configuration* aConfig)
 {
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
+
   class Message : public ControlMessage
   {
   public:

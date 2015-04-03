@@ -116,7 +116,7 @@ public:
   virtual void     CancelTakePicture();
   virtual int      StartPreview();
   virtual void     StopPreview();
-  virtual int      PushParameters(const mozilla::GonkCameraParameters& aParams);
+  virtual int      PushParameters(mozilla::GonkCameraParameters& aParams);
   virtual nsresult PullParameters(mozilla::GonkCameraParameters& aParams);
 #ifdef MOZ_WIDGET_GONK
   virtual int      PushParameters(const CameraParameters& aParams);

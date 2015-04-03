@@ -33,6 +33,7 @@
 #endif
 #include "GonkCameraControl.h"
 #include "CameraCommon.h"
+#include "ICameraControl.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -381,8 +382,12 @@ GonkCameraHardware::CancelTakePicture()
 }
 
 int
-GonkCameraHardware::PushParameters(const GonkCameraParameters& aParams)
+GonkCameraHardware::PushParameters(GonkCameraParameters& aParams)
 {
+  DOM_CAMERA_LOGT("Gonk: %s:%d\n", __func__, __LINE__);
+  ICameraControl::Size size;
+  aParams.Get(CAMERA_PARAM_PICTURE_SIZE, size);
+  DOM_CAMERA_LOGT("Pic. Size: %ux%u\n", size.width, size.height);
   const String8 s = aParams.Flatten();
   return mCamera->setParameters(s);
 }
@@ -398,6 +403,7 @@ GonkCameraHardware::PullParameters(GonkCameraParameters& aParams)
 int
 GonkCameraHardware::PushParameters(const CameraParameters& aParams)
 {
+  DOM_CAMERA_LOGT("Reg: %s:%d\n", __func__, __LINE__);
   String8 s = aParams.flatten();
   return mCamera->setParameters(s);
 }

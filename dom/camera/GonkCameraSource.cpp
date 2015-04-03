@@ -367,7 +367,7 @@ status_t GonkCameraSource::checkVideoSize(
         const CameraParameters& params,
         int32_t width, int32_t height) {
 
-    CS_LOGV("checkVideoSize");
+    CS_LOGV("checkVideoSize: %ux%u", width, height);
     // The actual video size is the same as the preview size
     // if the camera hal does not support separate video and
     // preview output. In this case, we retrieve the video
@@ -403,6 +403,7 @@ status_t GonkCameraSource::checkVideoSize(
     // Good now.
     mVideoSize.width = frameWidthActual;
     mVideoSize.height = frameHeightActual;
+    CS_LOGV("Actual Size: %ux%u", frameWidthActual, frameHeightActual);
     return OK;
 }
 
@@ -462,7 +463,7 @@ status_t GonkCameraSource::init(
         int32_t frameRate,
         bool storeMetaDataInVideoBuffers) {
 
-    CS_LOGV("init");
+    CS_LOGV("init: %ux%u", videoSize.width, videoSize.height);
     status_t err = OK;
     //TODO: need to do something here to check the sanity of camera
 

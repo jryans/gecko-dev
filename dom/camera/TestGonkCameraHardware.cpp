@@ -611,7 +611,7 @@ protected:
 };
 
 int
-TestGonkCameraHardware::PushParameters(const GonkCameraParameters& aParams)
+TestGonkCameraHardware::PushParameters(GonkCameraParameters& aParams)
 {
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
   String8 s = aParams.Flatten();
