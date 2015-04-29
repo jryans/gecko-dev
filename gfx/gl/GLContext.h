@@ -28,9 +28,7 @@
 
 // Define MOZ_GL_DEBUG unconditionally to enable GL debugging in opt
 // builds.
-#ifdef DEBUG
 #define MOZ_GL_DEBUG 1
-#endif
 
 #include "mozilla/UniquePtr.h"
 
