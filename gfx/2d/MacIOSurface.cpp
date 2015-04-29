@@ -181,7 +181,7 @@ CFStringRef MacIOSurfaceLib::GetIOConst(const char* symbole) {
 void MacIOSurfaceLib::LoadLibrary() {
   if (isLoaded) {
     return;
-  } 
+  }
   isLoaded = true;
   sIOSurfaceFramework = dlopen(IOSURFACE_FRAMEWORK_PATH,
                             RTLD_LAZY | RTLD_LOCAL);
@@ -278,9 +278,11 @@ MacIOSurface::MacIOSurface(const void* aIOSurfacePtr,
 {
   CFRetain(mIOSurfacePtr);
   IncrementUseCount();
+  fprintf(stderr, "Increment / create IO surface: %u\n", GetIOSurfaceID());
 }
 
 MacIOSurface::~MacIOSurface() {
+  fprintf(stderr, "Decrement / destroy IO surface: %u\n", GetIOSurfaceID());
   DecrementUseCount();
   CFRelease(mIOSurfacePtr);
 }
@@ -314,10 +316,10 @@ TemporaryRef<MacIOSurface> MacIOSurface::CreateIOSurface(int aWidth, int aHeight
   ::CFDictionaryAddValue(props, MacIOSurfaceLib::kPropHeight,
                                 cfHeight);
   ::CFRelease(cfHeight);
-  ::CFDictionaryAddValue(props, MacIOSurfaceLib::kPropBytesPerElem, 
+  ::CFDictionaryAddValue(props, MacIOSurfaceLib::kPropBytesPerElem,
                                 cfBytesPerElem);
   ::CFRelease(cfBytesPerElem);
-  ::CFDictionaryAddValue(props, MacIOSurfaceLib::kPropIsGlobal, 
+  ::CFDictionaryAddValue(props, MacIOSurfaceLib::kPropIsGlobal,
                                 kCFBooleanTrue);
 
   IOSurfacePtr surfaceRef = MacIOSurfaceLib::IOSurfaceCreate(props);
@@ -340,7 +342,7 @@ TemporaryRef<MacIOSurface> MacIOSurface::CreateIOSurface(int aWidth, int aHeight
 
 TemporaryRef<MacIOSurface> MacIOSurface::LookupSurface(IOSurfaceID aIOSurfaceID,
                                                        double aContentsScaleFactor,
-                                                       bool aHasAlpha) { 
+                                                       bool aHasAlpha) {
   if (!MacIOSurfaceLib::isInit() || aContentsScaleFactor <= 0)
     return nullptr;
 
@@ -360,11 +362,11 @@ TemporaryRef<MacIOSurface> MacIOSurface::LookupSurface(IOSurfaceID aIOSurfaceID,
   return ioSurface.forget();
 }
 
-IOSurfaceID MacIOSurface::GetIOSurfaceID() { 
+IOSurfaceID MacIOSurface::GetIOSurfaceID() {
   return MacIOSurfaceLib::IOSurfaceGetID(mIOSurfacePtr);
 }
 
-void* MacIOSurface::GetBaseAddress() { 
+void* MacIOSurface::GetBaseAddress() {
   return MacIOSurfaceLib::IOSurfaceGetBaseAddress(mIOSurfacePtr);
 }
 
@@ -408,7 +410,7 @@ size_t MacIOSurface::GetDevicePixelHeight() {
   return MacIOSurfaceLib::IOSurfaceGetHeight(mIOSurfacePtr);
 }
 
-size_t MacIOSurface::GetBytesPerRow() { 
+size_t MacIOSurface::GetBytesPerRow() {
   return MacIOSurfaceLib::IOSurfaceGetBytesPerRow(mIOSurfacePtr);
 }
 
@@ -532,5 +534,3 @@ CGContextType GetContextType(CGContextRef ref)
     return CG_CONTEXT_TYPE_UNKNOWN;
   }
 }
-
-

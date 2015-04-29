@@ -14,6 +14,7 @@ MacIOSurfaceTextureHostOGL::MacIOSurfaceTextureHostOGL(TextureFlags aFlags,
                                                        const SurfaceDescriptorMacIOSurface& aDescriptor)
   : TextureHost(aFlags)
 {
+  fprintf(stderr, "Find surface: %u\n", aDescriptor.surfaceId());
   mSurface = MacIOSurface::LookupSurface(aDescriptor.surfaceId(),
                                          aDescriptor.scaleFactor(),
                                          !aDescriptor.isOpaque());

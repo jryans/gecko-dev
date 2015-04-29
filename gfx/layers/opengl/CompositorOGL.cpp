@@ -534,6 +534,7 @@ CompositorOGL::SetRenderTarget(CompositingRenderTarget *aSurface)
   CompositingRenderTargetOGL* surface
     = static_cast<CompositingRenderTargetOGL*>(aSurface);
   if (mCurrentRenderTarget != surface) {
+    fprintf(stderr, "COMP: Change render target\n");
     mCurrentRenderTarget = surface;
     mContextStateTracker.PopOGLSection(gl(), "Frame");
     mContextStateTracker.PushOGLSection(gl(), "Frame");
@@ -597,6 +598,8 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
 
   MOZ_ASSERT(!mFrameInProgress, "frame still in progress (should have called EndFrame");
 
+  fprintf(stderr, "COMP: Begin frame\n");
+
   mFrameInProgress = true;
   gfx::Rect rect;
   if (mUseExternalSurfaceSize) {
@@ -642,6 +645,7 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   mCurrentRenderTarget =
     CompositingRenderTargetOGL::RenderTargetForWindow(this,
                                                       IntSize(width, height));
+  fprintf(stderr, "COMP: Render target for window %u x %u\n", width, height);
   mCurrentRenderTarget->BindRenderTarget();
 
   mContextStateTracker.PushOGLSection(gl(), "Frame");
@@ -1395,6 +1399,8 @@ CompositorOGL::EndFrame()
   if (!mGLContext->IsGLES()) {
     mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
   }
+
+  fprintf(stderr, "COMP: End frame\n");
 }
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
