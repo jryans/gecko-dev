@@ -66,11 +66,11 @@ public:
   CompositingRenderTargetOGL(CompositorOGL* aCompositor, const gfx::IntPoint& aOrigin,
                              GLuint aTexure, GLuint aFBO)
     : CompositingRenderTarget(aOrigin)
-    , mInitParams()
     , mCompositor(aCompositor)
     , mGL(aCompositor->gl())
     , mTextureHandle(aTexure)
     , mFBO(aFBO)
+    , mInitParams()
   {}
 
   ~CompositingRenderTargetOGL();
@@ -96,21 +96,21 @@ public:
    * compositor we do not have to re-bind the FBO after unbinding it, or
    * alternatively leave the FBO bound after creation.
    */
-  void Initialize(const gfx::IntSize& aSize,
-                  GLenum aFBOTextureTarget,
-                  SurfaceInitMode aInit)
+  virtual void Initialize(const gfx::IntSize& aSize,
+                          GLenum aFBOTextureTarget,
+                          SurfaceInitMode aInit)
   {
     MOZ_ASSERT(mInitParams.mStatus == InitParams::NO_PARAMS, "Initialized twice?");
     // postpone initialization until we actually want to use this render target
     mInitParams = InitParams(aSize, aFBOTextureTarget, aInit);
   }
 
-  void BindTexture(GLenum aTextureUnit, GLenum aTextureTarget);
+  virtual void BindTexture(GLenum aTextureUnit, GLenum aTextureTarget);
 
   /**
    * Call when we want to draw into our FBO
    */
-  void BindRenderTarget();
+  virtual void BindRenderTarget();
 
   bool IsWindow() { return GetFBO() == 0; }
 
@@ -153,14 +153,13 @@ public:
     return mInitParams.mSize;
   }
 
-private:
+protected:
   /**
    * Actually do the initialisation. Note that we leave our FBO bound, and so
    * calling this method is only suitable when about to use this render target.
    */
-  void InitializeImpl();
+  virtual void InitializeImpl();
 
-  InitParams mInitParams;
   /**
    * There is temporary a cycle between the compositor and the render target,
    * each having a strong ref to the other. The compositor's reference to
@@ -170,6 +169,9 @@ private:
   GLContext* mGL;
   GLuint mTextureHandle;
   GLuint mFBO;
+
+private:
+  InitParams mInitParams;
 };
 
 }

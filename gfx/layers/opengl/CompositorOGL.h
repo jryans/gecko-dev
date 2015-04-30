@@ -45,6 +45,7 @@ namespace layers {
 
 class CompositingRenderTarget;
 class CompositingRenderTargetOGL;
+class MacIOSurfaceCompositingRenderTargetOGL;
 class DataTextureSource;
 class GLManagerCompositor;
 class TextureSource;

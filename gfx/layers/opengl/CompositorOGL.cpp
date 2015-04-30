@@ -50,6 +50,7 @@
 
 #ifdef XP_MACOSX
 #include "nsCocoaFeatures.h"
+#include "mozilla/layers/MacIOSurfaceCompositingRenderTargetOGL.h"
 #endif
 
 #include "GeckoProfiler.h"
@@ -642,9 +643,11 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   TexturePoolOGL::Fill(gl());
 #endif
 
-  mCurrentRenderTarget =
-    CompositingRenderTargetOGL::RenderTargetForWindow(this,
-                                                      IntSize(width, height));
+  if (!mCurrentRenderTarget) {
+    mCurrentRenderTarget =
+      new MacIOSurfaceCompositingRenderTargetOGL(this, gfx::IntPoint());
+    mCurrentRenderTarget->Initialize(IntSize(width, height), 0, INIT_MODE_NONE);
+  }
   fprintf(stderr, "COMP: Render target for window %u x %u\n", width, height);
   mCurrentRenderTarget->BindRenderTarget();
 
@@ -1368,11 +1371,11 @@ CompositorOGL::EndFrame()
   if (mTarget) {
     CopyToTarget(mTarget, mTargetBounds.TopLeft(), Matrix());
     mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
-    mCurrentRenderTarget = nullptr;
+    // mCurrentRenderTarget = nullptr;
     return;
   }
 
-  mCurrentRenderTarget = nullptr;
+  // mCurrentRenderTarget = nullptr;
 
   if (mTexturePool) {
     mTexturePool->EndFrame();
