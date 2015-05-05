@@ -26,7 +26,6 @@ MacIOSurfaceCompositingRenderTargetOGL::~MacIOSurfaceCompositingRenderTargetOGL(
 void
 MacIOSurfaceCompositingRenderTargetOGL::BindTexture(GLenum aTextureUnit, GLenum aTextureTarget)
 {
-  MOZ_CRASH("::BindTexture not yet supported");
   MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
   MOZ_ASSERT(mTextureHandle != 0);
   mGL->fActiveTexture(aTextureUnit);
@@ -63,7 +62,7 @@ MacIOSurfaceCompositingRenderTargetOGL::BindRenderTarget()
     mCompositor->PrepareViewport(mInitParams.mSize);
   }
 
-  if (true) {
+  if (mClearOnBind) {
     mGL->fScissor(0, 0, mInitParams.mSize.width, mInitParams.mSize.height);
     mGL->fClearColor(0.5, 0.5, 0.5, 0.5);
     mGL->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
@@ -93,7 +92,11 @@ MacIOSurfaceCompositingRenderTargetOGL::InitializeImpl()
                                            mInitParams.mSize.height, 1.0, true);
   fprintf(stderr, "IOSurface: 0x%x\n", mSurface->GetIOSurfaceID());
   fprintf(stderr, "Size: %u x %u\n", mInitParams.mSize.width, mInitParams.mSize.height);
-  mSurface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(mGL)->GetCGLContext());
+  // mSurface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(mGL)->GetCGLContext());
+
+  mGL->fTexImage2D(LOCAL_GL_TEXTURE_RECTANGLE, 0, LOCAL_GL_RGBA,
+                   mInitParams.mSize.width, mInitParams.mSize.height, 0,
+                   LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV, 0);
 
   mGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE, LOCAL_GL_TEXTURE_MIN_FILTER,
                       LOCAL_GL_LINEAR);

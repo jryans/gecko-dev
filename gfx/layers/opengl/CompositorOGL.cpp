@@ -1377,6 +1377,49 @@ CompositorOGL::EndFrame()
 
   // mCurrentRenderTarget = nullptr;
 
+  // DISPLAY FBO
+
+  mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
+  nsIntRect bounds;
+  mWidget->GetBounds(bounds);
+
+  ParentLayerIntRect parentRect(bounds.x, bounds.y, bounds.width, bounds.height);
+  IntRect clipRect = ParentLayerIntRect::ToUntyped(parentRect);
+
+  gl()->fScissor(clipRect.x, FlipY(clipRect.y + clipRect.height),
+                 clipRect.width, clipRect.height);
+
+  gfx::Matrix4x4 layerTransform;
+
+  ShaderConfigOGL config;
+  config.SetTextureTarget(LOCAL_GL_TEXTURE_RECTANGLE_ARB);
+  config.SetColorMatrix(false);
+  config.SetMask2D(false);
+  config.SetMask3D(false);
+  config.SetOpacity(false);
+
+  ShaderProgramOGL *program = GetShaderProgramFor(config);
+  ActivateProgram(program);
+  program->SetProjectionMatrix(mProjMatrix);
+  program->SetLayerTransform(layerTransform);
+  program->SetRenderOffset(0, 0);
+
+  if (config.mFeatures & ENABLE_TEXTURE_RECT) {
+    program->SetTexCoordMultiplier(clipRect.width, clipRect.height);
+  }
+
+  mCurrentRenderTarget->BindTexture(LOCAL_GL_TEXTURE0, LOCAL_GL_TEXTURE_RECTANGLE_ARB);
+
+  Matrix transform;
+  transform.PreTranslate(0.0, 1.0);
+  transform.PreScale(1.0f, -1.0f);
+  program->SetTextureTransform(Matrix4x4::From2D(transform));
+  program->SetTextureUnit(0);
+
+  BindAndDrawQuad(program, (Rect) clipRect);
+
+  // END DISPLAY FBO
+
   if (mTexturePool) {
     mTexturePool->EndFrame();
   }
