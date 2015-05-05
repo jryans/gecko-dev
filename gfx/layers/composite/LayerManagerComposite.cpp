@@ -164,11 +164,11 @@ void
 LayerManagerComposite::BeginTransaction()
 {
   mInTransaction = true;
-  
+
   if (!mCompositor->Ready()) {
     return;
   }
-  
+
   mIsCompositorReady = true;
 
   mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
@@ -178,7 +178,7 @@ void
 LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const IntRect& aRect)
 {
   mInTransaction = true;
-  
+
   if (!mCompositor->Ready()) {
     return;
   }
