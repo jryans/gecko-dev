@@ -92,11 +92,7 @@ MacIOSurfaceCompositingRenderTargetOGL::InitializeImpl()
                                            mInitParams.mSize.height, 1.0, true);
   fprintf(stderr, "IOSurface: 0x%x\n", mSurface->GetIOSurfaceID());
   fprintf(stderr, "Size: %u x %u\n", mInitParams.mSize.width, mInitParams.mSize.height);
-  // mSurface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(mGL)->GetCGLContext());
-
-  mGL->fTexImage2D(LOCAL_GL_TEXTURE_RECTANGLE, 0, LOCAL_GL_RGBA,
-                   mInitParams.mSize.width, mInitParams.mSize.height, 0,
-                   LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV, 0);
+  mSurface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(mGL)->GetCGLContext());
 
   mGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE, LOCAL_GL_TEXTURE_MIN_FILTER,
                       LOCAL_GL_LINEAR);
@@ -107,7 +103,6 @@ MacIOSurfaceCompositingRenderTargetOGL::InitializeImpl()
   mGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE, LOCAL_GL_TEXTURE_WRAP_T,
                       LOCAL_GL_CLAMP_TO_EDGE);
 
-  // Maybe?
   mGL->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE, 0);
 
   mGL->fGenFramebuffers(1, &mFBO);
