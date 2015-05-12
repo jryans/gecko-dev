@@ -51,6 +51,11 @@ let ViewSourceContent = {
    */
   selectionListenerAttached: false,
 
+  get isViewSource() {
+    let uri = content.document.documentURI;
+    return uri == "about:blank" || uri.startsWith("view-source:");
+  },
+
   /**
    * This should be called as soon as this frame script has loaded.
    */
@@ -93,6 +98,11 @@ let ViewSourceContent = {
    * get dispatched to a specific function for the message name.
    */
   receiveMessage(msg) {
+    dump(`Chrome -> Content: ${msg.name}\n`)
+    if (!this.isViewSource) {
+      dump("Not VS, abort\n")
+      return;
+    }
     let data = msg.data;
     let objects = msg.objects;
     switch(msg.name) {
@@ -124,6 +134,11 @@ let ViewSourceContent = {
    * a specific function for the event type.
    */
   handleEvent(event) {
+    dump(`Content Event: ${event.type}\n`)
+    if (!this.isViewSource) {
+      dump("Not VS, abort\n")
+      return;
+    }
     switch(event.type) {
       case "pagehide":
         this.onPageHide(event);
@@ -341,11 +356,12 @@ let ViewSourceContent = {
    *        The pageshow event being handled.
    */
   onPageShow(event) {
-    content.getSelection()
-           .QueryInterface(Ci.nsISelectionPrivate)
-           .addSelectionListener(this);
-    this.selectionListenerAttached = true;
-
+    let selection = content.getSelection();
+    if (selection) {
+      selection.QueryInterface(Ci.nsISelectionPrivate)
+               .addSelectionListener(this);
+      this.selectionListenerAttached = true;
+    }
     content.focus();
     sendAsyncMessage("ViewSource:SourceLoaded");
   },

@@ -1918,3 +1918,5 @@ pref("browser.pocket.site", "getpocket.com");
 pref("browser.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
 pref("browser.pocket.useLocaleList", true);
 pref("browser.pocket.enabledLocales", "en-US");
+
+pref("view_source.tab", true);
