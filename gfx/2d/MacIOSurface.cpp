@@ -278,11 +278,11 @@ MacIOSurface::MacIOSurface(const void* aIOSurfacePtr,
 {
   CFRetain(mIOSurfacePtr);
   IncrementUseCount();
-  fprintf(stderr, "Increment / create IO surface: %u\n", GetIOSurfaceID());
+  fprintf(stderr, "Increment / create IO surface: 0x%x\n", GetIOSurfaceID());
 }
 
 MacIOSurface::~MacIOSurface() {
-  fprintf(stderr, "Decrement / destroy IO surface: %u\n", GetIOSurfaceID());
+  fprintf(stderr, "Decrement / destroy IO surface: 0x%x\n", GetIOSurfaceID());
   DecrementUseCount();
   CFRelease(mIOSurfacePtr);
 }
