@@ -687,6 +687,8 @@ interface WebGLRenderingContext {
     [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLenum format, GLenum type, HTMLVideoElement video); // May throw DOMException
+    [Throws]
+    void texImageIOSurface2D(GLsizei width, GLsizei height, GLuint surfaceID);
 
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);

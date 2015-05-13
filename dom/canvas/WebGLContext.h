@@ -630,6 +630,8 @@ public:
                                js::Scalar::MaxTypedArrayViewType, srcFormat,
                                mPixelStorePremultiplyAlpha);
     }
+    void TexImageIOSurface2D(GLsizei width, GLsizei height, GLuint surfaceID,
+                             ErrorResult& rv);
 
     void TexParameterf(GLenum target, GLenum pname, GLfloat param) {
         TexParameter_base(target, pname, nullptr, &param);

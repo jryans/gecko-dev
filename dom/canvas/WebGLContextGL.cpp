@@ -41,6 +41,8 @@
 // needed to check if current OS is lower than 10.7
 #if defined(MOZ_WIDGET_COCOA)
 #include "nsCocoaFeatures.h"
+#include "GLContextCGL.h"
+#include "mozilla/gfx/MacIOSurface.h"
 #endif
 
 #include "mozilla/DebugOnly.h"
@@ -3456,6 +3458,21 @@ WebGLContext::TexImage2D(GLenum rawTarget, GLint level,
                            WebGLTexelFormat::RGBA8, false);
 }
 
+void
+WebGLContext::TexImageIOSurface2D(GLsizei width, GLsizei height,
+                                  GLuint surfaceID, ErrorResult& rv)
+{
+  RefPtr<MacIOSurface> surface =
+    MacIOSurface::LookupSurface(surfaceID, 1.0f, true);
+
+  if (!surface) {
+    return ErrorInvalidValue("texImageIOSurface2D: Couldn't find surface");
+  }
+
+  MakeContextCurrent();
+
+  surface->CGLTexImageIOSurface2D(gl::GLContextCGL::Cast(gl)->GetCGLContext());
+}
 
 void
 WebGLContext::TexSubImage2D_base(GLenum rawImageTarget, GLint level,
