@@ -499,6 +499,10 @@ WebGLContext::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
             return WebGLObjectAsJSValue(cx, mBound2DTextures[mActiveTexture].get(), rv);
         }
 
+        case LOCAL_GL_TEXTURE_BINDING_RECTANGLE: {
+            return WebGLObjectAsJSValue(cx, mBoundRectangleTextures[mActiveTexture].get(), rv);
+        }
+
         case LOCAL_GL_TEXTURE_BINDING_CUBE_MAP: {
             return WebGLObjectAsJSValue(cx, mBoundCubeMapTextures[mActiveTexture].get(), rv);
         }

@@ -279,6 +279,7 @@ WebGLContext::ValidateTextureTargetEnum(GLenum target, const char* info)
 {
     switch (target) {
     case LOCAL_GL_TEXTURE_2D:
+    case LOCAL_GL_TEXTURE_RECTANGLE:
     case LOCAL_GL_TEXTURE_CUBE_MAP:
         return true;
 
@@ -622,6 +623,7 @@ WebGLContext::ValidateTexImageTarget(GLenum target, WebGLTexImageFunc func,
     switch (dims) {
     case WebGLTexDimensions::Tex2D:
         if (target == LOCAL_GL_TEXTURE_2D ||
+            target == LOCAL_GL_TEXTURE_RECTANGLE ||
             IsTexImageCubemapTarget(target))
         {
             return true;
@@ -1753,6 +1755,7 @@ WebGLContext::InitAndValidateGL()
     mUnderlyingGLError = LOCAL_GL_NO_ERROR;
 
     mBound2DTextures.Clear();
+    mBoundRectangleTextures.Clear();
     mBoundCubeMapTextures.Clear();
     mBound3DTextures.Clear();
     mBoundSamplers.Clear();
@@ -1797,6 +1800,7 @@ WebGLContext::InitAndValidateGL()
     }
 
     mBound2DTextures.SetLength(mGLMaxTextureUnits);
+    mBoundRectangleTextures.SetLength(mGLMaxTextureUnits);
     mBoundCubeMapTextures.SetLength(mGLMaxTextureUnits);
     mBound3DTextures.SetLength(mGLMaxTextureUnits);
     mBoundSamplers.SetLength(mGLMaxTextureUnits);
