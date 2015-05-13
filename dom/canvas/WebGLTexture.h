@@ -145,6 +145,7 @@ public:
 private:
     static size_t FaceForTarget(TexImageTarget texImageTarget) {
         if (texImageTarget == LOCAL_GL_TEXTURE_2D ||
+            texImageTarget == LOCAL_GL_TEXTURE_RECTANGLE ||
             texImageTarget == LOCAL_GL_TEXTURE_3D)
         {
             return 0;
@@ -333,6 +334,7 @@ TexImageTargetForTargetAndFace(TexTarget target, size_t face)
 {
     switch (target.get()) {
     case LOCAL_GL_TEXTURE_2D:
+    case LOCAL_GL_TEXTURE_RECTANGLE:
     case LOCAL_GL_TEXTURE_3D:
         MOZ_ASSERT(face == 0);
         return target.get();

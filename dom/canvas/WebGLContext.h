@@ -290,6 +290,8 @@ public:
         switch (texTarget.get()) {
         case LOCAL_GL_TEXTURE_2D:
             return mBound2DTextures[mActiveTexture];
+        case LOCAL_GL_TEXTURE_RECTANGLE:
+            return mBoundRectangleTextures[mActiveTexture];
         case LOCAL_GL_TEXTURE_CUBE_MAP:
             return mBoundCubeMapTextures[mActiveTexture];
         case LOCAL_GL_TEXTURE_3D:
@@ -1414,15 +1416,15 @@ private:
 
 protected:
     int32_t MaxTextureSizeForTarget(TexTarget target) const {
-        return (target == LOCAL_GL_TEXTURE_2D) ? mGLMaxTextureSize
-                                               : mGLMaxCubeMapTextureSize;
+        return (target != LOCAL_GL_TEXTURE_CUBE_MAP) ? mGLMaxTextureSize
+                                                     : mGLMaxCubeMapTextureSize;
     }
 
     int32_t
     MaxTextureLevelForTexImageTarget(TexImageTarget texImageTarget) const {
         const TexTarget target = TexImageTargetToTexTarget(texImageTarget);
-        return (target == LOCAL_GL_TEXTURE_2D) ? mGLMaxTextureSizeLog2
-                                               : mGLMaxCubeMapTextureSizeLog2;
+        return (target != LOCAL_GL_TEXTURE_CUBE_MAP) ? mGLMaxTextureSizeLog2
+                                                     : mGLMaxCubeMapTextureSizeLog2;
     }
 
     /** Like glBufferData, but if the call may change the buffer size, checks
@@ -1443,6 +1445,7 @@ protected:
     void ForceRestoreContext();
 
     nsTArray<WebGLRefPtr<WebGLTexture> > mBound2DTextures;
+    nsTArray<WebGLRefPtr<WebGLTexture> > mBoundRectangleTextures;
     nsTArray<WebGLRefPtr<WebGLTexture> > mBoundCubeMapTextures;
     nsTArray<WebGLRefPtr<WebGLTexture> > mBound3DTextures;
     nsTArray<WebGLRefPtr<WebGLSampler> > mBoundSamplers;

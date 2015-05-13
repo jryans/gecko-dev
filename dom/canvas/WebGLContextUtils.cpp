@@ -59,6 +59,7 @@ TexImageTargetToTexTarget(TexImageTarget texImageTarget)
 {
     switch (texImageTarget.get()) {
     case LOCAL_GL_TEXTURE_2D:
+    case LOCAL_GL_TEXTURE_RECTANGLE:
     case LOCAL_GL_TEXTURE_3D:
         return texImageTarget.get();
     case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X:
@@ -703,6 +704,7 @@ WebGLContext::EnumName(GLenum glenum)
         XX(SRGB);
         XX(SRGB_ALPHA);
         XX(TEXTURE_2D);
+        XX(TEXTURE_RECTANGLE);
         XX(TEXTURE_3D);
         XX(TEXTURE_CUBE_MAP);
         XX(TEXTURE_CUBE_MAP_NEGATIVE_X);

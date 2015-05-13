@@ -230,6 +230,9 @@ WebGLContext::BindTexture(GLenum rawTarget, WebGLTexture* newTex)
         case LOCAL_GL_TEXTURE_2D:
             currentTexPtr = &mBound2DTextures[mActiveTexture];
             break;
+        case LOCAL_GL_TEXTURE_RECTANGLE:
+            currentTexPtr = &mBoundRectangleTextures[mActiveTexture];
+            break;
        case LOCAL_GL_TEXTURE_CUBE_MAP:
             currentTexPtr = &mBoundCubeMapTextures[mActiveTexture];
             break;
@@ -735,6 +738,7 @@ WebGLContext::DeleteTexture(WebGLTexture* tex)
     GLuint activeTexture = mActiveTexture;
     for (int32_t i = 0; i < mGLMaxTextureUnits; i++) {
         if ((mBound2DTextures[i] == tex && tex->Target() == LOCAL_GL_TEXTURE_2D) ||
+            (mBoundRectangleTextures[i] == tex && tex->Target() == LOCAL_GL_TEXTURE_RECTANGLE) ||
             (mBoundCubeMapTextures[i] == tex && tex->Target() == LOCAL_GL_TEXTURE_CUBE_MAP) ||
             (mBound3DTextures[i] == tex && tex->Target() == LOCAL_GL_TEXTURE_3D))
         {

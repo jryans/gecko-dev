@@ -132,8 +132,9 @@ WebGL2Context::TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat
         return;
 
     // GL_INVALID_ENUM is generated if target is not one of the accepted target enumerants.
-    if (target != LOCAL_GL_TEXTURE_2D && target != LOCAL_GL_TEXTURE_CUBE_MAP)
-        return ErrorInvalidEnum("texStorage2D: target is not TEXTURE_2D or TEXTURE_CUBE_MAP");
+    if (target != LOCAL_GL_TEXTURE_2D && target != LOCAL_GL_TEXTURE_CUBE_MAP &&
+        target != LOCAL_GL_TEXTURE_RECTANGLE)
+        return ErrorInvalidEnum("texStorage2D: target is not TEXTURE_2D or TEXTURE_CUBE_MAP or TEXTURE_RECTANGLE");
 
     if (!ValidateTexStorage(target, levels, internalformat, width, height, 1, "texStorage2D"))
         return;
@@ -148,7 +149,7 @@ WebGL2Context::TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat
     WebGLTexture* tex = ActiveBoundTextureForTarget(target);
     tex->SetImmutable();
 
-    const size_t facesCount = (target == LOCAL_GL_TEXTURE_2D) ? 1 : 6;
+    const size_t facesCount = (target == LOCAL_GL_TEXTURE_CUBE_MAP) ? 6 : 1;
     GLsizei w = width;
     GLsizei h = height;
     for (size_t l = 0; l < size_t(levels); l++) {

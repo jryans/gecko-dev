@@ -323,6 +323,7 @@ WebGLContext::DestroyResourcesAndContext()
     gl->MakeCurrent();
 
     mBound2DTextures.Clear();
+    mBoundRectangleTextures.Clear();
     mBoundCubeMapTextures.Clear();
     mBound3DTextures.Clear();
     mBoundSamplers.Clear();
@@ -1952,6 +1953,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WebGLContext,
   mCanvasElement,
   mExtensions,
   mBound2DTextures,
+  mBoundRectangleTextures,
   mBoundCubeMapTextures,
   mBound3DTextures,
   mBoundSamplers,
