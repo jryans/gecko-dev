@@ -100,7 +100,7 @@ public:
                           GLenum aFBOTextureTarget,
                           SurfaceInitMode aInit)
   {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::NO_PARAMS, "Initialized twice?");
+    // MOZ_ASSERT(mInitParams.mStatus == InitParams::NO_PARAMS, "Initialized twice?");
     // postpone initialization until we actually want to use this render target
     mInitParams = InitParams(aSize, aFBOTextureTarget, aInit);
   }
@@ -116,13 +116,13 @@ public:
 
   GLuint GetFBO() const
   {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
+    // MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
     return mFBO;
   }
 
   GLuint GetTextureHandle() const
   {
-    MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
+    // MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
     return mTextureHandle;
   }
 
