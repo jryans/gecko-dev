@@ -357,8 +357,8 @@ interface WebGLRenderingContext {
 
     /* TextureTarget */
     const GLenum TEXTURE_2D                     = 0x0DE1;
-    const GLenum TEXTURE_RECTANGLE              = 0x84F5;
     const GLenum TEXTURE                        = 0x1702;
+    const GLenum TEXTURE_RECTANGLE              = 0x84F5;
 
     const GLenum TEXTURE_CUBE_MAP               = 0x8513;
     const GLenum TEXTURE_BINDING_CUBE_MAP       = 0x8514;
