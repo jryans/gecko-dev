@@ -93,6 +93,7 @@ IsUniformSetterTypeValid(GLenum setterType, GLenum uniformType)
 
         /* Samplers can only be set via Uniform1i */
     case LOCAL_GL_SAMPLER_2D:
+    case LOCAL_GL_SAMPLER_2D_RECT:
     case LOCAL_GL_SAMPLER_3D:
     case LOCAL_GL_SAMPLER_CUBE:
     case LOCAL_GL_SAMPLER_2D_SHADOW:

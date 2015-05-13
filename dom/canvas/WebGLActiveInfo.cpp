@@ -18,6 +18,7 @@ ElemSizeFromType(GLenum elemType)
     case LOCAL_GL_INT:
     case LOCAL_GL_UNSIGNED_INT:
     case LOCAL_GL_SAMPLER_2D:
+    case LOCAL_GL_SAMPLER_2D_RECT:
     case LOCAL_GL_SAMPLER_3D:
     case LOCAL_GL_SAMPLER_CUBE:
     case LOCAL_GL_SAMPLER_2D_SHADOW:
