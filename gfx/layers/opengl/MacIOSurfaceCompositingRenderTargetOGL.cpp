@@ -70,16 +70,6 @@ MacIOSurfaceCompositingRenderTargetOGL::BindRenderTarget()
   }
 }
 
-#ifdef MOZ_DUMP_PAINTING
-TemporaryRef<DataSourceSurface>
-MacIOSurfaceCompositingRenderTargetOGL::Dump(Compositor* aCompositor)
-{
-  MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
-  CompositorOGL* compositorOGL = static_cast<CompositorOGL*>(aCompositor);
-  return ReadBackSurface(mGL, mTextureHandle, true, compositorOGL->GetFBOFormat());
-}
-#endif
-
 void
 MacIOSurfaceCompositingRenderTargetOGL::InitializeImpl()
 {
