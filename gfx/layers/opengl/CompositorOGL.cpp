@@ -599,7 +599,7 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
 
   MOZ_ASSERT(!mFrameInProgress, "frame still in progress (should have called EndFrame");
 
-  fprintf(stderr, "COMP: Begin frame\n");
+  // fprintf(stderr, "COMP: Begin frame\n");
 
   mFrameInProgress = true;
   gfx::Rect rect;
@@ -628,10 +628,13 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   if (mWidgetSize.width != width ||
       mWidgetSize.height != height)
   {
+    fprintf(stderr, "COMP: Window size changed to %u x %u\n", width, height);
     MakeCurrent(ForceMakeCurrent);
 
     mWidgetSize.width = width;
     mWidgetSize.height = height;
+
+    mCurrentRenderTarget = nullptr;
   } else {
     MakeCurrent();
   }
@@ -648,7 +651,6 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
       new MacIOSurfaceCompositingRenderTargetOGL(this, gfx::IntPoint());
     mCurrentRenderTarget->Initialize(IntSize(width, height), 0, INIT_MODE_NONE);
   }
-  fprintf(stderr, "COMP: Render target for window %u x %u\n", width, height);
   mCurrentRenderTarget->BindRenderTarget();
 
   mContextStateTracker.PushOGLSection(gl(), "Frame");
@@ -1446,7 +1448,7 @@ CompositorOGL::EndFrame()
     mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
   }
 
-  fprintf(stderr, "COMP: End frame\n");
+  // fprintf(stderr, "COMP: End frame\n");
 }
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
