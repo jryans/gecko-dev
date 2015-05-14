@@ -69,6 +69,11 @@ var gViewSourceUtils = {
     viewSourceBrowser.loadViewSource(aArgs);
   },
 
+  viewSourceFromSelectionInBrowser: function(aSelection, aViewSourceInBrowser) {
+    let viewSourceBrowser = new ViewSourceBrowser(aViewSourceInBrowser);
+    viewSourceBrowser.loadViewSourceFromSelection(aSelection);
+  },
+
   // Opens the interval view source viewer
   _openInInternalViewer: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
