@@ -154,6 +154,9 @@ parent:
    */
   async RequestNotifyAfterRemotePaint();
 
+  sync GetTargetSurfaceID()
+    returns (uint32_t surfaceID);
+
 child:
   // Send back Compositor Frame Metrics from APZCs so tiled layers can
   // update progressively.

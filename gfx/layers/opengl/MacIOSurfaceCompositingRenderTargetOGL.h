@@ -90,6 +90,8 @@ public:
    */
   void BindRenderTarget() override;
 
+  virtual uint32_t GetSurfaceID() override;
+
 private:
   /**
    * Actually do the initialisation. Note that we leave our FBO bound, and so

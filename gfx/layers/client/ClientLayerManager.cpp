@@ -113,9 +113,9 @@ ClientLayerManager::~ClientLayerManager()
   mMemoryPressureObserver->Destroy();
   ClearCachedResources();
   // Stop receiveing AsyncParentMessage at Forwarder.
-  // After the call, the message is directly handled by LayerTransactionChild. 
+  // After the call, the message is directly handled by LayerTransactionChild.
   // Basically this function should be called in ShadowLayerForwarder's
-  // destructor. But when the destructor is triggered by 
+  // destructor. But when the destructor is triggered by
   // CompositorChild::Destroy(), the destructor can not handle it correctly.
   // See Bug 1000525.
   mForwarder->StopReceiveAsyncParentMessge();
@@ -260,11 +260,11 @@ ClientLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback,
   ClientLayer* root = ClientLayer::ToClientLayer(GetRoot());
 
   mTransactionIncomplete = false;
-      
+
   // Apply pending tree updates before recomputing effective
   // properties.
   GetRoot()->ApplyPendingUpdatesToSubtree();
-    
+
   mPaintedLayerCallback = aCallback;
   mPaintedLayerCallbackData = aCallbackData;
 
@@ -404,6 +404,18 @@ ClientLayerManager::GetCompositorSideAPZTestData(APZTestData* aData) const
       NS_WARNING("Call to PLayerTransactionChild::SendGetAPZTestData() failed");
     }
   }
+}
+
+uint32_t
+ClientLayerManager::GetCompositorSurfaceID()
+{
+  CompositorChild* renderer = GetRemoteRenderer();
+  if (!renderer) {
+    return -1;
+  }
+  uint32_t surfaceID;
+  renderer->SendGetTargetSurfaceID(&surfaceID);
+  return surfaceID;
 }
 
 float

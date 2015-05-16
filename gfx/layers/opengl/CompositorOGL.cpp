@@ -549,6 +549,12 @@ CompositorOGL::GetCurrentRenderTarget() const
   return mCurrentRenderTarget;
 }
 
+uint32_t
+CompositorOGL::GetTargetSurfaceID()
+{
+ return mCurrentRenderTarget->GetSurfaceID();
+}
+
 static GLenum
 GetFrameBufferInternalFormat(GLContext* gl,
                              GLuint aFrameBuffer,

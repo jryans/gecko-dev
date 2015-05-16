@@ -280,6 +280,8 @@ public:
    */
   virtual CompositingRenderTarget* GetCurrentRenderTarget() const = 0;
 
+  virtual uint32_t GetTargetSurfaceID() { return 0; }
+
   /**
    * Mostly the compositor will pull the size from a widget and this method will
    * be ignored, but compositor implementations are free to use it if they like.

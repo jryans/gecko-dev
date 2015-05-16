@@ -314,6 +314,8 @@ public:
     return mRenderOffset;
   }
 
+  virtual uint32_t GetTargetSurfaceID() override;
+
 private:
   virtual gfx::IntSize GetWidgetSize() const override
   {

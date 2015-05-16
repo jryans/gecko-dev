@@ -254,6 +254,8 @@ public:
   // @see CrossProcessCompositorParent::RecvRequestNotifyAfterRemotePaint
   virtual bool RecvRequestNotifyAfterRemotePaint() override { return true; };
 
+  virtual bool RecvGetTargetSurfaceID(uint32_t* aOutSurfaceID) override;
+
   virtual void ActorDestroy(ActorDestroyReason why) override;
 
   virtual void ShadowLayersUpdated(LayerTransactionParent* aLayerTree,

@@ -1037,7 +1037,7 @@ nsDOMWindowUtils::SendKeyEvent(const nsAString& aType,
 
   // get the widget to send the event to
   nsCOMPtr<nsIWidget> widget = GetWidget();
-  
+
   return nsContentUtils::SendKeyEvent(widget, aType, aKeyCode, aCharCode,
                                       aModifiers, aAdditionalFlags,
                                       aDefaultActionTaken);
@@ -1343,7 +1343,7 @@ nsDOMWindowUtils::SendSimpleGestureEvent(const nsAString& aType,
     msg = NS_SIMPLE_GESTURE_EDGE_COMPLETED;
   else
     return NS_ERROR_FAILURE;
- 
+
   WidgetSimpleGestureEvent event(true, msg, widget);
   event.modifiers = nsContentUtils::GetWidgetModifiers(aModifiers);
   event.direction = aDirection;
@@ -1392,7 +1392,7 @@ nsDOMWindowUtils::NodesFromRect(float aX, float aY,
   nsCOMPtr<nsIDocument> doc = GetDocument();
   NS_ENSURE_STATE(doc);
 
-  return doc->NodesFromRectHelper(aX, aY, aTopSize, aRightSize, aBottomSize, aLeftSize, 
+  return doc->NodesFromRectHelper(aX, aY, aTopSize, aRightSize, aBottomSize, aLeftSize,
                                   aIgnoreRootScrollFrame, aFlushLayout, aReturn);
 }
 
@@ -1859,7 +1859,7 @@ nsDOMWindowUtils::GetFullZoom(float* aFullZoom)
 
   return NS_OK;
 }
- 
+
 NS_IMETHODIMP
 nsDOMWindowUtils::DispatchDOMEventViaPresShell(nsIDOMNode* aTarget,
                                                nsIDOMEvent* aEvent,
@@ -2548,7 +2548,7 @@ nsDOMWindowUtils::RenderDocument(const nsRect& aRect,
     return presShell->RenderDocument(aRect, aFlags, aBackgroundColor, aThebesContext);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsDOMWindowUtils::GetCursorType(int16_t *aCursor)
 {
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
@@ -3652,6 +3652,26 @@ nsDOMWindowUtils::GetCompositorAPZTestData(JSContext* aContext,
     }
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetCompositorSurfaceID(uint32_t* aOutSurfaceID)
+{
+  MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
+
+  nsIWidget* widget = GetWidget();
+  if (!widget) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<LayerManager> lm = widget->GetLayerManager();
+  if (!lm || lm->GetBackendType() != LayersBackend::LAYERS_CLIENT) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ClientLayerManager* clm = static_cast<ClientLayerManager*>(lm.get());
+  *aOutSurfaceID = clm->GetCompositorSurfaceID();
   return NS_OK;
 }
 

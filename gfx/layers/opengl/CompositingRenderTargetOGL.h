@@ -153,6 +153,10 @@ public:
     return mInitParams.mSize;
   }
 
+  virtual uint32_t GetSurfaceID() {
+    return 0;
+  }
+
 protected:
   /**
    * Actually do the initialisation. Note that we leave our FBO bound, and so

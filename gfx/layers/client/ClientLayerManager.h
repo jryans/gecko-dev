@@ -156,8 +156,8 @@ public:
 
   void SetShadowTarget(gfxContext* aTarget) { mShadowTarget = aTarget; }
 
-  bool CompositorMightResample() { return mCompositorMightResample; } 
-  
+  bool CompositorMightResample() { return mCompositorMightResample; }
+
   DrawPaintedLayerCallback GetPaintedLayerCallback() const
   { return mPaintedLayerCallback; }
 
@@ -249,6 +249,8 @@ public:
   // Get a copy of the compositor-side APZ test data for our layers ID.
   void GetCompositorSideAPZTestData(APZTestData* aData) const;
 
+  uint32_t GetCompositorSurfaceID();
+
   void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) { mTransactionIdAllocator = aAllocator; }
 
   float RequestProperty(const nsAString& aProperty) override;
@@ -305,7 +307,7 @@ private:
   LayerRefArray mKeepAlive;
 
   nsIWidget* mWidget;
-  
+
   /* PaintedLayer callbacks; valid at the end of a transaciton,
    * while rendering */
   DrawPaintedLayerCallback mPaintedLayerCallback;

@@ -70,6 +70,12 @@ MacIOSurfaceCompositingRenderTargetOGL::BindRenderTarget()
   }
 }
 
+uint32_t
+MacIOSurfaceCompositingRenderTargetOGL::GetSurfaceID()
+{
+ return mSurface->GetIOSurfaceID();
+}
+
 void
 MacIOSurfaceCompositingRenderTargetOGL::InitializeImpl()
 {

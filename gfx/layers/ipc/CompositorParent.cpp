@@ -1340,6 +1340,13 @@ CompositorParent::RecvRequestOverfill()
   return true;
 }
 
+bool
+CompositorParent::RecvGetTargetSurfaceID(uint32_t* aOutSurfaceID)
+{
+  *aOutSurfaceID = mCompositor->GetTargetSurfaceID();
+  return true;
+}
+
 void
 CompositorParent::GetAPZTestData(const LayerTransactionParent* aLayerTree,
                                  APZTestData* aOutData)
@@ -1733,6 +1740,8 @@ public:
    * Tells this CompositorParent to send a message when the compositor has received the transaction.
    */
   virtual bool RecvRequestNotifyAfterRemotePaint() override;
+
+  virtual bool RecvGetTargetSurfaceID(uint32_t* aOutSurfaceID) override { return true; };
 
   virtual PLayerTransactionParent*
     AllocPLayerTransactionParent(const nsTArray<LayersBackend>& aBackendHints,
