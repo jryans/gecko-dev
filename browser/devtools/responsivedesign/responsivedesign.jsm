@@ -155,23 +155,6 @@ function ResponsiveUI(aWindow, aTab) {
     this.presets = [this.customPreset];
   }
 
-  try {
-    let width = Services.prefs.getIntPref("devtools.responsiveUI.customWidth");
-    let height = Services.prefs.getIntPref("devtools.responsiveUI.customHeight");
-    this.customPreset.width = Math.min(MAX_WIDTH, width);
-    this.customPreset.height = Math.min(MAX_HEIGHT, height);
-
-    this.currentPresetKey = Services.prefs.getCharPref("devtools.responsiveUI.currentPreset");
-  } catch(e) {
-    // Default size. The first preset (custom) is the one that will be used.
-    let bbox = this.stack.getBoundingClientRect();
-
-    this.customPreset.width = bbox.width - 40; // horizontal padding of the container
-    this.customPreset.height = bbox.height - 80; // vertical padding + toolbar height
-
-    this.currentPresetKey = this.presets[1].key; // most common preset
-  }
-
   this.container.setAttribute("responsivemode", "true");
   this.viewportsContainer.setAttribute("responsivemode", "true");
 
@@ -193,6 +176,23 @@ function ResponsiveUI(aWindow, aTab) {
   // Create a viewport for the tab's primary browser
   this.viewports = [];
   this.addViewport();
+
+  try {
+    let width = Services.prefs.getIntPref("devtools.responsiveUI.customWidth");
+    let height = Services.prefs.getIntPref("devtools.responsiveUI.customHeight");
+    this.customPreset.width = Math.min(MAX_WIDTH, width);
+    this.customPreset.height = Math.min(MAX_HEIGHT, height);
+
+    this.currentPresetKey = Services.prefs.getCharPref("devtools.responsiveUI.currentPreset");
+  } catch(e) {
+    // Default size. The first preset (custom) is the one that will be used.
+    let bbox = this.primaryViewport.stack.getBoundingClientRect();
+
+    this.customPreset.width = bbox.width - 40; // horizontal padding of the container
+    this.customPreset.height = bbox.height - 80; // vertical padding + toolbar height
+
+    this.currentPresetKey = this.presets[1].key; // most common preset
+  }
 
   this.buildUI();
   this.checkMenus();
