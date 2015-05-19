@@ -535,7 +535,6 @@ CompositorOGL::SetRenderTarget(CompositingRenderTarget *aSurface)
   CompositingRenderTargetOGL* surface
     = static_cast<CompositingRenderTargetOGL*>(aSurface);
   if (mCurrentRenderTarget != surface) {
-    fprintf(stderr, "COMP: Change render target\n");
     mCurrentRenderTarget = surface;
     mContextStateTracker.PopOGLSection(gl(), "Frame");
     mContextStateTracker.PushOGLSection(gl(), "Frame");
