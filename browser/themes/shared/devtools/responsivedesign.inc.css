@@ -9,6 +9,7 @@
 .browserContainer[responsivemode] {
   background-color: #222;
   padding: 0 20px 20px 20px;
+  position: relative;
 }
 
 .responsive-viewports[responsivemode] {
@@ -20,7 +21,8 @@
   margin: 0 30px 30px 0;
 }
 
-.devtools-responsiveui-toolbar {
+.devtools-viewport-toolbar,
+.devtools-global-toolbar {
   -moz-appearance: none;
   background: transparent;
   /* text color is textColor from dark theme, since no theme is applied to
@@ -31,6 +33,12 @@
   padding: 0;
   box-shadow: none;
   border-bottom-width: 0;
+}
+
+.devtools-global-toolbar {
+  position: absolute;
+  top: 0;
+  right: 10px;
 }
 
 .devtools-responsiveui-menulist,

@@ -245,7 +245,8 @@ ResponsiveUI.prototype = {
     }
 
     // Remove elements.
-    this.container.removeChild(this.toolbar);
+    this.container.removeChild(this.viewportToolbar);
+    this.container.removeChild(this.globalToolbar);
     if (this.bottomToolbar) {
       this.bottomToolbar.remove();
       delete this.bottomToolbar;
@@ -332,13 +333,15 @@ ResponsiveUI.prototype = {
    * Build the toolbar and other UI surrounding the viewports.
    *
    * <vbox class="browserContainer"> From tabbrowser.xml
-   *  <toolbar class="devtools-responsiveui-toolbar">
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
+   *  <toolbar class="devtools-viewport-toolbar">
    *    <menulist class="devtools-responsiveui-menulist"/> // presets
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="rotate"/> // rotate
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="touch"/> // touch
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
+   *  </toolbar>
+   *  <toolbar class="devtools-global-toolbar">
+   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Add Viewport"/> // add
+   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
    *    <stack class="browserStack"> Viewport 0, from tabbrowser.xml
@@ -353,8 +356,8 @@ ResponsiveUI.prototype = {
    */
   buildUI: function RUI_buildUI() {
     // Toolbar
-    this.toolbar = this.chromeDoc.createElement("toolbar");
-    this.toolbar.className = "devtools-responsiveui-toolbar";
+    this.viewportToolbar = this.chromeDoc.createElement("toolbar");
+    this.viewportToolbar.className = "devtools-viewport-toolbar";
 
     this.menulist = this.chromeDoc.createElement("menulist");
     this.menulist.className = "devtools-responsiveui-menulist";
@@ -393,6 +396,25 @@ ResponsiveUI.prototype = {
     this.screenshotbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-screenshot";
     this.screenshotbutton.addEventListener("command", this.bound_screenshot, true);
 
+    this.viewportToolbar.appendChild(this.menulist);
+    this.viewportToolbar.appendChild(this.rotatebutton);
+
+    if (!this.e10s) {
+      this.touchbutton = this.chromeDoc.createElement("toolbarbutton");
+      this.touchbutton.setAttribute("tabindex", "0");
+      this.touchbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.touch"));
+      this.touchbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-touch";
+      this.touchbutton.addEventListener("command", this.bound_touch, true);
+      this.viewportToolbar.appendChild(this.touchbutton);
+    }
+
+    this.viewportToolbar.appendChild(this.screenshotbutton);
+
+    this.container.insertBefore(this.viewportToolbar, this.viewportsContainer);
+
+    this.globalToolbar = this.chromeDoc.createElement("toolbar");
+    this.globalToolbar.className = "devtools-global-toolbar";
+
     this.addviewportbutton = this.chromeDoc.createElement("toolbarbutton");
     this.addviewportbutton.setAttribute("tabindex", "0");
     this.addviewportbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-add-viewport";
@@ -405,23 +427,10 @@ ResponsiveUI.prototype = {
     this.closebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.close"));
     this.closebutton.addEventListener("command", this.bound_close, true);
 
-    this.toolbar.appendChild(this.closebutton);
-    this.toolbar.appendChild(this.menulist);
-    this.toolbar.appendChild(this.rotatebutton);
+    this.globalToolbar.appendChild(this.addviewportbutton);
+    this.globalToolbar.appendChild(this.closebutton);
 
-    if (!this.e10s) {
-      this.touchbutton = this.chromeDoc.createElement("toolbarbutton");
-      this.touchbutton.setAttribute("tabindex", "0");
-      this.touchbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.touch"));
-      this.touchbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-touch";
-      this.touchbutton.addEventListener("command", this.bound_touch, true);
-      this.toolbar.appendChild(this.touchbutton);
-    }
-
-    this.toolbar.appendChild(this.screenshotbutton);
-    this.toolbar.appendChild(this.addviewportbutton);
-
-    this.container.insertBefore(this.toolbar, this.viewportsContainer);
+    this.container.insertBefore(this.globalToolbar, this.viewportsContainer);
   },
 
   // FxOS custom controls
