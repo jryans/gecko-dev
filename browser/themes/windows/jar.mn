@@ -537,6 +537,7 @@ browser.jar:
         skin/classic/browser/devtools/search-clear-failed.svg               (../shared/devtools/images/search-clear-failed.svg)
         skin/classic/browser/devtools/search-clear-light.svg                (../shared/devtools/images/search-clear-light.svg)
         skin/classic/browser/devtools/search-clear-dark.svg                 (../shared/devtools/images/search-clear-dark.svg)
+        skin/classic/browser/devtools/simulator.svg                 (../shared/devtools/images/simulator.svg)
 #ifdef MOZ_SERVICES_SYNC
         skin/classic/browser/sync-16.png
         skin/classic/browser/sync-32.png
@@ -659,4 +660,3 @@ browser.jar:
 % override chrome://browser/skin/preferences/checkbox.png             chrome://browser/skin/preferences/checkbox-aero.png               os=WINNT osversion=6
 % override chrome://browser/skin/preferences/checkbox.png             chrome://browser/skin/preferences/checkbox-aero.png               os=WINNT osversion=6.1
 % override chrome://browser/skin/preferences/checkbox.png             chrome://browser/skin/preferences/checkbox-xp.png                 os=WINNT osversion<6
-

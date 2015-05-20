@@ -1087,6 +1087,12 @@ ResponsiveViewport.prototype = {
     this.sizeLabel.className = "responsive-size";
     this.header.appendChild(this.sizeLabel);
 
+    let spacer = this.chromeDoc.createElement("spacer");
+    spacer.setAttribute("flex", "1");
+    this.header.appendChild(spacer);
+
+    this.buildBrowserTypeMenu();
+
     // Resizers
     let resizerTooltip = Strings.GetStringFromName("responsiveUI.resizerTooltip");
     this.resizer = this.chromeDoc.createElement("box");
@@ -1112,6 +1118,37 @@ ResponsiveViewport.prototype = {
     this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
     this.resizeBarH.onmousedown = this.bound_startResizing;
     this.stack.appendChild(this.resizeBarH);
+  },
+
+  /**
+   * Build the menu of browser types, such as a local viewport, remote
+   * simulator, etc.
+   */
+  buildBrowserTypeMenu() {
+    this.browserTypeMenu = this.chromeDoc.createElement("menulist");
+    this.browserTypeMenu.setAttribute("sizetopopup", "none");
+    this.browserTypeMenu.classList.add("devtools-responsiveui-menulist");
+    this.browserTypeMenu.classList.add("responsive-browser-type");
+    this.header.appendChild(this.browserTypeMenu);
+
+    let menupopup = this.chromeDoc.createElement("menupopup");
+    this.browserTypeMenu.appendChild(menupopup);
+
+    let localBrowser = this.chromeDoc.createElement("menuitem");
+    localBrowser.setAttribute("label", "Local");
+    localBrowser.setAttribute("image", "chrome://branding/content/icon32.png");
+    localBrowser.classList.add("menuitem-iconic");
+    localBrowser.classList.add("responsive-browser-type-local");
+    menupopup.appendChild(localBrowser);
+
+    let simulatorBrowser = this.chromeDoc.createElement("menuitem");
+    simulatorBrowser.setAttribute("label", "Simulator");
+    simulatorBrowser.setAttribute("image", "chrome://browser/skin/devtools/simulator.svg");
+    simulatorBrowser.classList.add("menuitem-iconic");
+    simulatorBrowser.classList.add("responsive-browser-type-simulator");
+    menupopup.appendChild(simulatorBrowser);
+
+    this.browserTypeMenu.selectedItem = localBrowser;
   },
 
   /**
