@@ -978,11 +978,7 @@ ResponsiveViewport.prototype = {
 
   destroy() {
     // Reset style of the stack.
-    let style = "max-width: none;" +
-                "min-width: 0;" +
-                "max-height: none;" +
-                "min-height: 0;";
-    this.stack.setAttribute("style", style);
+    this.stack.removeAttribute("style");
 
     if (this.isResizing) {
       this.stopResizing();
