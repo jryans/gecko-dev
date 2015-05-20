@@ -344,10 +344,12 @@ ResponsiveUI.prototype = {
    *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
-   *    <stack class="browserStack"> Viewport 0, from tabbrowser.xml
-   *      See ResponsiveViewport.buildUI
-   *    </stack>
-   *    <stack>...</stack> Viewport 1..N
+   *    <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
+   *      <stack class="browserStack"> From tabbrowser.xml
+   *        See ResponsiveViewport.buildUI
+   *      </stack>
+   *    </vbox>
+   *    <vbox>...</vbox> Viewport 1..N
    *  </hbox>
    *  <toolbar class="devtools-responsiveui-hardware-button">
    *    <toolbarbutton class="devtools-responsiveui-home-button" />
@@ -896,10 +898,10 @@ function ResponsiveViewport(ui) {
   this.ui = ui;
 
   // If there's only one viewport so far, mark this one as primary.
-  let stacks = this.viewportsContainer.querySelectorAll(".browserStack");
-  this.primary = stacks.length === 1 &&
-                 !stacks[0].hasAttribute("responsivemode");
-  this.buildStack();
+  let viewports = this.viewportsContainer.querySelectorAll(".responsive-viewport");
+  this.primary = viewports.length === 1 &&
+                 !viewports[0].hasAttribute("responsivemode");
+  this.buildOrAbsorbViewport();
 
   this.e10s = !this.browser.contentWindow;
 
@@ -917,6 +919,7 @@ function ResponsiveViewport(ui) {
     });
   });
 
+  this.viewportContainer.setAttribute("responsivemode", "true");
   this.stack.setAttribute("responsivemode", "true");
 
   this.bound_startResizing = this.startResizing.bind(this);
@@ -986,6 +989,8 @@ ResponsiveViewport.prototype = {
     }
 
     // Remove elements
+    this.viewportContainer.removeChild(this.header);
+
     this.stack.removeChild(this.resizer);
     this.stack.removeChild(this.resizeBarV);
     this.stack.removeChild(this.resizeBarH);
@@ -993,6 +998,7 @@ ResponsiveViewport.prototype = {
     this.stack.classList.remove("fxos-mode");
 
     // Unset the responsive mode
+    this.viewportContainer.removeAttribute("responsivemode");
     this.stack.removeAttribute("responsivemode");
 
     let childOff = () => {
@@ -1003,26 +1009,36 @@ ResponsiveViewport.prototype = {
     this.mm.sendAsyncMessage("ResponsiveMode:Stop");
 
     if (!this.primary) {
-      // If we're not primary, remove the stack entirely
-      this.stack.remove();
+      // If we're not primary, remove the viewport entirely
+      this.viewportContainer.remove();
     }
   },
 
   /**
-   * Build (or absorb) the browser stack and browser element.
+   * Build (or absorb) the viewport container, browser stack, and browser
+   * element.  For the first viewport, the elements are created by
+   * tabbrowser.xml, so we don't need to create them.
    */
-  buildStack() {
+  buildOrAbsorbViewport() {
     if (this.primary) {
-      // If we're primary, tabbrowser.xml created a stack, so use that.
-      this.stack = this.viewportsContainer.querySelector(".browserStack");
+      // If we're primary, tabbrowser.xml created a viewport container and
+      // stack, so use that.
+      this.viewportContainer = this.viewportsContainer
+                                   .querySelector(".responsive-viewport");
+      this.stack = this.viewportContainer.querySelector(".browserStack");
       return;
     }
 
-    // Otherwise, we'll make our own stack
+    // Otherwise, we'll make our own
+    this.viewportContainer = this.chromeDoc.createElement("vbox");
+    this.viewportContainer.className = "responsive-viewport";
+    this.viewportContainer.setAttribute("flex", "1");
+    this.viewportsContainer.appendChild(this.viewportContainer);
+
     this.stack = this.chromeDoc.createElement("stack");
     this.stack.className = "browserStack";
     this.stack.setAttribute("flex", "1");
-    this.viewportsContainer.appendChild(this.stack);
+    this.viewportContainer.appendChild(this.stack);
 
     // Create a browser element with the same location as the primary
     let primaryViewport = this.ui.primaryViewport;
@@ -1047,22 +1063,34 @@ ResponsiveViewport.prototype = {
    * Build the per-viewport UI.
    *
    * <hbox class="responsive-viewports"> From tabbrowser.xml
-   *   <stack class="browserStack"> Viewport 0, from tabbrowser.xml
-   *     <browser/>
-   *     <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
-   *     <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
-   *     <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
-   *     // Additional button in FxOS mode:
-   *     <button class="devtools-responsiveui-sleep-button" />
-   *     <vbox class="devtools-responsiveui-volume-buttons">
-   *       <button class="devtools-responsiveui-volume-up-button" />
-   *       <button class="devtools-responsiveui-volume-down-button" />
-   *     </vbox>
-   *   </stack>
-   *   <stack>...</stack> Viewport 1..N
+   *   <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
+   *     <stack class="browserStack"> From tabbrowser.xml
+   *       <box class="responsive-header"/>
+   *       <browser/>
+   *       <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
+   *       <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
+   *       <box class="devtools-responsiveui-resizebarH" bottom="0" left="0"/>
+   *       // Additional button in FxOS mode:
+   *       <button class="devtools-responsiveui-sleep-button" />
+   *       <vbox class="devtools-responsiveui-volume-buttons">
+   *         <button class="devtools-responsiveui-volume-up-button" />
+   *         <button class="devtools-responsiveui-volume-down-button" />
+   *       </vbox>
+   *     </stack>
+   *   </vbox>
+   *   <vbox>...</vbox> Viewport 1..N
    * </hbox>
    */
   buildUI() {
+    // Header
+    this.header = this.chromeDoc.createElement("box");
+    this.header.className = "responsive-header";
+    this.viewportContainer.insertBefore(this.header, this.stack);
+
+    this.sizeLabel = this.chromeDoc.createElement("label");
+    this.sizeLabel.className = "responsive-size";
+    this.header.appendChild(this.sizeLabel);
+
     // Resizers
     let resizerTooltip = Strings.GetStringFromName("responsiveUI.resizerTooltip");
     this.resizer = this.chromeDoc.createElement("box");
@@ -1071,6 +1099,7 @@ ResponsiveViewport.prototype = {
     this.resizer.setAttribute("bottom", "0");
     this.resizer.setAttribute("tooltiptext", resizerTooltip);
     this.resizer.onmousedown = this.bound_startResizing;
+    this.stack.appendChild(this.resizer);
 
     this.resizeBarV = this.chromeDoc.createElement("box");
     this.resizeBarV.className = "devtools-responsiveui-resizebarV";
@@ -1078,6 +1107,7 @@ ResponsiveViewport.prototype = {
     this.resizeBarV.setAttribute("right", "0");
     this.resizeBarV.setAttribute("tooltiptext", resizerTooltip);
     this.resizeBarV.onmousedown = this.bound_startResizing;
+    this.stack.appendChild(this.resizeBarV);
 
     this.resizeBarH = this.chromeDoc.createElement("box");
     this.resizeBarH.className = "devtools-responsiveui-resizebarH";
@@ -1085,9 +1115,6 @@ ResponsiveViewport.prototype = {
     this.resizeBarH.setAttribute("left", "0");
     this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
     this.resizeBarH.onmousedown = this.bound_startResizing;
-
-    this.stack.appendChild(this.resizer);
-    this.stack.appendChild(this.resizeBarV);
     this.stack.appendChild(this.resizeBarH);
   },
 
@@ -1116,6 +1143,8 @@ ResponsiveViewport.prototype = {
     if (!this.ignoreX) {
       this.resizeBarH.setAttribute("left", Math.round(width / 2));
     }
+
+    this.sizeLabel.setAttribute("value", `${this.width} x ${this.height}`);
 
     // Notify UI to update the custom preset
     this.ui.updateCustomPreset(width, height);

@@ -29,10 +29,12 @@
             <xul:hbox flex="1" class="browserSidebarContainer">
               <xul:vbox flex="1" class="browserContainer">
                 <xul:hbox flex="1" class="responsive-viewports">
-                  <xul:stack flex="1" class="browserStack" anonid="browserStack">
-                    <xul:browser anonid="initialBrowser" type="content-primary" message="true" messagemanagergroup="browsers"
-                                 xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup,selectmenulist"/>
-                  </xul:stack>
+                  <xul:vbox flex="1" class="responsive-viewport">
+                    <xul:stack flex="1" class="browserStack" anonid="browserStack">
+                      <xul:browser anonid="initialBrowser" type="content-primary" message="true" messagemanagergroup="browsers"
+                                   xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup,selectmenulist"/>
+                    </xul:stack>
+                  </xul:vbox>
                 </xul:hbox>
               </xul:vbox>
             </xul:hbox>
@@ -471,7 +473,7 @@
         <parameter name="aBrowser"/>
         <body>
           <![CDATA[
-            return (aBrowser || this.mCurrentBrowser).parentNode.parentNode.parentNode;
+            return (aBrowser || this.mCurrentBrowser).parentNode.parentNode.parentNode.parentNode;
           ]]>
         </body>
       </method>
@@ -1678,10 +1680,16 @@
             stack.appendChild(b);
             stack.setAttribute("flex", "1");
 
+            // Create the responsive design viewport container
+            var viewport = document.createElementNS(NS_XUL, "vbox");
+            viewport.className = "responsive-viewport";
+            viewport.appendChild(stack);
+            viewport.setAttribute("flex", "1");
+
             // Create the responsive design viewports container
             var viewports = document.createElementNS(NS_XUL, "hbox");
             viewports.className = "responsive-viewports";
-            viewports.appendChild(stack);
+            viewports.appendChild(viewport);
             viewports.setAttribute("flex", "1");
 
             // Create the browserContainer

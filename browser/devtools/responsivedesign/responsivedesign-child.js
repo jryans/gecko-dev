@@ -46,10 +46,13 @@ function stopResponsiveMode() {
   active = false;
   removeMessageListener("ResponsiveMode:RequestScreenshot", screenshot);
   removeMessageListener("ResponsiveMode:NotifyOnResize", notifiyOnResize);
-  let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebProgress);
-  webProgress.removeProgressListener(WebProgressListener);
-  docShell.deviceSizeIsPageSize = gDeviceSizeWasPageSize;
-  restoreScrollbars();
+  if (docShell) {
+    // For non-primary viewports, the docShell may already be gone
+    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebProgress);
+    webProgress.removeProgressListener(WebProgressListener);
+    docShell.deviceSizeIsPageSize = gDeviceSizeWasPageSize;
+    restoreScrollbars();
+  }
   sendAsyncMessage("ResponsiveMode:Stop:Done");
 }
 

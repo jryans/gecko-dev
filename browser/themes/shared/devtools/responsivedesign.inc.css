@@ -16,6 +16,11 @@
   display: block;
 }
 
+.responsive-header {
+  text-shadow: none;
+  padding: 3px 0;
+}
+
 .browserStack[responsivemode] {
   box-shadow: 0 0 7px black;
   margin: 0 30px 30px 0;
