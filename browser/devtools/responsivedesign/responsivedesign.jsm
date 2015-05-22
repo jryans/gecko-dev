@@ -912,6 +912,7 @@ function ResponsiveViewport(ui) {
   this.bound_startResizing = this.startResizing.bind(this);
   this.bound_stopResizing = this.stopResizing.bind(this);
   this.bound_onDrag = this.onDrag.bind(this);
+  this.bound_onSelectBrowserType = this.onSelectBrowserType.bind(this);
 
   this.buildUI();
   this.initSize();
@@ -953,6 +954,8 @@ ResponsiveViewport.prototype = {
     }
 
     // Remove elements
+    this.browserTypeMenu
+        .removeEventListener("select", this.bound_onSelectBrowserType);
     this.viewportContainer.removeChild(this.header);
 
     this.stack.removeChild(this.resizer);
@@ -1085,10 +1088,21 @@ ResponsiveViewport.prototype = {
     this.browserTypeMenu.setAttribute("sizetopopup", "none");
     this.browserTypeMenu.classList.add("devtools-responsiveui-menulist");
     this.browserTypeMenu.classList.add("responsive-browser-type");
+    this.browserTypeMenu
+        .addEventListener("select", this.bound_onSelectBrowserType);
     this.header.appendChild(this.browserTypeMenu);
+
+    // New local browsers currently refer to the primary viewport's browser when
+    // they are created, so things get confusing if we allow the primary to go
+    // away.  For now, disable switching on the primary.
+    if (this.primary) {
+      this.browserTypeMenu.setAttribute("disabled", "true");
+    }
 
     let menupopup = this.chromeDoc.createElement("menupopup");
     this.browserTypeMenu.appendChild(menupopup);
+
+    this.browserTypes = new Map();
 
     let localBrowser = this.chromeDoc.createElement("menuitem");
     localBrowser.setAttribute("label", "Local");
@@ -1096,6 +1110,7 @@ ResponsiveViewport.prototype = {
     localBrowser.classList.add("menuitem-iconic");
     localBrowser.classList.add("responsive-browser-type-local");
     menupopup.appendChild(localBrowser);
+    this.browserTypes.set(localBrowser, LocalResponsiveBrowser);
 
     let simulatorBrowser = this.chromeDoc.createElement("menuitem");
     simulatorBrowser.setAttribute("label", "Simulator");
@@ -1103,8 +1118,17 @@ ResponsiveViewport.prototype = {
     simulatorBrowser.classList.add("menuitem-iconic");
     simulatorBrowser.classList.add("responsive-browser-type-simulator");
     menupopup.appendChild(simulatorBrowser);
+    this.browserTypes.set(simulatorBrowser, SimulatorResponsiveBrowser);
 
     this.browserTypeMenu.selectedItem = localBrowser;
+  },
+
+  onSelectBrowserType() {
+    let browserTypeItem = this.browserTypeMenu.selectedItem;
+    let BrowserType = this.browserTypes.get(browserTypeItem);
+
+    this.responsiveBrowser.destroy();
+    this.responsiveBrowser = new BrowserType(this);
   },
 
   /**
@@ -1303,8 +1327,10 @@ LocalResponsiveBrowser.prototype = {
     this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
     this.mm.sendAsyncMessage("ResponsiveMode:Stop");
 
-    // The viewport will remove itself from the DOM if non-primary, which takes
-    // care of our elements as well, since they are its children.
+    if (!this.primary) {
+      // If we're not primary, remove the browser
+      this.browser.remove();
+    }
   },
 
   /**
@@ -1327,3 +1353,15 @@ LocalResponsiveBrowser.prototype = {
   },
 
 };
+
+function SimulatorResponsiveBrowser(viewport) {
+  this.viewport = viewport;
+}
+
+SimulatorResponsiveBrowser.prototype = {
+
+  destroy() {
+
+  }
+
+}

@@ -81,6 +81,16 @@
   background: hsla(212,7%,57%,.35);
 }
 
+.devtools-responsiveui-menulist[disabled] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: unset;
+}
+
+.devtools-responsiveui-menulist[disabled] .menulist-dropmarker {
+  display: none;
+}
+
 .responsive-browser-type {
   margin: 0;
 }
