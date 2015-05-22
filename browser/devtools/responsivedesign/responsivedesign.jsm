@@ -1409,7 +1409,7 @@ SimulatorResponsiveBrowser.prototype = {
     let port = yield this.simulator.launch();
     yield this.connect(port);
 
-    let listTabs = yield this.listTabs();
+    yield this.listTabs();
     this._windowInfo = yield this.window.info();
 
     this.portal = new Portal(this);
