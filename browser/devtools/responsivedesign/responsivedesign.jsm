@@ -9,10 +9,10 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
-let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
 XPCOMUtils.defineLazyGetter(this, "Strings", function () {
@@ -23,6 +23,11 @@ var require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtoo
 let Telemetry = require("devtools/shared/telemetry");
 let {showDoorhanger} = require("devtools/shared/doorhanger");
 let {TouchEventHandler} = require("devtools/touch-events");
+let {Simulator} = require("devtools/webide/simulators");
+let {ConnectionManager, Connection} =
+  require("devtools/client/connection-manager");
+let promise = require("promise");
+let {WindowFront} = require("devtools/server/actors/window");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -1356,12 +1361,67 @@ LocalResponsiveBrowser.prototype = {
 
 function SimulatorResponsiveBrowser(viewport) {
   this.viewport = viewport;
+  this.init();
 }
 
 SimulatorResponsiveBrowser.prototype = {
 
-  destroy() {
+  get stack() {
+    return this.viewport.stack;
+  },
 
-  }
+  get client() {
+    return this.connection.client;
+  },
+
+  get window() {
+    if (this._window) {
+      return this._window;
+    }
+    this._window = new WindowFront(this.client, this._listTabs);
+    return this._window;
+  },
+
+  destroy() {
+    this.connection.disconnect();
+    this.connection = null;
+  },
+
+  init: Task.async(function*() {
+    // TODO: Use the add-on list instead
+    this.simulator = new Simulator({
+      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-release-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
+      gaiaProfile: "/Users/jryans/projects/mozilla/gaia/profile",
+    });
+
+    let port = yield this.simulator.launch();
+    yield this.connect(port);
+
+    let listTabs = yield this.listTabs();
+    let size = yield this.window.size();
+  }),
+
+  connect(port) {
+    let deferred = promise.defer();
+    this.connection = ConnectionManager.createConnection("localhost", port);
+    this.connection.keepConnecting = true;
+    this.connection.once(Connection.Events.CONNECTED, () => {
+      deferred.resolve();
+    });
+    this.connection.once(Connection.Events.DISCONNECTED, () => {
+      this.simulator.kill();
+    });
+    this.connection.connect();
+    return deferred.promise;
+  },
+
+  listTabs() {
+    let deferred = promise.defer();
+    this.client.listTabs(response => {
+      this._listTabs = response;
+      deferred.resolve(response);
+    });
+    return deferred.promise;
+  },
 
 }
