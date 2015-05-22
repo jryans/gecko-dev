@@ -77,3 +77,11 @@ let WindowActor = exports.WindowActor = protocol.ActorClass({
     response: RetVal("json")
   })
 });
+
+exports.WindowFront = protocol.FrontClass(WindowActor, {
+  initialize: function(client, form) {
+    protocol.Front.prototype.initialize.call(this, client);
+    this.actorID = form.windowActor;
+    this.manage(this);
+  },
+});
