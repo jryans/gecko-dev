@@ -113,6 +113,8 @@ browser.jar:
     content/browser/devtools/performance/views/details-memory-flamegraph.js (performance/views/details-memory-flamegraph.js)
     content/browser/devtools/performance/views/recordings.js           (performance/views/recordings.js)
     content/browser/devtools/performance/views/jit-optimizations.js    (performance/views/jit-optimizations.js)
+    content/browser/devtools/responsivedesign/portal.fsh               (responsivedesign/portal.fsh)
+    content/browser/devtools/responsivedesign/portal.vsh               (responsivedesign/portal.vsh)
     content/browser/devtools/commandline.css                           (commandline/commandline.css)
     content/browser/devtools/commandlineoutput.xhtml                   (commandline/commandlineoutput.xhtml)
     content/browser/devtools/commandlinetooltip.xhtml                  (commandline/commandlinetooltip.xhtml)
