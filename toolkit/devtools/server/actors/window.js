@@ -34,13 +34,19 @@ let WindowActor = exports.WindowActor = protocol.ActorClass({
                        .getCompositorSurfaceID();
   },
 
-  info: method(function() {
+  get windowInfo() {
     return {
-      width: this._window.outerWidth,
-      height: this._window.outerHeight,
+      innerWidth: this._window.innerWidth,
+      innerHeight: this._window.innerHeight,
+      outerWidth: this._window.outerWidth,
+      outerHeight: this._window.outerHeight,
       devicePixelRatio: this._window.devicePixelRatio,
       surface: this.surfaceID
-    }
+    };
+  },
+
+  info: method(function() {
+    return this.windowInfo;
   }, {
     response: RetVal("json")
   }),
@@ -48,12 +54,7 @@ let WindowActor = exports.WindowActor = protocol.ActorClass({
   resize: method(function(width, height) {
     if (width === this._window.outerWidth &&
         height === this._window.outerHeight) {
-      return {
-        width: this._window.outerWidth,
-        height: this._window.outerHeight,
-        devicePixelRatio: this._window.devicePixelRatio,
-        surface: this.surfaceID
-      }
+      return this.windowInfo;
     }
     let deferred = promise.defer();
     let onResize = () => {
@@ -61,12 +62,7 @@ let WindowActor = exports.WindowActor = protocol.ActorClass({
       // New surface not available until next tick
       // TODO: Maybe an async surface call is better?
       DevToolsUtils.executeSoon(() => {
-        deferred.resolve({
-          width: this._window.outerWidth,
-          height: this._window.outerHeight,
-          devicePixelRatio: this._window.devicePixelRatio,
-          surface: this.surfaceID
-        });
+        deferred.resolve(this.windowInfo);
       });
     };
     this._window.addEventListener("resize", onResize);
