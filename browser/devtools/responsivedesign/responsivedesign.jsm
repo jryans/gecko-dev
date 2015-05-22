@@ -28,7 +28,7 @@ let {ConnectionManager, Connection} =
   require("devtools/client/connection-manager");
 let promise = require("promise");
 let {WindowFront} = require("devtools/server/actors/window");
-let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+let {Portal} = require("devtools/portal");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -43,9 +43,7 @@ const ROUND_RATIO = 10;
 
 const INPUT_PARSER = /(\d+)[^\d]+(\d+)/;
 
-const HTML_NS = "http://www.w3.org/1999/xhtml";
 const SHARED_L10N = new ViewHelpers.L10N("chrome://browser/locale/devtools/shared.properties");
-const PORTAL_PREFIX = "chrome://browser/content/devtools/responsivedesign/portal.";
 
 let ActiveTabs = new Map();
 
@@ -1364,26 +1362,13 @@ LocalResponsiveBrowser.prototype = {
 
 function SimulatorResponsiveBrowser(viewport) {
   this.viewport = viewport;
-  this.bound_draw = this.draw.bind(this);
   this.init();
 }
 
 SimulatorResponsiveBrowser.prototype = {
 
-  get stack() {
+  get container() {
     return this.viewport.stack;
-  },
-
-  get ui() {
-    return this.viewport.ui;
-  },
-
-  get mainWindow() {
-    return this.ui.mainWindow;
-  },
-
-  get chromeDoc() {
-    return this.ui.chromeDoc;
   },
 
   get client() {
@@ -1407,11 +1392,9 @@ SimulatorResponsiveBrowser.prototype = {
   },
 
   destroy() {
-    if (this.canvas) {
-      this.canvas.remove();
+    if (this.portal) {
+      this.portal.destroy();
     }
-    this.gl = null;
-    this.canvas = null;
     if (this.connection) {
       this.connection.disconnect();
     }
@@ -1433,7 +1416,8 @@ SimulatorResponsiveBrowser.prototype = {
     let listTabs = yield this.listTabs();
     this._windowInfo = yield this.window.info();
 
-    yield this.buildPortal();
+    this.portal = new Portal(this);
+    yield this.portal.build();
   }),
 
   connect(port) {
@@ -1458,174 +1442,5 @@ SimulatorResponsiveBrowser.prototype = {
     });
     return deferred.promise;
   },
-
-  buildPortal: Task.async(function*() {
-    this.canvas = this.chromeDoc.createElementNS(HTML_NS, "canvas");
-    this.canvas.setAttribute("width", this.surface.width);
-    this.canvas.setAttribute("height", this.surface.height);
-    this.canvas.style.width = `${this.viewport.width}px`;
-    this.canvas.style.height = `${this.viewport.height}px`;
-    this.stack.appendChild(this.canvas);
-
-    this.gl = this.canvas.getContext("webgl");
-    this.initFeatures();
-    yield this.initShaders();
-    this.initBuffers();
-    this.initUniforms();
-    this.initTextures();
-    this.mainWindow.requestAnimationFrame(this.bound_draw);
-  }),
-
-  draw() {
-    this.gl.viewport(0, 0, this.surface.width, this.surface.height);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.verticesBuffer);
-    this.gl.vertexAttribPointer(this.coordAttribute, 4, this.gl.FLOAT, false,
-                                0, 0);
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-    this.mainWindow.requestAnimationFrame(this.bound_draw);
-  },
-
-  initTextures() {
-    let texture = this.gl.createTexture();
-    this.gl.bindTexture(this.gl.TEXTURE_RECTANGLE, texture);
-    this.gl.texImageIOSurface2D(this.surface.width, this.surface.height,
-                                this.surface.surface);
-    this.gl.texParameteri(this.gl.TEXTURE_RECTANGLE, this.gl.TEXTURE_MIN_FILTER,
-                          this.gl.LINEAR);
-    this.gl.texParameteri(this.gl.TEXTURE_RECTANGLE, this.gl.TEXTURE_MAG_FILTER,
-                          this.gl.LINEAR);
-    this.gl.texParameteri(this.gl.TEXTURE_RECTANGLE, this.gl.TEXTURE_WRAP_S,
-                          this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_RECTANGLE, this.gl.TEXTURE_WRAP_T,
-                          this.gl.CLAMP_TO_EDGE);
-  },
-
-  initFeatures() {
-    this.gl.blendFuncSeparate(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA,
-                              this.gl.ONE, this.gl.ONE);
-    this.gl.enable(this.gl.BLEND);
-  },
-
-  initBuffers() {
-    this.verticesBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.verticesBuffer);
-
-    let vertices = [
-      0.0,  0.0,  0.0,  0.0,
-      1.0,  0.0,  0.0,  0.0,
-      0.0,  1.0,  0.0,  0.0,
-      1.0,  0.0,  0.0,  0.0,
-      0.0,  1.0,  0.0,  0.0,
-      1.0,  1.0,  0.0,  0.0,
-    ];
-
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices),
-                       this.gl.STATIC_DRAW);
-  },
-
-  initUniforms() {
-    let loc;
-    let layerRects = [
-      0, 0, this.surface.width, this.surface.height,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uLayerRects");
-    this.gl.uniform4fv(loc, new Float32Array(layerRects));
-
-    let textureRects = [
-      0, 0, 1, 1,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uTextureRects");
-    this.gl.uniform4fv(loc, new Float32Array(textureRects));
-
-    let renderOffset = [
-      0, 0, 0, 0,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uRenderTargetOffset");
-    this.gl.uniform4fv(loc, new Float32Array(renderOffset));
-
-    let textureTransformVals = [
-      1,  0, 0, 0,
-      0, -1, 0, 0,
-      0,  0, 1, 0,
-      0,  1, 0, 1,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uTextureTransform");
-    this.gl.uniformMatrix4fv(loc, false,
-                             new Float32Array(textureTransformVals));
-
-    let layerTransformVals = [
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uLayerTransform");
-    this.gl.uniformMatrix4fv(loc, false, new Float32Array(layerTransformVals));
-
-    let texCoordMultiplier = [
-      this.surface.width, this.surface.height,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uTexCoordMultiplier");
-    this.gl.uniform2fv(loc, new Float32Array(texCoordMultiplier));
-
-    let projectionVals = [
-      2 / this.surface.width,   0, 0, 0,
-      0, -2 / this.surface.height, 0, 0,
-      0,                        0, 0, 0,
-     -1,                        1, 0, 1,
-    ];
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uMatrixProj");
-    this.gl.uniformMatrix4fv(loc, false, new Float32Array(projectionVals));
-
-    loc = this.gl.getUniformLocation(this.shaderProgram, "uTexture");
-    this.gl.uniform1i(loc, 0);
-  },
-
-  initShaders: Task.async(function*() {
-    let fragmentShader = yield this.getShader("fsh");
-    let vertexShader = yield this.getShader("vsh");
-
-    this.shaderProgram = this.gl.createProgram();
-    this.gl.attachShader(this.shaderProgram, vertexShader);
-    this.gl.attachShader(this.shaderProgram, fragmentShader);
-    this.gl.linkProgram(this.shaderProgram);
-
-    if (!this.gl.getProgramParameter(this.shaderProgram, this.gl.LINK_STATUS)) {
-      throw new Error("Unable to initialize the shader program.");
-    }
-
-    this.gl.useProgram(this.shaderProgram);
-
-    this.coordAttribute = this.gl.getAttribLocation(this.shaderProgram, "aCoord");
-    this.gl.enableVertexAttribArray(this.coordAttribute);
-  }),
-
-  getShader: Task.async(function*(type) {
-    let shader;
-    if (type === "fsh") {
-      shader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
-    } else if (type === "vsh") {
-      shader = this.gl.createShader(this.gl.VERTEX_SHADER);
-    } else {
-      return null;
-    }
-
-    let source = yield DevToolsUtils.fetch(PORTAL_PREFIX + type);
-    this.gl.shaderSource(shader, source.content);
-    this.gl.compileShader(shader);
-
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      throw new Error("An error occurred compiling the shaders: " +
-                      this.gl.getShaderInfoLog(shader));
-    }
-
-    return shader;
-  }),
 
 }
