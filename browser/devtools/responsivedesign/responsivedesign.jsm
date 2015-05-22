@@ -1391,16 +1391,6 @@ SimulatorResponsiveBrowser.prototype = {
     };
   },
 
-  destroy() {
-    if (this.portal) {
-      this.portal.destroy();
-    }
-    if (this.connection) {
-      this.connection.disconnect();
-    }
-    this.connection = null;
-  },
-
   init: Task.async(function*() {
     // TODO: Use the add-on list instead
     this.simulator = new Simulator({
@@ -1419,6 +1409,16 @@ SimulatorResponsiveBrowser.prototype = {
     this.portal = new Portal(this);
     yield this.portal.build();
   }),
+
+  destroy() {
+    if (this.portal) {
+      this.portal.destroy();
+    }
+    if (this.connection) {
+      this.connection.disconnect();
+    }
+    this.connection = null;
+  },
 
   connect(port) {
     let deferred = promise.defer();
