@@ -903,21 +903,8 @@ function ResponsiveViewport(ui) {
                  !viewports[0].hasAttribute("responsivemode");
   this.buildOrAbsorbViewport();
 
-  this.e10s = !this.browser.contentWindow;
-
-  let childOn = () => {
-    this.mm.removeMessageListener("ResponsiveMode:Start:Done", childOn);
-    ResponsiveUIManager.emit("on", { tab: this.tab });
-  };
-  this.mm.addMessageListener("ResponsiveMode:Start:Done", childOn);
-
-  let requiresFloatingScrollbars = !this.mainWindow.matchMedia("(-moz-overlay-scrollbars)").matches;
-  this.mm.loadFrameScript("resource:///modules/devtools/responsivedesign-child.js", true);
-  this.mm.addMessageListener("ResponsiveMode:ChildScriptReady", () => {
-    this.mm.sendAsyncMessage("ResponsiveMode:Start", {
-      requiresFloatingScrollbars: requiresFloatingScrollbars
-    });
-  });
+  // Assume local to start with
+  this.responsiveBrowser = new LocalResponsiveBrowser(this);
 
   this.viewportContainer.setAttribute("responsivemode", "true");
   this.stack.setAttribute("responsivemode", "true");
@@ -927,13 +914,6 @@ function ResponsiveViewport(ui) {
   this.bound_onDrag = this.onDrag.bind(this);
 
   this.buildUI();
-
-  if (!this.e10s) {
-    // Touch events support
-    this.touchEnableBefore = false;
-    this.touchEventHandler = new TouchEventHandler(this.browser);
-  }
-
   this.initSize();
 }
 
@@ -947,20 +927,8 @@ ResponsiveViewport.prototype = {
     return this.ui.chromeDoc;
   },
 
-  get tab() {
-    return this.ui.tab;
-  },
-
   get viewportsContainer() {
     return this.ui.viewportsContainer;
-  },
-
-  get browser() {
-    return this.stack.querySelector("browser");
-  },
-
-  get mm() {
-    return this.browser.messageManager;
   },
 
   _transitionsEnabled: true,
@@ -997,12 +965,7 @@ ResponsiveViewport.prototype = {
     this.viewportContainer.removeAttribute("responsivemode");
     this.stack.removeAttribute("responsivemode");
 
-    let childOff = () => {
-      this.mm.removeMessageListener("ResponsiveMode:Stop:Done", childOff);
-      ResponsiveUIManager.emit("off", { tab: this.tab });
-    };
-    this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
-    this.mm.sendAsyncMessage("ResponsiveMode:Stop");
+    this.responsiveBrowser.destroy();
 
     if (!this.primary) {
       // If we're not primary, remove the viewport entirely
@@ -1011,9 +974,9 @@ ResponsiveViewport.prototype = {
   },
 
   /**
-   * Build (or absorb) the viewport container, browser stack, and browser
-   * element.  For the first viewport, the elements are created by
-   * tabbrowser.xml, so we don't need to create them.
+   * Build (or absorb) the viewport container and browser stack.  For the first
+   * viewport, the elements are created by tabbrowser.xml, so we don't need to
+   * create them.
    */
   buildOrAbsorbViewport() {
     if (this.primary) {
@@ -1035,13 +998,6 @@ ResponsiveViewport.prototype = {
     this.stack.className = "browserStack";
     this.stack.setAttribute("flex", "1");
     this.viewportContainer.appendChild(this.stack);
-
-    // Create a browser element with the same location as the primary
-    let primaryViewport = this.ui.primaryViewport;
-    let primaryBrowser = primaryViewport.browser;
-    let browser = primaryBrowser.cloneNode();
-    this.stack.appendChild(browser);
-    browser.loadURI(primaryBrowser.currentURI.spec);
   },
 
   /**
@@ -1274,5 +1230,100 @@ ResponsiveViewport.prototype = {
     this.ignoreX = false;
     this.isResizing = false;
   }
+
+};
+
+function LocalResponsiveBrowser(viewport) {
+  this.viewport = viewport;
+
+  this.buildOrAbsorbBrowser();
+
+  this.e10s = !this.browser.contentWindow;
+
+  let childOn = () => {
+    this.mm.removeMessageListener("ResponsiveMode:Start:Done", childOn);
+    ResponsiveUIManager.emit("on", { tab: this.tab });
+  };
+  this.mm.addMessageListener("ResponsiveMode:Start:Done", childOn);
+
+  let requiresFloatingScrollbars = !this.mainWindow.matchMedia("(-moz-overlay-scrollbars)").matches;
+  this.mm.loadFrameScript("resource:///modules/devtools/responsivedesign-child.js", true);
+  this.mm.addMessageListener("ResponsiveMode:ChildScriptReady", () => {
+    this.mm.sendAsyncMessage("ResponsiveMode:Start", {
+      requiresFloatingScrollbars: requiresFloatingScrollbars
+    });
+  });
+
+  if (!this.e10s) {
+    // Touch events support
+    this.touchEnableBefore = false;
+    this.touchEventHandler = new TouchEventHandler(this.browser);
+  }
+}
+
+LocalResponsiveBrowser.prototype = {
+
+  get primary() {
+    return this.viewport.primary;
+  },
+
+  get stack() {
+    return this.viewport.stack;
+  },
+
+  get ui() {
+    return this.viewport.ui;
+  },
+
+  get mainWindow() {
+    return this.ui.mainWindow;
+  },
+
+  get chromeDoc() {
+    return this.ui.chromeDoc;
+  },
+
+  get tab() {
+    return this.ui.tab;
+  },
+
+  get browser() {
+    return this.stack.querySelector("browser");
+  },
+
+  get mm() {
+    return this.browser.messageManager;
+  },
+
+  destroy() {
+    let childOff = () => {
+      this.mm.removeMessageListener("ResponsiveMode:Stop:Done", childOff);
+      ResponsiveUIManager.emit("off", { tab: this.tab });
+    };
+    this.mm.addMessageListener("ResponsiveMode:Stop:Done", childOff);
+    this.mm.sendAsyncMessage("ResponsiveMode:Stop");
+
+    // The viewport will remove itself from the DOM if non-primary, which takes
+    // care of our elements as well, since they are its children.
+  },
+
+  /**
+   * Build (or absorb) the browser element.  For the first viewport, the element
+   * is created by tabbrowser.xml, so we don't need to create it.
+   */
+  buildOrAbsorbBrowser() {
+    if (this.primary) {
+      // If we're primary, tabbrowser.xml created a browser element, so there's
+      // nothing to do.
+      return;
+    }
+
+    // Create a browser element with the same location as the primary
+    let primaryViewport = this.ui.primaryViewport;
+    let primaryBrowser = primaryViewport.responsiveBrowser.browser;
+    let browser = primaryBrowser.cloneNode();
+    this.stack.appendChild(browser);
+    browser.loadURI(primaryBrowser.currentURI.spec);
+  },
 
 };
