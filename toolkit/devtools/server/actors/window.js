@@ -34,7 +34,7 @@ let WindowActor = exports.WindowActor = protocol.ActorClass({
                        .getCompositorSurfaceID();
   },
 
-  size: method(function() {
+  info: method(function() {
     return {
       width: this._window.outerWidth,
       height: this._window.outerHeight,
