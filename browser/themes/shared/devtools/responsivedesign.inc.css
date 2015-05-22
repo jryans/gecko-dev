@@ -103,6 +103,10 @@
   margin-bottom: 2px;
 }
 
+.responsive-browser-type[label="Simulator"] .menulist-icon {
+  filter: invert(1);
+}
+
 .devtools-responsiveui-toolbarbutton > .toolbarbutton-icon {
   width: 16px;
   height: 16px;
