@@ -49,13 +49,7 @@ Portal.prototype = {
   },
 
   build: Task.async(function*() {
-    this.canvas = this.document.createElementNS(HTML_NS, "canvas");
-    this.canvas.setAttribute("width", this.surface.width);
-    this.canvas.setAttribute("height", this.surface.height);
-    this.canvas.style.width = "100%";
-    this.canvas.style.height = "100%";
-    this.container.appendChild(this.canvas);
-
+    this.initCanvas();
     this.gl = this.canvas.getContext("webgl");
     this.initFeatures();
     yield this.initShaders();
@@ -83,6 +77,25 @@ Portal.prototype = {
                                 0, 0);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     this.window.requestAnimationFrame(this.bound_draw);
+  },
+
+  initCanvas() {
+    this.canvas = this.document.createElementNS(HTML_NS, "canvas");
+    this.setCanvasSize();
+    this.canvas.style.width = "100%";
+    this.canvas.style.height = "100%";
+    this.container.appendChild(this.canvas);
+  },
+
+  setCanvasSize() {
+    this.canvas.setAttribute("width", this.surface.width);
+    this.canvas.setAttribute("height", this.surface.height);
+  },
+
+  resize() {
+    this.setCanvasSize();
+    this.initTextures();
+    this.initUniforms();
   },
 
   initTextures() {

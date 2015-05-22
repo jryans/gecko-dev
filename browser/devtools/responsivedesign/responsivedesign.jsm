@@ -1167,6 +1167,8 @@ ResponsiveViewport.prototype = {
 
     // Notify UI to update the custom preset
     this.ui.updateCustomPreset(width, height);
+
+    this.responsiveBrowser.setSize(width, height);
   },
 
   /**
@@ -1358,6 +1360,10 @@ LocalResponsiveBrowser.prototype = {
     browser.loadURI(primaryBrowser.currentURI.spec);
   },
 
+  setSize() {
+    // Nothing to do here, stack's sizing is enough
+  },
+
 };
 
 function SimulatorResponsiveBrowser(viewport) {
@@ -1442,5 +1448,17 @@ SimulatorResponsiveBrowser.prototype = {
     });
     return deferred.promise;
   },
+
+  setSize: Task.async(function*(width, height) {
+    // resize method will adjust the outerWidth / outerHeight, but we're
+    // trying to affect the innerWidth / innerHeight.
+    let info = this._windowInfo;
+    let deltaWidth = info.outerWidth - info.innerWidth;
+    let deltaHeight = info.outerHeight - info.innerHeight;
+    width += deltaWidth;
+    height += deltaHeight;
+    this._windowInfo = yield this.window.resize(width, height);
+    this.portal.resize();
+  }),
 
 }
