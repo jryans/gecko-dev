@@ -417,6 +417,11 @@ var DebuggerServer = {
       constructor: "WindowActor",
       type: { global: true }
     });
+    this.registerModule("devtools/server/actors/event", {
+      prefix: "event",
+      constructor: "EventActor",
+      type: { global: true }
+    });
   },
 
   /**

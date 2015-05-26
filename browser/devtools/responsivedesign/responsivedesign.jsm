@@ -28,6 +28,7 @@ let {ConnectionManager, Connection} =
   require("devtools/client/connection-manager");
 let promise = require("promise");
 let {WindowFront} = require("devtools/server/actors/window");
+let {EventFront} = require("devtools/server/actors/event");
 let {Portal} = require("devtools/portal");
 let {GetDevices} = require("devtools/shared/devices");
 
@@ -1415,6 +1416,14 @@ SimulatorResponsiveBrowser.prototype = {
     return this._window;
   },
 
+  get event() {
+    if (this._event) {
+      return this._event;
+    }
+    this._event = new EventFront(this.client, this._listTabs);
+    return this._event;
+  },
+
   get surface() {
     return {
       width: this._windowInfo.innerWidth * this._windowInfo.devicePixelRatio,
@@ -1440,12 +1449,17 @@ SimulatorResponsiveBrowser.prototype = {
 
     this.portal = new Portal(this);
     yield this.portal.build();
+
+    this.listenForEvents();
   }),
 
   destroy() {
+    this.unlistenForEvents();
+
     if (this.portal) {
       this.portal.destroy();
     }
+
     if (this.connection) {
       this.connection.disconnect();
     }
@@ -1487,4 +1501,19 @@ SimulatorResponsiveBrowser.prototype = {
     this.portal.resize();
   }),
 
-}
+  listenForEvents() {
+    this.container.addEventListener("click", this, true);
+  },
+
+  unlistenForEvents() {
+    this.container.removeEventListener("click", this, true);
+  },
+
+  handleEvent(event) {
+    if (event.type !== "click") {
+      return;
+    }
+    this.event.click(event.offsetX, event.offsetY);
+  },
+
+};
