@@ -29,6 +29,7 @@ let {ConnectionManager, Connection} =
 let promise = require("promise");
 let {WindowFront} = require("devtools/server/actors/window");
 let {Portal} = require("devtools/portal");
+let {GetDevices} = require("devtools/shared/devices");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -374,24 +375,6 @@ ResponsiveUI.prototype = {
     this.menulist.addEventListener("select", this.bound_presetSelected, true);
     this.menulist.addEventListener("change", this.bound_handleManualInput, true);
 
-    this.menuitems = new Map();
-
-    let menupopup = this.chromeDoc.createElement("menupopup");
-    this.registerPresets(menupopup);
-    this.menulist.appendChild(menupopup);
-
-    this.addbutton = this.chromeDoc.createElement("menuitem");
-    this.addbutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.addPreset"));
-    this.addbutton.addEventListener("command", this.bound_addPreset, true);
-
-    this.removebutton = this.chromeDoc.createElement("menuitem");
-    this.removebutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.removePreset"));
-    this.removebutton.addEventListener("command", this.bound_removePreset, true);
-
-    menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
-    menupopup.appendChild(this.addbutton);
-    menupopup.appendChild(this.removebutton);
-
     this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
     this.rotatebutton.setAttribute("tabindex", "0");
     this.rotatebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.rotate2"));
@@ -419,6 +402,22 @@ ResponsiveUI.prototype = {
     this.viewportToolbar.appendChild(this.screenshotbutton);
 
     this.container.insertBefore(this.viewportToolbar, this.viewportsContainer);
+
+    // Build the popup once before loading devices
+    this.buildPresetMenuPopup();
+
+    GetDevices().then(devices => {
+      for (let type in devices) {
+        let list = devices[type].filter(d => d.width && d.height && d.name)
+                                .map(d => {
+                                  d.key = d.name;
+                                  return d;
+                                });
+        this.presets = this.presets.concat(list);
+      }
+      // Re-build the popup now that we have devices
+      this.buildPresetMenuPopup();
+    });
 
     this.globalToolbar = this.chromeDoc.createElement("toolbar");
     this.globalToolbar.className = "devtools-global-toolbar";
@@ -532,12 +531,39 @@ ResponsiveUI.prototype = {
     this.setSize(w, h);
   },
 
+  buildPresetMenuPopup() {
+    this.menuitems = new Map();
+
+    let menupopup = this.chromeDoc.createElement("menupopup");
+    this.registerPresets(menupopup);
+    if (this.menulist.firstChild) {
+      this.menulist.replaceChild(menupopup, this.menulist.firstChild);
+    } else {
+      this.menulist.appendChild(menupopup);
+    }
+    this.addbutton = this.chromeDoc.createElement("menuitem");
+    this.addbutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.addPreset"));
+    this.addbutton.addEventListener("command", this.bound_addPreset, true);
+
+    this.removebutton = this.chromeDoc.createElement("menuitem");
+    this.removebutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.removePreset"));
+    this.removebutton.addEventListener("command", this.bound_removePreset, true);
+
+    menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
+    menupopup.appendChild(this.addbutton);
+    menupopup.appendChild(this.removebutton);
+
+    if (this.selectedItem) {
+      this.menulist.selectedItem = this.selectedItem;
+    }
+  },
+
   /**
    * Build the presets list and append it to the menupopup.
    *
    * @param aParent menupopup.
    */
-  registerPresets: function RUI_registerPresets(aParent) {
+  registerPresets: function(aParent) {
     let fragment = this.chromeDoc.createDocumentFragment();
     let doc = this.chromeDoc;
 

@@ -36,8 +36,12 @@ exports.getJSON = function (prefName, bypassCache) {
     deferred.reject("Network error");
   }
 
-  xhr.open("get", Services.prefs.getCharPref(prefName));
-  xhr.send();
+  try {
+    xhr.open("get", Services.prefs.getCharPref(prefName));
+    xhr.send();
+  } catch(e) {
+    deferred.reject("Unable to load JSON URI");
+  }
 
   return deferred.promise;
 }
