@@ -1508,19 +1508,32 @@ SimulatorResponsiveBrowser.prototype = {
     this.portal.resize();
   }),
 
+  events: [
+    "click",
+    "dblclick",
+    "mousedown",
+    "mouseenter",
+    "mouseleave",
+    "mousemove",
+    "mouseout",
+    "mouseover",
+    "mouseup",
+  ],
+
   listenForEvents() {
-    this.container.addEventListener("click", this, true);
+    this.events.forEach(type => {
+      this.container.addEventListener(type, this, true);
+    });
   },
 
   unlistenForEvents() {
-    this.container.removeEventListener("click", this, true);
+    this.events.forEach(type => {
+      this.container.removeEventListener(type, this, true);
+    });
   },
 
   handleEvent(event) {
-    if (event.type !== "click") {
-      return;
-    }
-    this.event.click(event.offsetX, event.offsetY);
+    this.event.dispatch(event);
   },
 
 };
