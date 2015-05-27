@@ -642,7 +642,7 @@ ResponsiveUI.prototype = {
    * @param aPreset preset to apply.
    */
   loadPreset: function RUI_loadPreset(aPreset) {
-    this.setSize(aPreset.width, aPreset.height);
+    this.setSize(aPreset.width, aPreset.height, aPreset.name);
   },
 
   /**
@@ -844,8 +844,8 @@ ResponsiveUI.prototype = {
   /**
    * Change the size of the editable viewport's browser.
    */
-  setSize(width, height) {
-    this.editableViewport.setSize(width, height);
+  setSize(width, height, name) {
+    this.editableViewport.setSize(width, height, name);
   },
 
   /**
@@ -1044,7 +1044,8 @@ ResponsiveViewport.prototype = {
       return;
     }
     let primaryViewport = this.ui.primaryViewport;
-    this.setSize(primaryViewport.width, primaryViewport.height);
+    this.setSize(primaryViewport.width, primaryViewport.height,
+                 primaryViewport.name);
   },
 
   /**
@@ -1167,9 +1168,10 @@ ResponsiveViewport.prototype = {
   /**
    * Change the size of the browser.
    */
-  setSize(width, height) {
+  setSize(width, height, name) {
     this.width = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
     this.height = Math.min(Math.max(height, MIN_HEIGHT), MAX_HEIGHT);
+    this.name = name;
 
     // We resize the containing stack.
     let style = "max-width: %width;" +
@@ -1190,7 +1192,12 @@ ResponsiveViewport.prototype = {
       this.resizeBarH.setAttribute("left", Math.round(width / 2));
     }
 
-    this.sizeLabel.setAttribute("value", `${this.width} x ${this.height}`);
+    let size = SHARED_L10N.getFormatStr("dimensions", width, height);
+    if (this.name) {
+      size = Strings.formatStringFromName("responsiveUI.namedResolution",
+                                          [size, this.name], 2);
+    }
+    this.sizeLabel.setAttribute("value", size);
 
     // Notify UI to update the custom preset
     this.ui.updateCustomPreset(width, height);
