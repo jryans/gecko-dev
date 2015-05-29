@@ -1521,6 +1521,7 @@ SimulatorResponsiveBrowser.prototype = {
     "mouseout",
     "mouseover",
     "mouseup",
+    "wheel",
   ],
 
   listenForEvents() {

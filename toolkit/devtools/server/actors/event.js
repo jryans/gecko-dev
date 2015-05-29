@@ -62,6 +62,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     "mouseover": { type: "Mouse", dispatch: "sendMouseEvent" },
     "mouseup": { type: "Mouse", dispatch: "sendMouseEvent" },
     "MozMouseHittest": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "wheel": { type: "Wheel", dispatch: "sendWheelEvent" },
   },
 
   dispatch: method(function(eventSpec) {
@@ -111,6 +112,17 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     this.utils.sendMouseEvent(eventSpec.type, x, y, eventSpec.button,
                               clickCount, modifiers, false, pressure,
                               inputSource, eventSpec.isSynthesized);
+  },
+
+  sendWheelEvent(eventSpec) {
+    // TODO: Clamp other positions to offsetX/Y somewhere
+    let x = eventSpec.offsetX;
+    let y = eventSpec.offsetY;
+    let modifiers = this._parseModifiers(eventSpec);
+    this.utils.sendWheelEvent(x, y, eventSpec.deltaX, eventSpec.deltaY,
+                              eventSpec.deltaZ, eventSpec.deltaMode, modifiers,
+                              0 /* aLineOrPageDeltaX */,
+                              0 /* aLineOrPageDeltaY */, 0 /* aOptions */);
   },
 
   _parseModifiers(eventSpec) {
