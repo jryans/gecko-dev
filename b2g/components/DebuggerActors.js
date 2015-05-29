@@ -17,6 +17,11 @@ XPCOMUtils.defineLazyGetter(this, "Frames", function() {
     Cu.import("resource://gre/modules/Frames.jsm", {});
   return Frames;
 });
+XPCOMUtils.defineLazyGetter(this, "SystemAppProxy", function() {
+  const { SystemAppProxy } =
+    Cu.import("resource://gre/modules/SystemAppProxy.jsm", {});
+  return SystemAppProxy;
+});
 
 /**
  * Unlike the original BrowserTabList which iterates over XUL windows, we
@@ -78,6 +83,15 @@ B2GTabList.prototype.onFrameDestroyed = function(frame) {
   if (actor) {
     this._handleActorClose(actor, frame);
   }
+};
+
+B2GTabList.prototype.addTab = function({ url }) {
+  let detail = {
+    url,
+    name: "_blank",
+    features: "remote=true"
+  };
+  SystemAppProxy._sendCustomEvent("mozbrowseropenwindow", detail);
 };
 
 exports.B2GTabList = B2GTabList;

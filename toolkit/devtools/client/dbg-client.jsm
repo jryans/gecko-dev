@@ -1559,6 +1559,11 @@ RootClient.prototype = {
     return this.request(packet);
   },
 
+  addTab: DebuggerClient.requester({
+    type: "addTab",
+    options: args(0)
+  }, {}),
+
   /**
    * Description of protocol's actors and methods.
    *

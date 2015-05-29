@@ -309,6 +309,18 @@ RootActor.prototype = {
     });
   },
 
+  onAddTab(request) {
+    let tabList = this._parameters.tabList;
+    if (!tabList) {
+      return { error: "noTabs",
+               message: "This root actor has no browser tabs." };
+    }
+    tabList.addTab(request.options);
+    return {
+      from: this.actorID
+    };
+  },
+
   onTabListChanged: function () {
     this.conn.send({ from: this.actorID, type:"tabListChanged" });
     /* It's a one-shot notification; no need to watch any more. */
@@ -433,6 +445,7 @@ RootActor.prototype = {
 RootActor.prototype.requestTypes = {
   "listTabs": RootActor.prototype.onListTabs,
   "getTab": RootActor.prototype.onGetTab,
+  "addTab": RootActor.prototype.onAddTab,
   "listAddons": RootActor.prototype.onListAddons,
   "listProcesses": RootActor.prototype.onListProcesses,
   "getProcess": RootActor.prototype.onGetProcess,
