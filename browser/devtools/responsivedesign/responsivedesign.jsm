@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -19,7 +18,8 @@ XPCOMUtils.defineLazyGetter(this, "Strings", function () {
   return Services.strings.createBundle("chrome://browser/locale/devtools/responsiveUI.properties");
 });
 
-let require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
+let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let {require} = devtools;
 let Telemetry = require("devtools/shared/telemetry");
 let {showDoorhanger} = require("devtools/shared/doorhanger");
 let {TouchEventHandler} = require("devtools/touch-events");
@@ -28,8 +28,8 @@ let {ConnectionManager, Connection} =
   require("devtools/client/connection-manager");
 let promise = require("promise");
 let {WindowFront} = require("devtools/server/actors/window");
-let {EventFront} = require("devtools/server/actors/event");
 let {Portal} = require("devtools/portal");
+let {PortalEvents} = require("devtools/portal-events");
 let {GetDevices} = require("devtools/shared/devices");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
@@ -1415,7 +1415,6 @@ SimulatorResponsiveBrowser.prototype = {
     return this.viewport.ui;
   },
 
-
   get client() {
     return this.connection.client;
   },
@@ -1424,16 +1423,8 @@ SimulatorResponsiveBrowser.prototype = {
     if (this._window) {
       return this._window;
     }
-    this._window = new WindowFront(this.client, this._listTabs);
+    this._window = new WindowFront(this.client, this.form);
     return this._window;
-  },
-
-  get event() {
-    if (this._event) {
-      return this._event;
-    }
-    this._event = new EventFront(this.client, this._listTabs);
-    return this._event;
   },
 
   get surface() {
@@ -1456,19 +1447,22 @@ SimulatorResponsiveBrowser.prototype = {
     let port = yield this.simulator.launch();
     yield this.connect(port);
 
-    yield this.listTabs();
+    this.form = yield this.listTabs();
     this._windowInfo = yield this.window.info();
 
     this.portal = new Portal(this);
     yield this.portal.build();
 
-    this.listenForEvents();
+    this.portalEvents = new PortalEvents(this);
+    this.portalEvents.init();
 
     yield this.addTab();
   }),
 
   destroy() {
-    this.unlistenForEvents();
+    if (this.portalEvents) {
+      this.portalEvents.destroy();
+    }
 
     if (this.portal) {
       this.portal.destroy();
@@ -1497,7 +1491,6 @@ SimulatorResponsiveBrowser.prototype = {
   listTabs() {
     let deferred = promise.defer();
     this.client.mainRoot.listTabs(response => {
-      this._listTabs = response;
       deferred.resolve(response);
     });
     return deferred.promise;
@@ -1525,38 +1518,5 @@ SimulatorResponsiveBrowser.prototype = {
     this._windowInfo = yield this.window.resize(width, height);
     this.portal.resize();
   }),
-
-  events: [
-    "click",
-    "dblclick",
-    "keydown",
-    "keypress",
-    "keyup",
-    "mousedown",
-    "mouseenter",
-    "mouseleave",
-    "mousemove",
-    "mouseout",
-    "mouseover",
-    "mouseup",
-    "wheel",
-  ],
-
-  listenForEvents() {
-    this.events.forEach(type => {
-      this.container.addEventListener(type, this, true);
-    });
-  },
-
-  unlistenForEvents() {
-    this.events.forEach(type => {
-      this.container.removeEventListener(type, this, true);
-    });
-  },
-
-  handleEvent(event) {
-    this.event.dispatch(event);
-    event.stopPropagation();
-  },
 
 };
