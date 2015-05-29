@@ -1411,6 +1411,11 @@ SimulatorResponsiveBrowser.prototype = {
     return this.viewport.stack;
   },
 
+  get ui() {
+    return this.viewport.ui;
+  },
+
+
   get client() {
     return this.connection.client;
   },
@@ -1458,6 +1463,8 @@ SimulatorResponsiveBrowser.prototype = {
     yield this.portal.build();
 
     this.listenForEvents();
+
+    yield this.addTab();
   }),
 
   destroy() {
@@ -1489,9 +1496,20 @@ SimulatorResponsiveBrowser.prototype = {
 
   listTabs() {
     let deferred = promise.defer();
-    this.client.listTabs(response => {
+    this.client.mainRoot.listTabs(response => {
       this._listTabs = response;
       deferred.resolve(response);
+    });
+    return deferred.promise;
+  },
+
+  addTab() {
+    let primaryViewport = this.ui.primaryViewport;
+    let primaryBrowser = primaryViewport.responsiveBrowser.browser;
+    let url = primaryBrowser.contentDocument.documentURI;
+    let deferred = promise.defer();
+    this.client.mainRoot.addTab({ url }, () => {
+      deferred.resolve();
     });
     return deferred.promise;
   },
