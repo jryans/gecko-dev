@@ -84,6 +84,7 @@ Portal.prototype = {
     this.canvas.className = "responsive-portal";
     // Allows canvas to be focusable for keyboard events
     this.canvas.setAttribute("tabindex", "0");
+    this.canvas.setAttribute("moz-opaque", "true");
     this.setCanvasSize();
     this.canvas.style.width = "100%";
     this.canvas.style.height = "100%";
