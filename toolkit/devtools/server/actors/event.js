@@ -4,9 +4,11 @@
 
 "use strict";
 
+const { Ci } = require("chrome");
 const protocol = require("devtools/server/protocol");
-const { method, Arg, RetVal } = protocol;
+const { method, Arg } = protocol;
 const { DebuggerServer } = require("devtools/server/main");
+const Runtime = require("sdk/system/runtime");
 loader.lazyImporter(this, "LayoutHelpers",
                     "resource://gre/modules/devtools/LayoutHelpers.jsm");
 
@@ -32,6 +34,11 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     return this._window.document;
   },
 
+  get utils() {
+    return this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+  },
+
   get layoutHelpers() {
     if (this._layoutHelpers) {
       return this._layoutHelpers;
@@ -40,7 +47,22 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     return this._layoutHelpers;
   },
 
+  utilsMouseEvents: [
+    "mousedown",
+    "mouseup",
+    "mousemove",
+    "mouseover",
+    "mouseout",
+    "contextmenu",
+    "MozMouseHittest",
+  ],
+
   dispatch: method(function(eventSpec) {
+    if (this.utilsMouseEvents.some(v => v == eventSpec.type)) {
+      // Some mouse events should be dispatched via DOMWindowUtils to ensure
+      // they act like real user input.
+      this.sendMouseEvent(eventSpec);
+    }
     // TODO: Clamp other positions to offsetX/Y somewhere
     let x = eventSpec.offsetX;
     let y = eventSpec.offsetY;
@@ -56,6 +78,70 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     request: { eventSpec: Arg(0, "json") },
     oneway: true
   }),
+
+  sendMouseEvent(eventSpec) {
+    // TODO: Clamp other positions to offsetX/Y somewhere
+    let x = eventSpec.offsetX;
+    let y = eventSpec.offsetY;
+    let clickCount = 0;
+    if (eventSpec.type == "mousedown" || eventSpec.type == "mouseup") {
+      clickCount = 1;
+    }
+    let modifiers = this._parseModifiers(eventSpec);
+    let pressure = eventSpec.pressure || eventSpec.mozPressure || 0;
+    let inputSource = eventSpec.inputSource || eventSpec.mozInputSource || 0;
+    this.utils.sendMouseEvent(eventSpec.type, x, y, eventSpec.button,
+                              clickCount, modifiers, false, pressure,
+                              inputSource, eventSpec.isSynthesized);
+  },
+
+  _parseModifiers(eventSpec) {
+    let mval = 0;
+    if (eventSpec.shiftKey) {
+      mval |= this.utils.MODIFIER_SHIFT;
+    }
+    if (eventSpec.ctrlKey) {
+      mval |= this.utils.MODIFIER_CONTROL;
+    }
+    if (eventSpec.altKey) {
+      mval |= this.utils.MODIFIER_ALT;
+    }
+    if (eventSpec.metaKey) {
+      mval |= this.utils.MODIFIER_META;
+    }
+    if (eventSpec.accelKey) {
+      mval |= (Runtime.OS == "Darwin") ?
+        this.utils.MODIFIER_META : this.utils.MODIFIER_CONTROL;
+    }
+    if (eventSpec.altGrKey) {
+      mval |= this.utils.MODIFIER_ALTGRAPH;
+    }
+    if (eventSpec.capsLockKey) {
+      mval |= this.utils.MODIFIER_CAPSLOCK;
+    }
+    if (eventSpec.fnKey) {
+      mval |= this.utils.MODIFIER_FN;
+    }
+    if (eventSpec.fnLockKey) {
+      mval |= this.utils.MODIFIER_FNLOCK;
+    }
+    if (eventSpec.numLockKey) {
+      mval |= this.utils.MODIFIER_NUMLOCK;
+    }
+    if (eventSpec.scrollLockKey) {
+      mval |= this.utils.MODIFIER_SCROLLLOCK;
+    }
+    if (eventSpec.symbolKey) {
+      mval |= this.utils.MODIFIER_SYMBOL;
+    }
+    if (eventSpec.symbolLockKey) {
+      mval |= this.utils.MODIFIER_SYMBOLLOCK;
+    }
+    if (eventSpec.osKey) {
+      mval |= this.utils.MODIFIER_OS;
+    }
+    return mval;
+  }
 
 });
 
@@ -82,6 +168,6 @@ exports.EventFront = protocol.FrontClass(EventActor, {
     return this._dispatch(eventSpec);
   }, {
     impl: "_dispatch"
-  }),
+  })
 
 });
