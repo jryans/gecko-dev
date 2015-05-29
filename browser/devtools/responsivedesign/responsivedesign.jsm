@@ -1534,6 +1534,7 @@ SimulatorResponsiveBrowser.prototype = {
 
   handleEvent(event) {
     this.event.dispatch(event);
+    event.stopPropagation();
   },
 
 };
