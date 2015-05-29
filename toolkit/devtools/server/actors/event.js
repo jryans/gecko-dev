@@ -186,6 +186,10 @@ exports.EventFront = protocol.FrontClass(EventActor, {
   dispatch: protocol.custom(function(event) {
     let eventSpec = {};
     for (let key in event) {
+      if (key[0] !== key[0].toLowerCase()) {
+        // Keys starting with an upper letter are consts
+        continue;
+      }
       let value = event[key];
       if (typeof value !== "boolean" &&
           typeof value !== "number" &&
