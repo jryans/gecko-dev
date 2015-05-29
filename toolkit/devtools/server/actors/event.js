@@ -47,21 +47,31 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     return this._layoutHelpers;
   },
 
-  utilsMouseEvents: [
-    "mousedown",
-    "mouseup",
-    "mousemove",
-    "mouseover",
-    "mouseout",
-    "contextmenu",
-    "MozMouseHittest",
-  ],
+  eventRouting: {
+    "click": { type: "Mouse" },
+    "dblclick": { type: "Mouse" },
+    "contextmenu": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "keydown": { type: "Keyboard", dispatch: "sendKeyEvent" },
+    "keypress": { type: "Keyboard", dispatch: "sendKeyEvent" },
+    "keyup": { type: "Keyboard", dispatch: "sendKeyEvent" },
+    "mousedown": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "mouseenter": { type: "Mouse" },
+    "mouseleave": { type: "Mouse" },
+    "mousemove": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "mouseout": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "mouseover": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "mouseup": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "MozMouseHittest": { type: "Mouse", dispatch: "sendMouseEvent" },
+  },
 
   dispatch: method(function(eventSpec) {
-    if (this.utilsMouseEvents.some(v => v == eventSpec.type)) {
-      // Some mouse events should be dispatched via DOMWindowUtils to ensure
-      // they act like real user input.
-      this.sendMouseEvent(eventSpec);
+    // Some events should be dispatched via internal methods to ensure they act
+    // like real user input.
+    let routing = this.eventRouting[eventSpec.type];
+    let dispatch = routing.dispatch;
+    if (dispatch) {
+      this[dispatch](eventSpec);
+      return;
     }
     // TODO: Clamp other positions to offsetX/Y somewhere
     let x = eventSpec.offsetX;
@@ -71,13 +81,21 @@ let EventActor = exports.EventActor = protocol.ActorClass({
       return;
     }
     let elementWindow = element.ownerDocument.defaultView;
-    let MouseEvent = elementWindow.MouseEvent;
-    let event = new MouseEvent(eventSpec.type, eventSpec);
+    let constuctorType = `${routing.type}Event`;
+    let Event = elementWindow[constuctorType];
+    let event = new Event(eventSpec.type, eventSpec);
     element.dispatchEvent(event);
   }, {
     request: { eventSpec: Arg(0, "json") },
     oneway: true
   }),
+
+  sendKeyEvent(eventSpec) {
+    let modifiers = this._parseModifiers(eventSpec);
+    this.utils.sendKeyEvent(eventSpec.type, eventSpec.keyCode,
+                            eventSpec.charCode, modifiers,
+                            this.utils.KEY_FLAG_NOT_SYNTHESIZED_FOR_TESTS);
+  },
 
   sendMouseEvent(eventSpec) {
     // TODO: Clamp other positions to offsetX/Y somewhere
@@ -141,7 +159,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
       mval |= this.utils.MODIFIER_OS;
     }
     return mval;
-  }
+  },
 
 });
 

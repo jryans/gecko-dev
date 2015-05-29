@@ -1511,6 +1511,9 @@ SimulatorResponsiveBrowser.prototype = {
   events: [
     "click",
     "dblclick",
+    "keydown",
+    "keypress",
+    "keyup",
     "mousedown",
     "mouseenter",
     "mouseleave",

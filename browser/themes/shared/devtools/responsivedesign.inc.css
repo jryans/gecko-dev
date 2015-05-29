@@ -16,6 +16,10 @@
   display: block;
 }
 
+html|*.responsive-portal:-moz-focusring {
+  outline: none;
+}
+
 .responsive-header {
   text-shadow: none;
   padding: 3px 0;

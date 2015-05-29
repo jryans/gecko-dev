@@ -81,6 +81,9 @@ Portal.prototype = {
 
   initCanvas() {
     this.canvas = this.document.createElementNS(HTML_NS, "canvas");
+    this.canvas.className = "responsive-portal";
+    // Allows canvas to be focusable for keyboard events
+    this.canvas.setAttribute("tabindex", "0");
     this.setCanvasSize();
     this.canvas.style.width = "100%";
     this.canvas.style.height = "100%";
