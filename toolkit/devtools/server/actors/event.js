@@ -5,6 +5,7 @@
 "use strict";
 
 const { Ci } = require("chrome");
+const Services = require("Services");
 const protocol = require("devtools/server/protocol");
 const { method, Arg } = protocol;
 const { DebuggerServer } = require("devtools/server/main");
