@@ -8,9 +8,7 @@ let isMulet = "ResponsiveUI" in browserWindow;
 // Enable touch event shim on desktop that translates mouse events
 // into touch ones
 function enableTouch() {
-  let require = Cu.import('resource://gre/modules/devtools/Loader.jsm', {})
-                  .devtools.require;
-  let { TouchEventHandler } = require('devtools/touch-events');
+  let { TouchEventHandler } = Cu.import('resource://gre/modules/devtools/touch-events.js', {});
   let chromeEventHandler = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                  .getInterface(Ci.nsIWebNavigation)
                                  .QueryInterface(Ci.nsIDocShell)

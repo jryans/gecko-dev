@@ -3,7 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let {CC, Cc, Ci, Cu, Cr} = require('chrome');
+const Cu = Components.utils;
+const Ci = Components.interfaces;
 
 Cu.import('resource://gre/modules/Services.jsm');
 
@@ -23,9 +24,11 @@ let systemAppOrigin = (function() {
 
 let trackedWindows = new WeakMap();
 
+this.EXPORTED_SYMBOLS = ['TouchEventHandler'];
+
 // =================== Touch ====================
 // Simulate touch events on desktop
-function TouchEventHandler (window) {
+this.TouchEventHandler = function TouchEventHandler (window) {
   // Returns an already instanciated handler for this window
   let cached = trackedWindows.get(window);
   if (cached) {
@@ -276,5 +279,3 @@ function TouchEventHandler (window) {
 
   return TouchEventHandler;
 }
-
-exports.TouchEventHandler = TouchEventHandler;

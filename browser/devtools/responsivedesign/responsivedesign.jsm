@@ -22,7 +22,8 @@ let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let {require} = devtools;
 let Telemetry = require("devtools/shared/telemetry");
 let {showDoorhanger} = require("devtools/shared/doorhanger");
-let {TouchEventHandler} = require("devtools/touch-events");
+XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
+                                  "resource://gre/modules/devtools/touch-events.js");
 let {Simulator} = require("devtools/webide/simulators");
 let {ConnectionManager, Connection} =
   require("devtools/client/connection-manager");
@@ -1440,7 +1441,7 @@ SimulatorResponsiveBrowser.prototype = {
     this.simulator = new Simulator({
       width: this.viewport.width,
       height: this.viewport.height,
-      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-release-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
+      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-debug-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
       gaiaProfile: "/Users/jryans/projects/mozilla/gaia/profile",
     });
 
