@@ -48,9 +48,11 @@ let EventActor = exports.EventActor = protocol.ActorClass({
   },
 
   eventRouting: {
+    "blur": { type: "Focus" },
     "click": { type: "Mouse" },
     "dblclick": { type: "Mouse" },
     "contextmenu": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "focus": { type: "Focus" },
     "keydown": { type: "Keyboard", dispatch: "sendKeyEvent" },
     "keypress": { type: "Keyboard", dispatch: "sendKeyEvent" },
     "keyup": { type: "Keyboard", dispatch: "sendKeyEvent" },
@@ -74,13 +76,11 @@ let EventActor = exports.EventActor = protocol.ActorClass({
       this[dispatch](eventSpec);
       return;
     }
-    // TODO: Clamp other positions to offsetX/Y somewhere
-    let x = eventSpec.offsetX;
-    let y = eventSpec.offsetY;
-    let element = this.layoutHelpers.getElementFromPoint(this.document, x, y);
+    let element = this.getTargetElement(eventSpec);
     if (!element) {
-      return;
+      throw new Error("Dispatch failed, no target element found.");
     }
+    this.recordFocusableElement(element);
     let elementWindow = element.ownerDocument.defaultView;
     let constuctorType = `${routing.type}Event`;
     let Event = elementWindow[constuctorType];
@@ -90,6 +90,17 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     request: { eventSpec: Arg(0, "json") },
     oneway: true
   }),
+
+  getTargetElement(eventSpec) {
+    let routing = this.eventRouting[eventSpec.type];
+    if (routing.type === "Focus") {
+      return this.focusedElement;
+    }
+    // TODO: Clamp other positions to offsetX/Y somewhere
+    let x = eventSpec.offsetX;
+    let y = eventSpec.offsetY;
+    return this.layoutHelpers.getElementFromPoint(this.document, x, y);
+  },
 
   sendKeyEvent(eventSpec) {
     let modifiers = this._parseModifiers(eventSpec);
@@ -123,6 +134,38 @@ let EventActor = exports.EventActor = protocol.ActorClass({
                               eventSpec.deltaZ, eventSpec.deltaMode, modifiers,
                               0 /* aLineOrPageDeltaX */,
                               0 /* aLineOrPageDeltaY */, 0 /* aOptions */);
+  },
+
+  /**
+   * If the event targets a focusable element, record for next time we are
+   * focused.
+   */
+  recordFocusableElement(element) {
+    if (this._isFocusableElement(element)) {
+      this.focusedElement = element;
+    }
+  },
+
+  // Taken from dom/inputmethod/forms.js
+  ignoredInputTypes: new Set([
+    'button', 'file', 'checkbox', 'radio', 'reset', 'submit', 'image',
+    'range'
+  ]),
+
+  // Taken from dom/inputmethod/forms.js
+  _isFocusableElement(element) {
+    if (element instanceof Ci.nsIDOMHTMLSelectElement ||
+        element instanceof Ci.nsIDOMHTMLTextAreaElement) {
+      return true;
+    }
+
+    if (element instanceof Ci.nsIDOMHTMLOptionElement &&
+        element.parentNode instanceof Ci.nsIDOMHTMLSelectElement) {
+      return true;
+    }
+
+    return (element instanceof Ci.nsIDOMHTMLInputElement &&
+            !this.ignoredInputTypes.has(element.type));
   },
 
   _parseModifiers(eventSpec) {

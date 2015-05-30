@@ -26,8 +26,10 @@ let PortalEvents = exports.PortalEvents = function(options) {
 PortalEvents.prototype = {
 
   events: [
+    "blur",
     "click",
     "dblclick",
+    "focus",
     "keydown",
     "keypress",
     "keyup",
