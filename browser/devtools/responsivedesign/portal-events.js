@@ -12,13 +12,13 @@ loader.lazyRequireGetter(this, "EventFront",
  * device.
  * @param options
  *        {
- *          container: Element to listen for events from
+ *          element: Element to listen for events from
  *          client: RDP client
  *          form: global / tab actor form
  *        }
  */
 let PortalEvents = exports.PortalEvents = function(options) {
-  this.container = options.container;
+  this.element = options.element;
   this.client = options.client;
   this.form = options.form;
 };
@@ -53,13 +53,13 @@ PortalEvents.prototype = {
 
   init() {
     this.events.forEach(type => {
-      this.container.addEventListener(type, this, true);
+      this.element.addEventListener(type, this, true);
     });
   },
 
   destroy() {
     this.events.forEach(type => {
-      this.container.removeEventListener(type, this, true);
+      this.element.removeEventListener(type, this, true);
     });
   },
 

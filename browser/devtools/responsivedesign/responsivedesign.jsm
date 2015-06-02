@@ -1441,12 +1441,12 @@ SimulatorResponsiveBrowser.prototype = {
     this.simulator = new Simulator({
       width: this.viewport.width,
       height: this.viewport.height,
-      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-debug-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
+      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-release-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
       gaiaProfile: "/Users/jryans/projects/mozilla/gaia/profile",
     });
 
     let port = yield this.simulator.launch();
-    yield this.connect(port);
+    this.connection = yield this.connect(port);
 
     this.form = yield this.listTabs();
     this._windowInfo = yield this.window.info();
@@ -1454,7 +1454,14 @@ SimulatorResponsiveBrowser.prototype = {
     this.portal = new Portal(this);
     yield this.portal.build();
 
-    this.portalEvents = new PortalEvents(this);
+    let self = this;
+    this.portalEvents = new PortalEvents({
+      get element() {
+        return self.portal.canvas;
+      },
+      client: this.client,
+      form: this.form
+    });
     this.portalEvents.init();
 
     yield this.addTab();
@@ -1477,15 +1484,15 @@ SimulatorResponsiveBrowser.prototype = {
 
   connect(port) {
     let deferred = promise.defer();
-    this.connection = ConnectionManager.createConnection("localhost", port);
-    this.connection.keepConnecting = true;
-    this.connection.once(Connection.Events.CONNECTED, () => {
-      deferred.resolve();
+    let connection = ConnectionManager.createConnection("localhost", port);
+    connection.keepConnecting = true;
+    connection.once(Connection.Events.CONNECTED, () => {
+      deferred.resolve(connection);
     });
-    this.connection.once(Connection.Events.DISCONNECTED, () => {
+    connection.once(Connection.Events.DISCONNECTED, () => {
       this.simulator.kill();
     });
-    this.connection.connect();
+    connection.connect();
     return deferred.promise;
   },
 
