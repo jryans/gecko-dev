@@ -218,12 +218,12 @@ interface nsIFocusManager : nsISupports
   /**
    * Called when a window has been raised.
    */
-  [noscript] void windowRaised(in nsIDOMWindow aWindow);
+  void windowRaised(in nsIDOMWindow aWindow);
 
   /**
    * Called when a window has been lowered.
    */
-  [noscript] void windowLowered(in nsIDOMWindow aWindow);
+  void windowLowered(in nsIDOMWindow aWindow);
 
   /**
    * Called when a new document in a window is shown.

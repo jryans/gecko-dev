@@ -253,7 +253,7 @@ nsFocusManager::Observe(nsISupports *aSubject,
   return NS_OK;
 }
 
-// given a frame content node, retrieve the nsIDOMWindow displayed in it 
+// given a frame content node, retrieve the nsIDOMWindow displayed in it
 static nsPIDOMWindow*
 GetContentWindow(nsIContent* aContent)
 {
@@ -267,7 +267,7 @@ GetContentWindow(nsIContent* aContent)
   return nullptr;
 }
 
-// get the current window for the given content node 
+// get the current window for the given content node
 static nsPIDOMWindow*
 GetCurrentWindow(nsIContent* aContent)
 {
@@ -636,6 +636,7 @@ NS_IMETHODIMP
 nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
+  window = window->GetOuterWindow();
   NS_ENSURE_TRUE(window && window->IsOuterWindow(), NS_ERROR_INVALID_ARG);
 
   if (MOZ_LOG_TEST(gFocusLog, LogLevel::Debug)) {
@@ -732,6 +733,7 @@ NS_IMETHODIMP
 nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
+  window = window->GetOuterWindow();
   NS_ENSURE_TRUE(window && window->IsOuterWindow(), NS_ERROR_INVALID_ARG);
 
   if (MOZ_LOG_TEST(gFocusLog, LogLevel::Debug)) {
@@ -1189,7 +1191,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, int32_t aFlags,
     docShell = do_QueryInterface(parentDsti);
   }
 
-  // if the new element is in the same window as the currently focused element 
+  // if the new element is in the same window as the currently focused element
   bool isElementInFocusedWindow = (mFocusedWindow == newWindow);
 
   if (!isElementInFocusedWindow && mFocusedWindow && newWindow &&
@@ -1418,7 +1420,7 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
     nsCOMPtr<Element> frameElement = window->GetFrameElementInternal();
 
     nsCOMPtr<nsIDocShellTreeItem> dsti = window->GetDocShell();
-    if (!dsti) 
+    if (!dsti)
       return;
     nsCOMPtr<nsIDocShellTreeItem> parentDsti;
     dsti->GetParent(getter_AddRefs(parentDsti));
@@ -1549,7 +1551,7 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, uint32_t aFlags)
                         ui->mUserFocus == NS_STYLE_USER_FOCUS_NONE) ? -1 : 0;
     return aContent->IsFocusable(&tabIndex, aFlags & FLAG_BYMOUSE) ? aContent : nullptr;
   }
-  
+
   return frame->IsFocusable(nullptr, aFlags & FLAG_BYMOUSE) ? aContent : nullptr;
 }
 
@@ -2303,7 +2305,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
 
       startContent = do_QueryInterface(startNode);
       if (startContent && startContent->IsElement()) {
-        NS_ASSERTION(startOffset >= 0, "Start offset cannot be negative");  
+        NS_ASSERTION(startOffset >= 0, "Start offset cannot be negative");
         childContent = startContent->GetChildAt(startOffset);
         if (childContent) {
           startContent = childContent;
@@ -2451,7 +2453,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
     NS_IF_ADDREF(*aNextContent = GetNextTabbableDocument(startContent, false));
     return NS_OK;
   }
-  
+
   nsIContent* rootContent = doc->GetRootElement();
   NS_ENSURE_TRUE(rootContent, NS_OK);
 
@@ -3106,7 +3108,7 @@ nsFocusManager::GetLastDocShell(nsIDocShellTreeItem* aItem,
       return;
     }
 
-    
+
     curItem->GetChildAt(childCount - 1, getter_AddRefs(curItem));
   }
 }

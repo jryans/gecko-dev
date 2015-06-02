@@ -146,7 +146,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   // XXX: need to get the default window size from prefs...
   // Doesn't come from prefs... will come from CSS/XUL/RDF
   nsIntRect r(initialX, initialY, aInitialWidth, aInitialHeight);
-  
+
   // Create top level window
   mWindow = do_CreateInstance(kWindowCID, &rv);
   if (NS_OK != rv) {
@@ -197,7 +197,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
 
   r.x = r.y = 0;
   nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(mDocShell));
-  NS_ENSURE_SUCCESS(docShellAsWin->InitWindow(nullptr, mWindow, 
+  NS_ENSURE_SUCCESS(docShellAsWin->InitWindow(nullptr, mWindow,
    r.x, r.y, r.width, r.height), NS_ERROR_FAILURE);
   NS_ENSURE_SUCCESS(docShellAsWin->Create(), NS_ERROR_FAILURE);
 
@@ -236,7 +236,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                          nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-                     
+
   return rv;
 }
 
@@ -412,11 +412,13 @@ nsWebShellWindow::WindowActivated()
 {
   nsCOMPtr<nsIXULWindow> xulWindow(this);
 
+#ifndef MOZ_B2G
   // focusing the window could cause it to close, so keep a reference to it
   nsCOMPtr<nsIDOMWindow> window = mDocShell ? mDocShell->GetWindow() : nullptr;
   nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
   if (fm && window)
     fm->WindowRaised(window);
+#endif
 
   if (mChromeLoaded) {
     PersistentAttributesDirty(PAD_POSITION | PAD_SIZE | PAD_MISC);
@@ -429,11 +431,13 @@ nsWebShellWindow::WindowDeactivated()
 {
   nsCOMPtr<nsIXULWindow> xulWindow(this);
 
+#ifndef MOZ_B2G
   nsCOMPtr<nsPIDOMWindow> window =
     mDocShell ? mDocShell->GetWindow() : nullptr;
   nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
   if (fm && window)
     fm->WindowLowered(window);
+#endif
 }
 
 #ifdef USE_NATIVE_MENUS
@@ -546,7 +550,7 @@ nsWebShellWindow::OnStateChange(nsIWebProgress *aProgress,
 {
   // If the notification is not about a document finishing, then just
   // ignore it...
-  if (!(aStateFlags & nsIWebProgressListener::STATE_STOP) || 
+  if (!(aStateFlags & nsIWebProgressListener::STATE_STOP) ||
       !(aStateFlags & nsIWebProgressListener::STATE_IS_NETWORK)) {
     return NS_OK;
   }
@@ -596,7 +600,7 @@ nsWebShellWindow::OnLocationChange(nsIWebProgress *aProgress,
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsWebShellWindow::OnStatusChange(nsIWebProgress* aWebProgress,
                                  nsIRequest* aRequest,
                                  nsresult aStatus,
