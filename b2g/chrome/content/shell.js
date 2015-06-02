@@ -678,7 +678,6 @@ var shell = {
 
       Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
 
-      SystemAppProxy.setIsReady();
       if ('pendingChromeEvents' in shell) {
         shell.pendingChromeEvents.forEach((shell.sendChromeEvent).bind(shell));
       }
@@ -774,6 +773,9 @@ var CustomEventManager = {
       case 'copypaste-do-command':
         Services.obs.notifyObservers({ wrappedJSObject: shell.contentBrowser },
                                      'ask-children-to-execute-copypaste-command', detail.cmd);
+        break;
+      case 'activeappchanged':
+        SystemAppProxy.setIsReady();
         break;
     }
   }

@@ -37,7 +37,7 @@ let SystemAppProxy = {
   // To call when it is ready to receive events
   setIsReady: function () {
     if (this._isReady) {
-      Cu.reportError('SystemApp has already been declared as being ready.');
+      return;
     }
     this._isReady = true;
 
@@ -142,4 +142,3 @@ let SystemAppProxy = {
   }
 };
 this.SystemAppProxy = SystemAppProxy;
-
