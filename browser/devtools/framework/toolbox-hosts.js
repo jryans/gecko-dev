@@ -36,8 +36,8 @@ exports.Hosts = {
 /**
  * Host object for the dock on the bottom of the browser
  */
-function BottomHost(hostTab) {
-  this.hostTab = hostTab;
+function BottomHost(hostTab, options) {
+  this.hostTab = hostTab || options.hostTab;
 
   EventEmitter.decorate(this);
 }
@@ -167,8 +167,8 @@ BottomHost.prototype = {
 /**
  * Host object for the in-browser sidebar
  */
-function SidebarHost(hostTab) {
-  this.hostTab = hostTab;
+function SidebarHost(hostTab, options) {
+  this.hostTab = hostTab || options.hostTab;
 
   EventEmitter.decorate(this);
 }

@@ -947,6 +947,7 @@ function ResponsiveViewport(ui) {
   this.stopResizing = this.stopResizing.bind(this);
   this.onDrag = this.onDrag.bind(this);
   this.onSelectBrowserType = this.onSelectBrowserType.bind(this);
+  this.toggleToolbox = this.toggleToolbox.bind(this);
 
   this.buildUI();
   this.initSize();
@@ -964,6 +965,10 @@ ResponsiveViewport.prototype = {
 
   get viewportsContainer() {
     return this.ui.viewportsContainer;
+  },
+
+  get tab() {
+    return this.ui.tab;
   },
 
   _transitionsEnabled: true,
@@ -988,6 +993,7 @@ ResponsiveViewport.prototype = {
     }
 
     // Remove elements
+    this.toggleToolboxButton.removeEventListener("command", this.toggleToolbox, true);
     this.browserTypeMenu
         .removeEventListener("select", this.onSelectBrowserType);
     this.viewportContainer.removeChild(this.header);
@@ -1084,6 +1090,17 @@ ResponsiveViewport.prototype = {
     let spacer = this.chromeDoc.createElement("spacer");
     spacer.setAttribute("flex", "1");
     this.header.appendChild(spacer);
+
+    this.toggleToolboxButton = this.chromeDoc.createElement("toolbarbutton");
+    this.toggleToolboxButton.setAttribute("tabindex", "0");
+    this.toggleToolboxButton.setAttribute("tooltiptext",
+        Strings.GetStringFromName("responsiveUI.toggleToolbox"));
+    this.toggleToolboxButton
+        .classList.add("devtools-responsiveui-toolbarbutton");
+    this.toggleToolboxButton.classList.add("devtools-responsiveui-toolbox");
+    this.toggleToolboxButton
+        .addEventListener("command", this.toggleToolbox, true);
+    this.header.appendChild(this.toggleToolboxButton);
 
     this.buildBrowserTypeMenu();
 
@@ -1296,7 +1313,19 @@ ResponsiveViewport.prototype = {
     this.ignoreY = false;
     this.ignoreX = false;
     this.isResizing = false;
-  }
+  },
+
+  toggleToolbox: Task.async(function*() {
+    let target = yield this.responsiveBrowser.targetPromise;
+    let toolbox = gDevTools.getToolbox(target);
+    if (toolbox) {
+      toolbox.destroy();
+    } else {
+      gDevTools.showToolbox(target, null, null, {
+        hostTab: this.tab
+      });
+    }
+  }),
 
 };
 
@@ -1362,6 +1391,15 @@ LocalResponsiveBrowser.prototype = {
     return this.browser.messageManager;
   },
 
+  get targetPromise() {
+    if (this._targetPromise) {
+      return this._targetPromise;
+    }
+    this._targetPromise =
+        promise.resolve(devtools.TargetFactory.forTab(this.tab));
+    return this._targetPromise;
+  },
+
   destroy() {
     let childOff = () => {
       this.mm.removeMessageListener("ResponsiveMode:Stop:Done", childOff);
@@ -1403,6 +1441,7 @@ LocalResponsiveBrowser.prototype = {
 
 function SimulatorResponsiveBrowser(viewport) {
   this.viewport = viewport;
+  this.onTabListChanged = this.onTabListChanged.bind(this);
   this.init();
 }
 
@@ -1436,6 +1475,18 @@ SimulatorResponsiveBrowser.prototype = {
     };
   },
 
+  get targetPromise() {
+    if (this._targetPromise) {
+      return this._targetPromise;
+    }
+    this._targetPromise = devtools.TargetFactory.forRemoteTab({
+      form: this.tab,
+      client: this.client,
+      chrome: false
+    });
+    return this._targetPromise;
+  },
+
   init: Task.async(function*() {
     // TODO: Use the add-on list instead
     this.simulator = new Simulator({
@@ -1447,6 +1498,7 @@ SimulatorResponsiveBrowser.prototype = {
 
     let port = yield this.simulator.launch();
     this.connection = yield this.connect(port);
+    this.client.addListener("tabListChanged", this.onTabListChanged);
 
     this.form = yield this.listTabs();
     this._windowInfo = yield this.window.info();
@@ -1477,6 +1529,7 @@ SimulatorResponsiveBrowser.prototype = {
     }
 
     if (this.connection) {
+      this.client.removeListener("tabListChanged", this.onTabListChanged);
       this.connection.disconnect();
     }
     this.connection = null;
@@ -1514,6 +1567,13 @@ SimulatorResponsiveBrowser.prototype = {
     });
     return deferred.promise;
   },
+
+  onTabListChanged: Task.async(function*() {
+    let { tabs } = yield this.listTabs();
+    if (tabs.length > 0) {
+      this.tab = tabs[0];
+    }
+  }),
 
   setSize: Task.async(function*(width, height) {
     // resize method will adjust the outerWidth / outerHeight, but we're

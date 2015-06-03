@@ -253,6 +253,12 @@ html|*.responsive-portal:-moz-focusring {
   -moz-image-region: rect(0px, 36px, 40px, 0px);
 }
 
+.devtools-responsiveui-toolbox {
+  list-style-image: url("chrome://browser/skin/Toolbar-inverted@2x.png");
+  -moz-image-region: rect(0px, 900px, 36px, 864px);
+  filter: brightness(0.8);
+}
+
 .devtools-responsiveui-resizebarV {
   width: 7px;
   height: 24px;
