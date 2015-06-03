@@ -168,15 +168,15 @@ function ResponsiveUI(aWindow, aTab) {
   this.viewportsContainer.setAttribute("responsivemode", "true");
 
   // Let's bind some callbacks.
-  this.bound_presetSelected = this.presetSelected.bind(this);
-  this.bound_handleManualInput = this.handleManualInput.bind(this);
-  this.bound_addPreset = this.addPreset.bind(this);
-  this.bound_removePreset = this.removePreset.bind(this);
-  this.bound_rotate = this.rotate.bind(this);
-  this.bound_screenshot = () => this.screenshot();
-  this.bound_addViewport = () => this.addViewport();
-  this.bound_touch = this.toggleTouch.bind(this);
-  this.bound_close = this.close.bind(this);
+  this.presetSelected = this.presetSelected.bind(this);
+  this.handleManualInput = this.handleManualInput.bind(this);
+  this.addPreset = this.addPreset.bind(this);
+  this.removePreset = this.removePreset.bind(this);
+  this.rotate = this.rotate.bind(this);
+  this.screenshot = this.screenshot.bind(this);
+  this.addViewport = this.addViewport.bind(this);
+  this.touch = this.toggleTouch.bind(this);
+  this.close = this.close.bind(this);
 
   // Events
   this.tab.addEventListener("TabClose", this);
@@ -239,18 +239,18 @@ ResponsiveUI.prototype = {
     this.viewports = this.viewports.filter(v => v.destroy());
 
     // Remove listeners.
-    this.menulist.removeEventListener("select", this.bound_presetSelected, true);
-    this.menulist.removeEventListener("change", this.bound_handleManualInput, true);
+    this.menulist.removeEventListener("select", this.presetSelected, true);
+    this.menulist.removeEventListener("change", this.handleManualInput, true);
     this.tab.removeEventListener("TabClose", this);
     this.tabContainer.removeEventListener("TabSelect", this);
-    this.rotatebutton.removeEventListener("command", this.bound_rotate, true);
-    this.screenshotbutton.removeEventListener("command", this.bound_screenshot, true);
-    this.addviewportbutton.removeEventListener("command", this.bound_addViewport, true);
-    this.closebutton.removeEventListener("command", this.bound_close, true);
-    this.addbutton.removeEventListener("command", this.bound_addPreset, true);
-    this.removebutton.removeEventListener("command", this.bound_removePreset, true);
+    this.rotatebutton.removeEventListener("command", this.rotate, true);
+    this.screenshotbutton.removeEventListener("command", this.screenshot, true);
+    this.addviewportbutton.removeEventListener("command", this.addViewport, true);
+    this.closebutton.removeEventListener("command", this.close, true);
+    this.addbutton.removeEventListener("command", this.addPreset, true);
+    this.removebutton.removeEventListener("command", this.removePreset, true);
     if (!this.e10s) {
-      this.touchbutton.removeEventListener("command", this.bound_touch, true);
+      this.touchbutton.removeEventListener("command", this.touch, true);
     }
 
     // Remove elements.
@@ -290,9 +290,9 @@ ResponsiveUI.prototype = {
     let deferred = promise.defer();
     let mm = this.mm;
 
-    this.bound_onContentResize = this.onContentResize.bind(this);
+    this.onContentResize = this.onContentResize.bind(this);
 
-    mm.addMessageListener("ResponsiveMode:OnContentResize", this.bound_onContentResize);
+    mm.addMessageListener("ResponsiveMode:OnContentResize", this.onContentResize);
 
     mm.sendAsyncMessage("ResponsiveMode:NotifyOnResize");
     mm.addMessageListener("ResponsiveMode:NotifyOnResize:Done", function onListeningResize() {
@@ -374,20 +374,20 @@ ResponsiveUI.prototype = {
     this.menulist.className = "devtools-responsiveui-menulist";
     this.menulist.setAttribute("editable", "true");
 
-    this.menulist.addEventListener("select", this.bound_presetSelected, true);
-    this.menulist.addEventListener("change", this.bound_handleManualInput, true);
+    this.menulist.addEventListener("select", this.presetSelected, true);
+    this.menulist.addEventListener("change", this.handleManualInput, true);
 
     this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
     this.rotatebutton.setAttribute("tabindex", "0");
     this.rotatebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.rotate2"));
     this.rotatebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-rotate";
-    this.rotatebutton.addEventListener("command", this.bound_rotate, true);
+    this.rotatebutton.addEventListener("command", this.rotate, true);
 
     this.screenshotbutton = this.chromeDoc.createElement("toolbarbutton");
     this.screenshotbutton.setAttribute("tabindex", "0");
     this.screenshotbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.screenshot"));
     this.screenshotbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-screenshot";
-    this.screenshotbutton.addEventListener("command", this.bound_screenshot, true);
+    this.screenshotbutton.addEventListener("command", this.screenshot, true);
 
     this.viewportToolbar.appendChild(this.menulist);
     this.viewportToolbar.appendChild(this.rotatebutton);
@@ -397,7 +397,7 @@ ResponsiveUI.prototype = {
       this.touchbutton.setAttribute("tabindex", "0");
       this.touchbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.touch"));
       this.touchbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-touch";
-      this.touchbutton.addEventListener("command", this.bound_touch, true);
+      this.touchbutton.addEventListener("command", this.touch, true);
       this.viewportToolbar.appendChild(this.touchbutton);
     }
 
@@ -428,13 +428,13 @@ ResponsiveUI.prototype = {
     this.addviewportbutton.setAttribute("tabindex", "0");
     this.addviewportbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-add-viewport";
     this.addviewportbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.addViewport"));
-    this.addviewportbutton.addEventListener("command", this.bound_addViewport, true);
+    this.addviewportbutton.addEventListener("command", this.addViewport, true);
 
     this.closebutton = this.chromeDoc.createElement("toolbarbutton");
     this.closebutton.setAttribute("tabindex", "0");
     this.closebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-close";
     this.closebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.close"));
-    this.closebutton.addEventListener("command", this.bound_close, true);
+    this.closebutton.addEventListener("command", this.close, true);
 
     this.globalToolbar.appendChild(this.addviewportbutton);
     this.globalToolbar.appendChild(this.closebutton);
@@ -545,11 +545,11 @@ ResponsiveUI.prototype = {
     }
     this.addbutton = this.chromeDoc.createElement("menuitem");
     this.addbutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.addPreset"));
-    this.addbutton.addEventListener("command", this.bound_addPreset, true);
+    this.addbutton.addEventListener("command", this.addPreset, true);
 
     this.removebutton = this.chromeDoc.createElement("menuitem");
     this.removebutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.removePreset"));
-    this.removebutton.addEventListener("command", this.bound_removePreset, true);
+    this.removebutton.addEventListener("command", this.removePreset, true);
 
     menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
     menupopup.appendChild(this.addbutton);
@@ -943,10 +943,10 @@ function ResponsiveViewport(ui) {
   this.viewportContainer.setAttribute("responsivemode", "true");
   this.stack.setAttribute("responsivemode", "true");
 
-  this.bound_startResizing = this.startResizing.bind(this);
-  this.bound_stopResizing = this.stopResizing.bind(this);
-  this.bound_onDrag = this.onDrag.bind(this);
-  this.bound_onSelectBrowserType = this.onSelectBrowserType.bind(this);
+  this.startResizing = this.startResizing.bind(this);
+  this.stopResizing = this.stopResizing.bind(this);
+  this.onDrag = this.onDrag.bind(this);
+  this.onSelectBrowserType = this.onSelectBrowserType.bind(this);
 
   this.buildUI();
   this.initSize();
@@ -989,7 +989,7 @@ ResponsiveViewport.prototype = {
 
     // Remove elements
     this.browserTypeMenu
-        .removeEventListener("select", this.bound_onSelectBrowserType);
+        .removeEventListener("select", this.onSelectBrowserType);
     this.viewportContainer.removeChild(this.header);
 
     this.stack.removeChild(this.resizer);
@@ -1094,7 +1094,7 @@ ResponsiveViewport.prototype = {
     this.resizer.setAttribute("right", "0");
     this.resizer.setAttribute("bottom", "0");
     this.resizer.setAttribute("tooltiptext", resizerTooltip);
-    this.resizer.onmousedown = this.bound_startResizing;
+    this.resizer.onmousedown = this.startResizing;
     this.stack.appendChild(this.resizer);
 
     this.resizeBarV = this.chromeDoc.createElement("box");
@@ -1102,7 +1102,7 @@ ResponsiveViewport.prototype = {
     this.resizeBarV.setAttribute("top", "0");
     this.resizeBarV.setAttribute("right", "0");
     this.resizeBarV.setAttribute("tooltiptext", resizerTooltip);
-    this.resizeBarV.onmousedown = this.bound_startResizing;
+    this.resizeBarV.onmousedown = this.startResizing;
     this.stack.appendChild(this.resizeBarV);
 
     this.resizeBarH = this.chromeDoc.createElement("box");
@@ -1110,7 +1110,7 @@ ResponsiveViewport.prototype = {
     this.resizeBarH.setAttribute("bottom", "0");
     this.resizeBarH.setAttribute("left", "0");
     this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
-    this.resizeBarH.onmousedown = this.bound_startResizing;
+    this.resizeBarH.onmousedown = this.startResizing;
     this.stack.appendChild(this.resizeBarH);
   },
 
@@ -1124,7 +1124,7 @@ ResponsiveViewport.prototype = {
     this.browserTypeMenu.classList.add("devtools-responsiveui-menulist");
     this.browserTypeMenu.classList.add("responsive-browser-type");
     this.browserTypeMenu
-        .addEventListener("select", this.bound_onSelectBrowserType);
+        .addEventListener("select", this.onSelectBrowserType);
     this.header.appendChild(this.browserTypeMenu);
 
     // New local browsers currently refer to the primary viewport's browser when
@@ -1212,8 +1212,8 @@ ResponsiveViewport.prototype = {
   startResizing(event) {
     this.ui.startResizing();
 
-    this.mainWindow.addEventListener("mouseup", this.bound_stopResizing, true);
-    this.mainWindow.addEventListener("mousemove", this.bound_onDrag, true);
+    this.mainWindow.addEventListener("mouseup", this.stopResizing, true);
+    this.mainWindow.addEventListener("mousemove", this.onDrag, true);
 
     this._resizing = true;
     this.stack.setAttribute("notransition", "true");
@@ -1286,8 +1286,8 @@ ResponsiveViewport.prototype = {
   stopResizing() {
     this.ui.stopResizing();
 
-    this.mainWindow.removeEventListener("mouseup", this.bound_stopResizing, true);
-    this.mainWindow.removeEventListener("mousemove", this.bound_onDrag, true);
+    this.mainWindow.removeEventListener("mouseup", this.stopResizing, true);
+    this.mainWindow.removeEventListener("mousemove", this.onDrag, true);
 
     delete this._resizing;
     if (this.transitionsEnabled) {
