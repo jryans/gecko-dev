@@ -65,6 +65,10 @@ PortalEvents.prototype = {
 
   handleEvent(event) {
     this.event.dispatch(event);
+    // Stop backspace from navigating browser back
+    if (event.type == "keypress" && event.key == "Backspace") {
+      event.preventDefault();
+    }
     event.stopPropagation();
   },
 
