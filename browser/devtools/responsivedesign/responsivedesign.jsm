@@ -4,7 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cu = Components.utils;
+"use strict";
+
+const { utils: Cu, interfaces: Ci } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1395,8 +1397,17 @@ LocalResponsiveBrowser.prototype = {
     if (this._targetPromise) {
       return this._targetPromise;
     }
-    this._targetPromise =
-        promise.resolve(devtools.TargetFactory.forTab(this.tab));
+    let outerWindowID = this.browser
+                            .contentWindow
+                            .QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIDOMWindowUtils)
+                            .outerWindowID;
+    let target = devtools.TargetFactory.forTab({
+      tab: this.tab,
+      outerWindowID
+    });
+    target.once("close", () => this._targetPromise = null);
+    this._targetPromise = promise.resolve(target);
     return this._targetPromise;
   },
 

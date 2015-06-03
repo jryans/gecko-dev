@@ -28,11 +28,11 @@ exports.TargetFactory = {
    *
    * @return A target object
    */
-  forTab: function TF_forTab(tab) {
-    let target = targets.get(tab);
+  forTab: function(options) {
+    let target = targets.get(options);
     if (target == null) {
-      target = new TabTarget(tab);
-      targets.set(tab, target);
+      target = new TabTarget(options);
+      targets.set(options, target);
     }
     return target;
   },
@@ -159,7 +159,7 @@ Object.defineProperty(Target.prototype, "version", {
  * A TabTarget represents a page living in a browser tab. Generally these will
  * be web pages served over http(s), but they don't have to be.
  */
-function TabTarget(tab) {
+function TabTarget(options) {
   EventEmitter.decorate(this);
   this.destroy = this.destroy.bind(this);
   this._handleThreadState = this._handleThreadState.bind(this);
@@ -168,16 +168,20 @@ function TabTarget(tab) {
   this.activeTab = this.activeConsole = null;
   // Only real tabs need initialization here. Placeholder objects for remote
   // targets will be initialized after a makeRemote method call.
-  if (tab && !["client", "form", "chrome"].every(tab.hasOwnProperty, tab)) {
-    this._tab = tab;
+  if (!["client", "form", "chrome"].every(options.hasOwnProperty, options)) {
+    this._tab = options.tab || options;
+    this._outerWindowID = options.outerWindowID;
     this._setupListeners();
   } else {
-    this._form = tab.form;
-    this._client = tab.client;
-    this._chrome = tab.chrome;
+    this._form = options.form;
+    this._client = options.client;
+    this._chrome = options.chrome;
   }
   // Default isTabActor to true if not explicitely specified
-  this._isTabActor = typeof(tab.isTabActor) == "boolean" ? tab.isTabActor : true;
+  this._isTabActor = true;
+  if (typeof(options.isTabActor) == "boolean") {
+    this._isTabActor = options.isTabActor;
+  }
 }
 
 TabTarget.prototype = {
@@ -440,8 +444,10 @@ TabTarget.prototype = {
 
     if (this.isLocalTab) {
       this._client.connect((aType, aTraits) => {
-        this._client.getTab({ tab: this.tab })
-            .then(aResponse => {
+        this._client.getTab({
+          tab: this.tab,
+          outerWindowID: this._outerWindowID
+        }).then(aResponse => {
           this._form = aResponse.tab;
           attachTab();
         });

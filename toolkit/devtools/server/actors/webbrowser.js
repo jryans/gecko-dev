@@ -283,8 +283,12 @@ BrowserTabList.prototype._getBrowsers = function*() {
   }
 };
 
-BrowserTabList.prototype._getChildren = function(aWindow) {
-  let children = aWindow.gBrowser ? aWindow.gBrowser.browsers : [];
+BrowserTabList.prototype._getChildren = function(window) {
+  let children = [];
+  let gBrowser = window.gBrowser;
+  if (gBrowser) {
+    children = [...gBrowser.tabContainer.tabbox.querySelectorAll("browser")];
+  }
   return children ? children : [];
 };
 
