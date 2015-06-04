@@ -9,8 +9,8 @@
 const TEST_URL = TEST_BASE_HTTP + "doc_uncached.html";
 
 add_task(function*() {
-  let isTesting = gDevTools.testing;
-  gDevTools.testing = true;
+  let isTesting = DevToolsUtils.testing;
+  DevToolsUtils.testing = true;
 
   info("Opening netmonitor");
   let tab = yield addTab("about:blank");
@@ -40,5 +40,5 @@ add_task(function*() {
      "Got two requests for doc_uncached.css after Style Editor was loaded.");
   ok(attachments[1].fromCache,
      "Second request was loaded from browser cache");
-  gDevTools.testing = isTesting;
+  DevToolsUtils.testing = isTesting;
 });

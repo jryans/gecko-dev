@@ -11,7 +11,6 @@ let { Class } = require("sdk/core/heritage");
 let { EventTarget } = require("sdk/event/target");
 let events = require("sdk/event/core");
 let object = require("sdk/util/object");
-let { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
 
 exports.emit = events.emit;
 
@@ -1173,7 +1172,7 @@ let Front = Class({
       to: to || this.actorID,
       type
     };
-    if (gDevTools.testing) {
+    if (DevToolsUtils.testing) {
       request.stack = new Error().stack;
     }
     this._requests.push(request);

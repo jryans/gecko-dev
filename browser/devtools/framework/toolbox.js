@@ -22,6 +22,7 @@ let {getHighlighterUtils} = require("devtools/framework/toolbox-highlighter-util
 let HUDService = require("devtools/webconsole/hudservice");
 let {showDoorhanger} = require("devtools/shared/doorhanger");
 let sourceUtils = require("devtools/shared/source-utils");
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -398,7 +399,7 @@ Toolbox.prototype = {
       // as most tests shut down without waiting for a toolbox destruction event,
       // resulting in the shared profiler connection being opened and closed
       // outside of the test that originally opened the toolbox.
-      if (gDevTools.testing) {
+      if (DevToolsUtils.testing) {
         yield profilerReady;
       }
 
@@ -1601,7 +1602,7 @@ Toolbox.prototype = {
           this.walker.on("highlighter-ready", this._highlighterReady);
           this.walker.on("highlighter-hide", this._highlighterHidden);
 
-          let autohide = !gDevTools.testing;
+          let autohide = !DevToolsUtils.testing;
           this._highlighter = yield this._inspector.getHighlighter(autohide);
         }
       }.bind(this));
@@ -1821,7 +1822,7 @@ Toolbox.prototype = {
 
       // Force GC to prevent long GC pauses when running tests and to free up
       // memory in general when the toolbox is closed.
-      if (gDevTools.testing) {
+      if (DevToolsUtils.testing) {
         win.QueryInterface(Ci.nsIInterfaceRequestor)
            .getInterface(Ci.nsIDOMWindowUtils)
            .garbageCollect();
