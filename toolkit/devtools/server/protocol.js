@@ -4,14 +4,14 @@
 
 "use strict";
 
-let { Cu } = require("chrome");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let Services = require("Services");
 let promise = require("promise");
-let {Class} = require("sdk/core/heritage");
-let {EventTarget} = require("sdk/event/target");
+let { Class } = require("sdk/core/heritage");
+let { EventTarget } = require("sdk/event/target");
 let events = require("sdk/event/core");
 let object = require("sdk/util/object");
+let { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
 
 exports.emit = events.emit;
 
@@ -1113,9 +1113,13 @@ let Front = Class({
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
     while (this._requests && this._requests.length > 0) {
-      let { deferred, to, type } = this._requests.shift();
-      deferred.reject(new Error("Connection closed, pending request to " + to +
-                                ", type " + type + " failed"));
+      let { deferred, to, type, stack } = this._requests.shift();
+      let msg = "Connection closed, pending request to " + to +
+                ", type " + type + " failed";
+      if (stack) {
+        msg += "\n\nRequest stack:\n" + stack;
+      }
+      deferred.reject(new Error(msg));
     }
     Pool.prototype.destroy.call(this);
     this.actorID = null;
@@ -1164,11 +1168,15 @@ let Front = Class({
     let deferred = promise.defer();
     // Save packet basics for debugging
     let { to, type } = packet;
-    this._requests.push({
+    let request = {
       deferred,
       to: to || this.actorID,
       type
-    });
+    };
+    if (gDevTools.testing) {
+      request.stack = new Error().stack;
+    }
+    this._requests.push(request);
     this.send(packet);
     return deferred.promise;
   },
