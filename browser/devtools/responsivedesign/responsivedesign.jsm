@@ -8,6 +8,7 @@
 
 const { utils: Cu, interfaces: Ci } = Components;
 
+// TODO: Be lazier
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
@@ -20,20 +21,20 @@ XPCOMUtils.defineLazyGetter(this, "Strings", function () {
   return Services.strings.createBundle("chrome://browser/locale/devtools/responsiveUI.properties");
 });
 
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let {require} = devtools;
+let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let { require } = devtools;
 let Telemetry = require("devtools/shared/telemetry");
-let {showDoorhanger} = require("devtools/shared/doorhanger");
+let { showDoorhanger } = require("devtools/shared/doorhanger");
 XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
-                                  "resource://gre/modules/devtools/touch-events.js");
-let {Simulator} = require("devtools/webide/simulators");
-let {ConnectionManager, Connection} =
-  require("devtools/client/connection-manager");
+  "resource://gre/modules/devtools/touch-events.js");
+let { Simulator } = require("devtools/webide/simulators");
 let promise = require("promise");
-let {WindowFront} = require("devtools/server/actors/window");
-let {Portal} = require("devtools/portal");
-let {PortalEvents} = require("devtools/portal-events");
-let {GetDevices} = require("devtools/shared/devices");
+let { Portal } = require("devtools/portal");
+let { PortalEvents } = require("devtools/portal-events");
+let { GetDevices } = require("devtools/shared/devices");
+let { Connection } = require("devtools/client/connection-manager");
+let { ViewportTarget } = require("devtools/viewport-target");
+let { extend } = require("sdk/core/heritage");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -138,6 +139,8 @@ let presets = [
 ];
 
 function ResponsiveUI(aWindow, aTab) {
+  EventEmitter.decorate(this);
+
   this.mainWindow = aWindow;
   this.tab = aTab;
   this.tabContainer = aWindow.gBrowser.tabContainer;
@@ -279,6 +282,7 @@ ResponsiveUI.prototype = {
     this.viewports.push(viewport);
     // For now, aim the toolbar's controls at the most recent viewport
     this.editableViewport = viewport;
+    this.emit("viewports", this.viewports);
   },
 
   get primaryViewport() {
@@ -1331,8 +1335,34 @@ ResponsiveViewport.prototype = {
 
 };
 
-function LocalResponsiveBrowser(viewport) {
+function ResponsiveBrowser(viewport) {
   this.viewport = viewport;
+  this.viewportTarget = new ViewportTarget(this);
+}
+
+ResponsiveBrowser.prototype = {
+
+  get container() {
+    return this.viewport.stack;
+  },
+
+  get ui() {
+    return this.viewport.ui;
+  },
+
+  get targetPromise() {
+    return this.viewportTarget.targetPromise;
+  },
+
+  destroy() {
+    this.viewportTarget.destroy();
+    this.viewportTarget = null;
+  },
+
+};
+
+function LocalResponsiveBrowser(viewport) {
+  ResponsiveBrowser.call(this, viewport);
 
   this.buildOrAbsorbBrowser();
 
@@ -1359,18 +1389,10 @@ function LocalResponsiveBrowser(viewport) {
   }
 }
 
-LocalResponsiveBrowser.prototype = {
+LocalResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
 
   get primary() {
     return this.viewport.primary;
-  },
-
-  get stack() {
-    return this.viewport.stack;
-  },
-
-  get ui() {
-    return this.viewport.ui;
   },
 
   get mainWindow() {
@@ -1386,7 +1408,7 @@ LocalResponsiveBrowser.prototype = {
   },
 
   get browser() {
-    return this.stack.querySelector("browser");
+    return this.container.querySelector("browser");
   },
 
   get mm() {
@@ -1423,6 +1445,8 @@ LocalResponsiveBrowser.prototype = {
       // If we're not primary, remove the browser
       this.browser.remove();
     }
+
+    ResponsiveBrowser.prototype.destroy.call(this);
   },
 
   /**
@@ -1440,7 +1464,7 @@ LocalResponsiveBrowser.prototype = {
     let primaryViewport = this.ui.primaryViewport;
     let primaryBrowser = primaryViewport.responsiveBrowser.browser;
     let browser = primaryBrowser.cloneNode();
-    this.stack.appendChild(browser);
+    this.container.appendChild(browser);
     browser.loadURI(primaryBrowser.currentURI.spec);
   },
 
@@ -1448,54 +1472,21 @@ LocalResponsiveBrowser.prototype = {
     // Nothing to do here, stack's sizing is enough
   },
 
-};
+});
 
 function SimulatorResponsiveBrowser(viewport) {
-  this.viewport = viewport;
-  this.onTabListChanged = this.onTabListChanged.bind(this);
+  ResponsiveBrowser.call(this, viewport);
   this.init();
 }
 
-SimulatorResponsiveBrowser.prototype = {
-
-  get container() {
-    return this.viewport.stack;
-  },
-
-  get ui() {
-    return this.viewport.ui;
-  },
-
-  get client() {
-    return this.connection.client;
-  },
-
-  get window() {
-    if (this._window) {
-      return this._window;
-    }
-    this._window = new WindowFront(this.client, this.form);
-    return this._window;
-  },
+SimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
 
   get surface() {
     return {
-      width: this._windowInfo.innerWidth * this._windowInfo.devicePixelRatio,
-      height: this._windowInfo.innerHeight * this._windowInfo.devicePixelRatio,
-      surface: this._windowInfo.surface,
+      width: this.windowInfo.innerWidth * this.windowInfo.devicePixelRatio,
+      height: this.windowInfo.innerHeight * this.windowInfo.devicePixelRatio,
+      surface: this.windowInfo.surface,
     };
-  },
-
-  get targetPromise() {
-    if (this._targetPromise) {
-      return this._targetPromise;
-    }
-    this._targetPromise = devtools.TargetFactory.forRemoteTab({
-      form: this.tab,
-      client: this.client,
-      chrome: false
-    });
-    return this._targetPromise;
   },
 
   init: Task.async(function*() {
@@ -1506,28 +1497,8 @@ SimulatorResponsiveBrowser.prototype = {
       b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-release-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
       gaiaProfile: "/Users/jryans/projects/mozilla/gaia/profile",
     });
-
-    let port = yield this.simulator.launch();
-    this.connection = yield this.connect(port);
-    this.client.addListener("tabListChanged", this.onTabListChanged);
-
-    this.form = yield this.listTabs();
-    this._windowInfo = yield this.window.info();
-
     this.portal = new Portal(this);
-    yield this.portal.build();
-
-    let self = this;
-    this.portalEvents = new PortalEvents({
-      get element() {
-        return self.portal.canvas;
-      },
-      client: this.client,
-      form: this.form
-    });
-    this.portalEvents.init();
-
-    yield this.addTab();
+    yield this.viewportTarget.init();
   }),
 
   destroy() {
@@ -1539,63 +1510,66 @@ SimulatorResponsiveBrowser.prototype = {
       this.portal.destroy();
     }
 
-    if (this.connection) {
-      this.client.removeListener("tabListChanged", this.onTabListChanged);
-      this.connection.disconnect();
-    }
-    this.connection = null;
+    ResponsiveBrowser.prototype.destroy.call(this);
   },
 
-  connect(port) {
-    let deferred = promise.defer();
-    let connection = ConnectionManager.createConnection("localhost", port);
+  connect: Task.async(function*(connection) {
+    let port = yield this.simulator.launch();
+    connection.host = "localhost";
+    connection.port = port;
     connection.keepConnecting = true;
-    connection.once(Connection.Events.CONNECTED, () => {
-      deferred.resolve(connection);
-    });
     connection.once(Connection.Events.DISCONNECTED, () => {
       this.simulator.kill();
     });
     connection.connect();
-    return deferred.promise;
-  },
+  }),
 
-  listTabs() {
-    let deferred = promise.defer();
-    this.client.mainRoot.listTabs(response => {
-      deferred.resolve(response);
+  bootstrap: Task.async(function*(viewportTarget) {
+    this.windowInfo = yield viewportTarget.window.info();
+    yield this.portal.build();
+
+    let self = this;
+    this.portalEvents = new PortalEvents({
+      get element() {
+        return self.portal.canvas;
+      },
+      get event() {
+        return viewportTarget.event;
+      },
     });
-    return deferred.promise;
-  },
+    this.portalEvents.init();
 
-  addTab() {
+    yield this.addTab(viewportTarget);
+  }),
+
+  addTab(viewportTarget) {
     let primaryViewport = this.ui.primaryViewport;
     let primaryBrowser = primaryViewport.responsiveBrowser.browser;
     let url = primaryBrowser.contentDocument.documentURI;
     let deferred = promise.defer();
-    this.client.mainRoot.addTab({ url }, () => {
+    viewportTarget.client.mainRoot.addTab({ url }, () => {
       deferred.resolve();
     });
     return deferred.promise;
   },
 
-  onTabListChanged: Task.async(function*() {
-    let { tabs } = yield this.listTabs();
-    if (tabs.length > 0) {
-      this.tab = tabs[0];
+  select({ tabs }) {
+    if (tabs.length == 0) {
+      return null;
     }
-  }),
+    return tabs[0];
+  },
 
   setSize: Task.async(function*(width, height) {
     // resize method will adjust the outerWidth / outerHeight, but we're
     // trying to affect the innerWidth / innerHeight.
-    let info = this._windowInfo;
+    let info = this.windowInfo;
     let deltaWidth = info.outerWidth - info.innerWidth;
     let deltaHeight = info.outerHeight - info.innerHeight;
     width += deltaWidth;
     height += deltaHeight;
-    this._windowInfo = yield this.window.resize(width, height);
+    this.windowInfo = yield this.viewportTarget.window.resize(width, height);
     this.portal.resize();
   }),
 
-};
+});

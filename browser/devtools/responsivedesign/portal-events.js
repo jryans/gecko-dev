@@ -4,23 +4,18 @@
 
 "use strict";
 
-loader.lazyRequireGetter(this, "EventFront",
-                         "devtools/server/actors/event", true);
-
 /**
  * Tunnel various UI events from a given container via the RDP to another
  * device.
  * @param options
  *        {
  *          element: Element to listen for events from
- *          client: RDP client
- *          form: global / tab actor form
+ *          event: EventFront
  *        }
  */
 let PortalEvents = exports.PortalEvents = function(options) {
   this.element = options.element;
-  this.client = options.client;
-  this.form = options.form;
+  this.event = options.event;
 };
 
 PortalEvents.prototype = {
@@ -42,14 +37,6 @@ PortalEvents.prototype = {
     "mouseup",
     "wheel",
   ],
-
-  get event() {
-    if (this._event) {
-      return this._event;
-    }
-    this._event = new EventFront(this.client, this.form);
-    return this._event;
-  },
 
   init() {
     this.events.forEach(type => {
