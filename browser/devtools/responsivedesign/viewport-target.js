@@ -89,7 +89,9 @@ ViewportTarget.prototype = {
 
   destroy() {
     if (this.connection) {
-      this.client.removeListener("tabListChanged", this.onTabListChanged);
+      if (this.client) {
+        this.client.removeListener("tabListChanged", this.onTabListChanged);
+      }
       this.connection.disconnect();
     }
     this.connection = null;

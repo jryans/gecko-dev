@@ -35,6 +35,7 @@ let { GetDevices } = require("devtools/shared/devices");
 let { Connection } = require("devtools/client/connection-manager");
 let { ViewportTarget } = require("devtools/viewport-target");
 let { extend } = require("sdk/core/heritage");
+let { DebuggerServer } = require("devtools/server/main");
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -1387,6 +1388,8 @@ function LocalResponsiveBrowser(viewport) {
     this.touchEnableBefore = false;
     this.touchEventHandler = new TouchEventHandler(this.browser);
   }
+
+  this.viewportTarget.init();
 }
 
 LocalResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
@@ -1415,22 +1418,29 @@ LocalResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
     return this.browser.messageManager;
   },
 
-  get targetPromise() {
-    if (this._targetPromise) {
-      return this._targetPromise;
+  connect(connection) {
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
+    DebuggerServer.allowChromeProcess = true;
+    connection.host = null; // Force Pipe transport
+    connection.port = null;
+    connection.connect();
+  },
+
+  bootstrap() {},
+
+  select({ tabs }) {
+    if (!this.browser) {
+      return null;
     }
     let outerWindowID = this.browser
                             .contentWindow
                             .QueryInterface(Ci.nsIInterfaceRequestor)
                             .getInterface(Ci.nsIDOMWindowUtils)
                             .outerWindowID;
-    let target = devtools.TargetFactory.forTab({
-      tab: this.tab,
-      outerWindowID
-    });
-    target.once("close", () => this._targetPromise = null);
-    this._targetPromise = promise.resolve(target);
-    return this._targetPromise;
+    return tabs.find(tab => tab.outerWindowID == outerWindowID);
   },
 
   destroy() {
