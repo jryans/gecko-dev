@@ -248,6 +248,14 @@ html|*.responsive-portal:-moz-focusring {
   }
 }
 
+.devtools-responsiveui-synchronize {
+  list-style-image: url("chrome://browser/skin/devtools/synchronize.svg");
+}
+
+.devtools-responsiveui-synchronize > .toolbarbutton-icon {
+  filter: invert(1) brightness(0.8);
+}
+
 .devtools-responsiveui-add-viewport {
   list-style-image: url("chrome://browser/skin/tabbrowser/newtab-inverted@2x.png");
   -moz-image-region: rect(0px, 36px, 40px, 0px);
@@ -256,6 +264,9 @@ html|*.responsive-portal:-moz-focusring {
 .devtools-responsiveui-toolbox {
   list-style-image: url("chrome://browser/skin/Toolbar-inverted@2x.png");
   -moz-image-region: rect(0px, 900px, 36px, 864px);
+}
+
+.devtools-responsiveui-toolbox > .toolbarbutton-icon {
   filter: brightness(0.8);
 }
 

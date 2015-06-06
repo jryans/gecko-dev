@@ -29,6 +29,7 @@ let { Connection } = require("devtools/client/connection-manager");
 let { ViewportTarget } = require("devtools/viewport-target");
 let { extend } = require("sdk/core/heritage");
 let { DebuggerServer } = require("devtools/server/main");
+let { Synchronizer } = require("devtools/sync");
 
 XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
   "resource://gre/modules/devtools/touch-events.js");
@@ -186,6 +187,7 @@ function ResponsiveUI(aWindow, aTab) {
   this.removePreset = this.removePreset.bind(this);
   this.rotate = this.rotate.bind(this);
   this.screenshot = this.screenshot.bind(this);
+  this.synchronize = this.synchronize.bind(this);
   this.addViewport = this.addViewport.bind(this);
   this.touch = this.toggleTouch.bind(this);
   this.close = this.close.bind(this);
@@ -224,6 +226,8 @@ function ResponsiveUI(aWindow, aTab) {
     }
   } catch(e) {}
 
+  this.synchronizer = new Synchronizer(this);
+
   ActiveTabs.set(aTab, this);
 
   this._telemetry.toolOpened("responsive");
@@ -249,6 +253,9 @@ ResponsiveUI.prototype = {
 
     this.unCheckMenus();
 
+    this.synchronizer.destroy();
+    this.synchronizer = null;
+
     // Destroy viewports
     this.viewports = this.viewports.filter(v => v.destroy());
 
@@ -258,11 +265,16 @@ ResponsiveUI.prototype = {
     this.tab.removeEventListener("TabClose", this);
     this.tabContainer.removeEventListener("TabSelect", this);
     this.rotatebutton.removeEventListener("command", this.rotate, true);
-    this.screenshotbutton.removeEventListener("command", this.screenshot, true);
-    this.addviewportbutton.removeEventListener("command", this.addViewport, true);
+    this.screenshotbutton
+        .removeEventListener("command", this.screenshot, true);
+    this.synchronizebutton
+        .removeEventListener("command", this.synchronize, true);
+    this.addviewportbutton
+        .removeEventListener("command", this.addViewport, true);
     this.closebutton.removeEventListener("command", this.close, true);
     this.addbutton.removeEventListener("command", this.addPreset, true);
-    this.removebutton.removeEventListener("command", this.removePreset, true);
+    this.removebutton
+        .removeEventListener("command", this.removePreset, true);
     if (!this.e10s) {
       this.touchbutton.removeEventListener("command", this.touch, true);
     }
@@ -291,11 +303,15 @@ ResponsiveUI.prototype = {
     this.viewports.push(viewport);
     // For now, aim the toolbar's controls at the most recent viewport
     this.editableViewport = viewport;
-    this.emit("viewports", this.viewports);
+    this.emit("viewport-added", viewport);
   },
 
   get primaryViewport() {
     return this.viewports[0];
+  },
+
+  synchronize() {
+    this.synchronizer.start();
   },
 
   /**
@@ -364,19 +380,21 @@ ResponsiveUI.prototype = {
    *
    * <vbox class="browserContainer"> From tabbrowser.xml
    *  <toolbar class="devtools-viewport-toolbar">
-   *    <menulist class="devtools-responsiveui-menulist"/> // presets
+   *    <menulist class="devtools-responsiveui-menulist"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="rotate"/> // rotate
+   *                   tooltiptext="rotate"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="touch"/> // touch
+   *                   tooltiptext="touch"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="screenshot"/> // screenshot
+   *                   tooltiptext="screenshot"/>
    *  </toolbar>
    *  <toolbar class="devtools-global-toolbar">
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="Add Viewport"/> // add
+   *                   tooltiptext="Synchronize"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="Leave Responsive Design View"/> // close
+   *                   tooltiptext="Add Viewport"/>
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="Leave Responsive Design View"/>
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
    *    <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
@@ -451,19 +469,31 @@ ResponsiveUI.prototype = {
     this.globalToolbar = this.chromeDoc.createElement("toolbar");
     this.globalToolbar.className = "devtools-global-toolbar";
 
+    this.synchronizebutton = this.chromeDoc.createElement("toolbarbutton");
+    this.synchronizebutton.setAttribute("tabindex", "0");
+    this.synchronizebutton.classList.add("devtools-responsiveui-toolbarbutton");
+    this.synchronizebutton.classList.add("devtools-responsiveui-synchronize");
+    this.synchronizebutton.setAttribute("tooltiptext",
+      Strings.GetStringFromName("responsiveUI.synchronize"));
+    this.synchronizebutton.addEventListener("command", this.synchronize, true);
+    this.globalToolbar.appendChild(this.synchronizebutton);
+
     this.addviewportbutton = this.chromeDoc.createElement("toolbarbutton");
     this.addviewportbutton.setAttribute("tabindex", "0");
-    this.addviewportbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-add-viewport";
-    this.addviewportbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.addViewport"));
+    this.addviewportbutton.classList.add("devtools-responsiveui-toolbarbutton");
+    this.addviewportbutton.classList.add("devtools-responsiveui-add-viewport");
+    this.addviewportbutton.setAttribute("tooltiptext",
+      Strings.GetStringFromName("responsiveUI.addViewport"));
     this.addviewportbutton.addEventListener("command", this.addViewport, true);
+    this.globalToolbar.appendChild(this.addviewportbutton);
 
     this.closebutton = this.chromeDoc.createElement("toolbarbutton");
     this.closebutton.setAttribute("tabindex", "0");
-    this.closebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-close";
-    this.closebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.close"));
+    this.closebutton.classList.add("devtools-responsiveui-toolbarbutton");
+    this.closebutton.classList.add("devtools-responsiveui-close");
+    this.closebutton.setAttribute("tooltiptext",
+      Strings.GetStringFromName("responsiveUI.close"));
     this.closebutton.addEventListener("command", this.close, true);
-
-    this.globalToolbar.appendChild(this.addviewportbutton);
     this.globalToolbar.appendChild(this.closebutton);
 
     this.container.insertBefore(this.globalToolbar, this.viewportsContainer);

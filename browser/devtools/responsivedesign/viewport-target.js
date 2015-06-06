@@ -14,6 +14,8 @@ loader.lazyRequireGetter(this, "WindowFront",
                          "devtools/server/actors/window", true);
 loader.lazyRequireGetter(this, "EventFront",
                          "devtools/server/actors/event", true);
+loader.lazyRequireGetter(this, "SyncFront",
+                         "devtools/server/actors/sync", true);
 
 /**
  * Manages a DevTools target for a given responsive viewport.  The owner
@@ -53,6 +55,14 @@ ViewportTarget.prototype = {
     }
     this._event = new EventFront(this.client, this.globalForm);
     return this._event;
+  },
+
+  get sync() {
+    if (this._sync) {
+      return this._sync;
+    }
+    this._sync = new SyncFront(this.client, this.form);
+    return this._sync;
   },
 
   get targetPromise() {

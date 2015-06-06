@@ -559,6 +559,11 @@ var DebuggerServer = {
       constructor: "PromisesActor",
       type: { global: true, tab: true }
     });
+    this.registerModule("devtools/server/actors/sync", {
+      prefix: "sync",
+      constructor: "SyncActor",
+      type: { tab: true }
+    });
   },
 
   /**
