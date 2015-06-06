@@ -3,30 +3,23 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* globals TouchEventHandler, SystemAppProxy, Strings */
 
 "use strict";
 
 const { utils: Cu, interfaces: Ci } = Components;
 
 // TODO: Be lazier
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource:///modules/devtools/gDevTools.jsm");
-Cu.import("resource://gre/modules/devtools/event-emitter.js");
-Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
-                                  "resource://gre/modules/SystemAppProxy.jsm");
-XPCOMUtils.defineLazyGetter(this, "Strings", function () {
-  return Services.strings.createBundle("chrome://browser/locale/devtools/responsiveUI.properties");
-});
-
 let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let { require } = devtools;
+let Services = require("Services");
+let { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
+let { Task } = require("resource://gre/modules/Task.jsm");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
+let EventEmitter = require("devtools/toolkit/event-emitter");
+let { ViewHelpers } = require("resource:///modules/devtools/ViewHelpers.jsm");
 let Telemetry = require("devtools/shared/telemetry");
 let { showDoorhanger } = require("devtools/shared/doorhanger");
-XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
-  "resource://gre/modules/devtools/touch-events.js");
 let { Simulator } = require("devtools/webide/simulators");
 let promise = require("promise");
 let { Portal } = require("devtools/portal");
@@ -36,6 +29,15 @@ let { Connection } = require("devtools/client/connection-manager");
 let { ViewportTarget } = require("devtools/viewport-target");
 let { extend } = require("sdk/core/heritage");
 let { DebuggerServer } = require("devtools/server/main");
+
+XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
+  "resource://gre/modules/devtools/touch-events.js");
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
+XPCOMUtils.defineLazyGetter(this, "Strings", function() {
+  const props = "chrome://browser/locale/devtools/responsiveUI.properties";
+  return Services.strings.createBundle(props);
+});
 
 this.EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
@@ -50,11 +52,14 @@ const ROUND_RATIO = 10;
 
 const INPUT_PARSER = /(\d+)[^\d]+(\d+)/;
 
-const SHARED_L10N = new ViewHelpers.L10N("chrome://browser/locale/devtools/shared.properties");
+const SHARED_L10N =
+  new ViewHelpers.L10N("chrome://browser/locale/devtools/shared.properties");
+
+const PRESETS_PREF = "devtools.responsiveUI.presets";
 
 let ActiveTabs = new Map();
 
-this.ResponsiveUIManager = {
+let ResponsiveUIManager = this.ResponsiveUIManager = {
   /**
    * Check if the a tab is in a responsive mode.
    * Leave the responsive mode if active,
@@ -114,11 +119,12 @@ this.ResponsiveUIManager = {
         }
         break;
       case "resize toggle":
-          this.toggle(aWindow, aTab);
+        this.toggle(aWindow, aTab);
+        break;
       default:
     }
   }
-}
+};
 
 EventEmitter.decorate(ResponsiveUIManager);
 
@@ -152,12 +158,12 @@ function ResponsiveUI(aWindow, aTab) {
   this._telemetry = new Telemetry();
 
   // Try to load presets from prefs
-  if (Services.prefs.prefHasUserValue("devtools.responsiveUI.presets")) {
+  if (Services.prefs.prefHasUserValue(PRESETS_PREF)) {
     try {
-      presets = JSON.parse(Services.prefs.getCharPref("devtools.responsiveUI.presets"));
+      presets = JSON.parse(Services.prefs.getCharPref(PRESETS_PREF));
     } catch(e) {
-      // User pref is malformated.
-      Cu.reportError("Could not parse pref `devtools.responsiveUI.presets`: " + e);
+      // User pref is malformed.
+      Cu.reportError(`Could not parse pref "${PRESETS_PREF}": ${e}`);
     }
   }
 
@@ -166,7 +172,7 @@ function ResponsiveUI(aWindow, aTab) {
   if (Array.isArray(presets)) {
     this.presets = [this.customPreset].concat(presets);
   } else {
-    Cu.reportError("Presets value (devtools.responsiveUI.presets) is malformated.");
+    Cu.reportError(`Presets value (${PRESETS_PREF}) is malformed.`);
     this.presets = [this.customPreset];
   }
 
@@ -222,7 +228,8 @@ function ResponsiveUI(aWindow, aTab) {
 
   this._telemetry.toolOpened("responsive");
 
-  // Hook to display promotional Developer Edition doorhanger. Only displayed once.
+  // Hook to display promotional Developer Edition doorhanger.
+  // Only displayed once.
   showDoorhanger({
     window: this.mainWindow,
     type: "deveditionpromo",
@@ -234,9 +241,10 @@ ResponsiveUI.prototype = {
   /**
    * Destroy the nodes. Remove listeners. Reset the style.
    */
-  close: function RUI_close() {
-    if (this.closing)
+  close: function() {
+    if (this.closing) {
       return;
+    }
     this.closing = true;
 
     this.unCheckMenus();
@@ -299,13 +307,17 @@ ResponsiveUI.prototype = {
 
     this.onContentResize = this.onContentResize.bind(this);
 
-    mm.addMessageListener("ResponsiveMode:OnContentResize", this.onContentResize);
+    mm.addMessageListener("ResponsiveMode:OnContentResize",
+                          this.onContentResize);
 
     mm.sendAsyncMessage("ResponsiveMode:NotifyOnResize");
-    mm.addMessageListener("ResponsiveMode:NotifyOnResize:Done", function onListeningResize() {
-      mm.removeMessageListener("ResponsiveMode:NotifyOnResize:Done", onListeningResize);
+    let onListeningResize = () => {
+      mm.removeMessageListener("ResponsiveMode:NotifyOnResize:Done",
+                               onListeningResize);
       deferred.resolve();
-    });
+    };
+    mm.addMessageListener("ResponsiveMode:NotifyOnResize:Done",
+                          onListeningResize);
     return deferred.promise;
   },
 
@@ -316,7 +328,7 @@ ResponsiveUI.prototype = {
   /**
    * Handle events
    */
-  handleEvent: function (aEvent) {
+  handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "TabClose":
         this.close();
@@ -334,15 +346,17 @@ ResponsiveUI.prototype = {
   /**
    * Check the menu items.
    */
-   checkMenus: function RUI_checkMenus() {
-     this.chromeDoc.getElementById("Tools:ResponsiveUI").setAttribute("checked", "true");
+   checkMenus: function() {
+     this.chromeDoc.getElementById("Tools:ResponsiveUI")
+                   .setAttribute("checked", "true");
    },
 
   /**
    * Uncheck the menu items.
    */
-   unCheckMenus: function RUI_unCheckMenus() {
-     this.chromeDoc.getElementById("Tools:ResponsiveUI").setAttribute("checked", "false");
+   unCheckMenus: function() {
+     this.chromeDoc.getElementById("Tools:ResponsiveUI")
+                   .setAttribute("checked", "false");
    },
 
   /**
@@ -351,13 +365,18 @@ ResponsiveUI.prototype = {
    * <vbox class="browserContainer"> From tabbrowser.xml
    *  <toolbar class="devtools-viewport-toolbar">
    *    <menulist class="devtools-responsiveui-menulist"/> // presets
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="rotate"/> // rotate
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="touch"/> // touch
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="screenshot"/> // screenshot
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="rotate"/> // rotate
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="touch"/> // touch
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="screenshot"/> // screenshot
    *  </toolbar>
    *  <toolbar class="devtools-global-toolbar">
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Add Viewport"/> // add
-   *    <toolbarbutton tabindex="0" class="devtools-responsiveui-toolbarbutton" tooltiptext="Leave Responsive Design View"/> // close
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="Add Viewport"/> // add
+   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                   tooltiptext="Leave Responsive Design View"/> // close
    *  </toolbar>
    *  <hbox class="responsive-viewports"> From tabbrowser.xml
    *    <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
@@ -372,7 +391,7 @@ ResponsiveUI.prototype = {
    *  </toolbar>
    * </vbox>
    */
-  buildUI: function RUI_buildUI() {
+  buildUI: function() {
     // Toolbar
     this.viewportToolbar = this.chromeDoc.createElement("toolbar");
     this.viewportToolbar.className = "devtools-viewport-toolbar";
@@ -386,7 +405,8 @@ ResponsiveUI.prototype = {
 
     this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
     this.rotatebutton.setAttribute("tabindex", "0");
-    this.rotatebutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.rotate2"));
+    this.rotatebutton.setAttribute("tooltiptext",
+      Strings.GetStringFromName("responsiveUI.rotate2"));
     this.rotatebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-rotate";
     this.rotatebutton.addEventListener("command", this.rotate, true);
 
