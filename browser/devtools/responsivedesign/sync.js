@@ -96,7 +96,11 @@ SyncViewport.prototype = {
       let source = yield this[routing.from];
       source.off(type, this[routing.method]);
     }
-    yield this.sync.unlisten();
+    try {
+      yield this.sync.unlisten();
+    } catch(e) {
+      // May fail if tab is already gone, but actor should have cleaned up
+    }
   }),
 
   pause(type) {
