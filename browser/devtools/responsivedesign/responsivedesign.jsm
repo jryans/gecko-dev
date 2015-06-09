@@ -994,9 +994,6 @@ function ResponsiveViewport(ui) {
                  !viewports[0].hasAttribute("responsivemode");
   this.buildOrAbsorbViewport();
 
-  // Assume local to start with
-  this.responsiveBrowser = new LocalResponsiveBrowser(this);
-
   this.viewportContainer.setAttribute("responsivemode", "true");
   this.stack.setAttribute("responsivemode", "true");
 
@@ -1236,7 +1233,9 @@ ResponsiveViewport.prototype = {
     let browserTypeItem = this.browserTypeMenu.selectedItem;
     let BrowserType = this.browserTypes.get(browserTypeItem);
 
-    this.responsiveBrowser.destroy();
+    if (this.responsiveBrowser) {
+      this.responsiveBrowser.destroy();
+    }
     this.responsiveBrowser = new BrowserType(this);
   },
 
@@ -1277,7 +1276,9 @@ ResponsiveViewport.prototype = {
     // Notify UI to update the custom preset
     this.ui.updateCustomPreset(width, height);
 
-    this.responsiveBrowser.setSize(width, height);
+    if (this.responsiveBrowser) {
+      this.responsiveBrowser.setSize(width, height);
+    }
   },
 
   /**
