@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* globals LayoutHelpers, eventUtils */
 
 "use strict";
 
@@ -9,9 +10,10 @@ const Services = require("Services");
 const protocol = require("devtools/server/protocol");
 const { method, Arg } = protocol;
 const { DebuggerServer } = require("devtools/server/main");
-const Runtime = require("sdk/system/runtime");
 loader.lazyImporter(this, "LayoutHelpers",
                     "resource://gre/modules/devtools/LayoutHelpers.jsm");
+loader.lazyRequireGetter(this, "eventUtils",
+                         "devtools/server/actors/utils/event");
 
 let EventActor = exports.EventActor = protocol.ActorClass({
 
@@ -54,33 +56,32 @@ let EventActor = exports.EventActor = protocol.ActorClass({
     return this._layoutHelpers;
   },
 
-  eventRouting: {
-    "blur": { type: "Focus", dispatch: "setActiveWindow" },
+  dispatchFor: {
+    "blur": { type: "Focus", method: "setActiveWindow" },
     "click": { type: "Mouse" },
     "dblclick": { type: "Mouse" },
-    "contextmenu": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "focus": { type: "Focus", dispatch: "setActiveWindow" },
-    "keydown": { type: "Keyboard", dispatch: "sendKeyEvent" },
-    "keypress": { type: "Keyboard", dispatch: "sendKeyEvent" },
-    "keyup": { type: "Keyboard", dispatch: "sendKeyEvent" },
-    "mousedown": { type: "Mouse", dispatch: "sendMouseEvent" },
+    "contextmenu": { type: "Mouse", method: "sendMouseEvent" },
+    "focus": { type: "Focus", method: "setActiveWindow" },
+    "keydown": { type: "Keyboard", method: "sendKeyEvent" },
+    "keypress": { type: "Keyboard", method: "sendKeyEvent" },
+    "keyup": { type: "Keyboard", method: "sendKeyEvent" },
+    "mousedown": { type: "Mouse", method: "sendMouseEvent" },
     "mouseenter": { type: "Mouse" },
     "mouseleave": { type: "Mouse" },
-    "mousemove": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "mouseout": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "mouseover": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "mouseup": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "MozMouseHittest": { type: "Mouse", dispatch: "sendMouseEvent" },
-    "wheel": { type: "Wheel", dispatch: "sendWheelEvent" },
+    "mousemove": { type: "Mouse", method: "sendMouseEvent" },
+    "mouseout": { type: "Mouse", method: "sendMouseEvent" },
+    "mouseover": { type: "Mouse", method: "sendMouseEvent" },
+    "mouseup": { type: "Mouse", method: "sendMouseEvent" },
+    "MozMouseHittest": { type: "Mouse", method: "sendMouseEvent" },
+    "wheel": { type: "Wheel", method: "sendWheelEvent" },
   },
 
   dispatch: method(function(eventSpec) {
     // Some events should be dispatched via internal methods to ensure they act
     // like real user input.
-    let routing = this.eventRouting[eventSpec.type];
-    let dispatch = routing.dispatch;
-    if (dispatch) {
-      this[dispatch](eventSpec);
+    let dispatch = this.dispatchFor[eventSpec.type];
+    if (this[dispatch.method]) {
+      this[dispatch.method](eventSpec);
       return;
     }
     let element = this.getTargetElement(eventSpec);
@@ -90,7 +91,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
       throw new Error(`Dispatch failed, no target element found:\n${desc}`);
     }
     let elementWindow = element.ownerDocument.defaultView;
-    let constuctorType = `${routing.type}Event`;
+    let constuctorType = `${dispatch.type}Event`;
     let Event = elementWindow[constuctorType];
     let event = new Event(eventSpec.type, eventSpec);
     element.dispatchEvent(event);
@@ -130,14 +131,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
   },
 
   sendWheelEvent(eventSpec) {
-    // TODO: Clamp other positions to offsetX/Y somewhere
-    let x = eventSpec.offsetX;
-    let y = eventSpec.offsetY;
-    let modifiers = this._parseModifiers(eventSpec);
-    this.utils.sendWheelEvent(x, y, eventSpec.deltaX, eventSpec.deltaY,
-                              eventSpec.deltaZ, eventSpec.deltaMode, modifiers,
-                              0 /* aLineOrPageDeltaX */,
-                              0 /* aLineOrPageDeltaY */, 0 /* aOptions */);
+    eventUtils.sendWheelEvent(this.utils, eventSpec);
   },
 
   setActiveWindow(eventSpec) {
@@ -149,51 +143,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
   },
 
   _parseModifiers(eventSpec) {
-    let mval = 0;
-    if (eventSpec.shiftKey) {
-      mval |= this.utils.MODIFIER_SHIFT;
-    }
-    if (eventSpec.ctrlKey) {
-      mval |= this.utils.MODIFIER_CONTROL;
-    }
-    if (eventSpec.altKey) {
-      mval |= this.utils.MODIFIER_ALT;
-    }
-    if (eventSpec.metaKey) {
-      mval |= this.utils.MODIFIER_META;
-    }
-    if (eventSpec.accelKey) {
-      mval |= (Runtime.OS == "Darwin") ?
-        this.utils.MODIFIER_META : this.utils.MODIFIER_CONTROL;
-    }
-    if (eventSpec.altGrKey) {
-      mval |= this.utils.MODIFIER_ALTGRAPH;
-    }
-    if (eventSpec.capsLockKey) {
-      mval |= this.utils.MODIFIER_CAPSLOCK;
-    }
-    if (eventSpec.fnKey) {
-      mval |= this.utils.MODIFIER_FN;
-    }
-    if (eventSpec.fnLockKey) {
-      mval |= this.utils.MODIFIER_FNLOCK;
-    }
-    if (eventSpec.numLockKey) {
-      mval |= this.utils.MODIFIER_NUMLOCK;
-    }
-    if (eventSpec.scrollLockKey) {
-      mval |= this.utils.MODIFIER_SCROLLLOCK;
-    }
-    if (eventSpec.symbolKey) {
-      mval |= this.utils.MODIFIER_SYMBOL;
-    }
-    if (eventSpec.symbolLockKey) {
-      mval |= this.utils.MODIFIER_SYMBOLLOCK;
-    }
-    if (eventSpec.osKey) {
-      mval |= this.utils.MODIFIER_OS;
-    }
-    return mval;
+    return eventUtils.parseModifiers(this.utils, eventSpec);
   },
 
 });
