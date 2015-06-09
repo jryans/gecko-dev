@@ -65,19 +65,19 @@ ViewportTarget.prototype = {
     return this._sync;
   },
 
-  get targetPromise() {
-    if (this._targetPromise) {
-      return this._targetPromise;
+  get target() {
+    if (this._target) {
+      return this._target;
     }
     if (!this.form) {
       throw new Error("A form was never selected for this target.");
     }
-    this._targetPromise = devtools.TargetFactory.forRemoteTab({
+    this._target = devtools.TargetFactory.forRemoteTab({
       form: this.form,
       client: this.client,
       chrome: false
     });
-    return this._targetPromise;
+    return this._target;
   },
 
   init: Task.async(function*() {

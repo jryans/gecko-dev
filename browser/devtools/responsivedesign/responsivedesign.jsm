@@ -1373,7 +1373,7 @@ ResponsiveViewport.prototype = {
   },
 
   toggleToolbox: Task.async(function*() {
-    let target = yield this.responsiveBrowser.targetPromise;
+    let target = yield this.responsiveBrowser.target;
     let toolbox = gDevTools.getToolbox(target);
     if (toolbox) {
       toolbox.destroy();
@@ -1401,8 +1401,8 @@ ResponsiveBrowser.prototype = {
     return this.viewport.ui;
   },
 
-  get targetPromise() {
-    return this.viewportTarget.targetPromise;
+  get target() {
+    return this.viewportTarget.target;
   },
 
   destroy() {

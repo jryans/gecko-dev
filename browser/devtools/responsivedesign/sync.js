@@ -57,6 +57,7 @@ let SyncViewport = function(options) {
   this.synchronizer = options.synchronizer;
   this.viewport = options.viewport;
   this.onScroll = this.onScroll.bind(this);
+  this.onWillNavigate = this.onWillNavigate.bind(this);
 };
 
 SyncViewport.prototype = {
@@ -65,30 +66,71 @@ SyncViewport.prototype = {
     return this.viewport.responsiveBrowser.viewportTarget.sync;
   },
 
+  get target() {
+    return this.viewport.responsiveBrowser.viewportTarget.target;
+  },
+
   get otherViewports() {
     return this.synchronizer.syncViewports.filter(v => v !== this);
   },
 
   listenFor: {
-    "scroll": "onScroll"
+    "scroll": { from: "sync", method: "onScroll" },
+    "will-navigate": { from: "target", method: "onWillNavigate" },
   },
+
+  listeningPausedFor: new Set(),
 
   addHandlers: Task.async(function*() {
     for (let type in this.listenFor) {
-      this.sync.on(type, this[this.listenFor[type]]);
+      let routing = this.listenFor[type];
+      let source = yield this[routing.from];
+      source.on(type, this[routing.method]);
     }
     yield this.sync.listen();
   }),
 
   removeHandlers: Task.async(function*() {
     for (let type in this.listenFor) {
-      this.sync.off(type, this[this.listenFor[type]]);
+      let routing = this.listenFor[type];
+      let source = yield this[routing.from];
+      source.off(type, this[routing.method]);
     }
     yield this.sync.unlisten();
   }),
 
+  pause(type) {
+    this.listeningPausedFor.add(type);
+  },
+
+  isPaused(type) {
+    if (this.listeningPausedFor.has(type)) {
+      this.listeningPausedFor.delete(type);
+      return true;
+    }
+    return false;
+  },
+
   onScroll(eventSpec) {
-    this.otherViewports.forEach(v => v.sync.dispatch(eventSpec));
+    if (this.isPaused(eventSpec.type)) {
+      return;
+    }
+    this.otherViewports.forEach(v => {
+      // Pause scroll listening, since this will generate a scroll event
+      v.pause(eventSpec.type);
+      v.sync.dispatch(eventSpec);
+    });
+  },
+
+  onWillNavigate(type, { url }) {
+    if (this.isPaused(type)) {
+      return;
+    }
+    this.otherViewports.forEach(v => {
+      // Pause navigate listening, since this will generate a navigate event
+      v.pause(type);
+      v.sync.navigate(url);
+    });
   },
 
 };

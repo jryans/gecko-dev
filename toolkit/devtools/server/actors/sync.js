@@ -54,10 +54,9 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     "scroll": "onScroll"
   },
 
-  listeningPausedFor: new Set(),
-
   dispatchFor: {
-    "scroll": "scroll"
+    "navigate": "navigate",
+    "scroll": "scroll",
   },
 
   listen: method(function() {
@@ -69,6 +68,9 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
       let handler = this[this.listenFor[type]];
       this.window.addEventListener(type, handler, true);
     }
+    // If the page navigates, we need to rebind our listeners
+    events.once(this.tab, "will-navigate", () => this.unlisten());
+    events.once(this.tab, "navigate", () => this.listen());
   }),
 
   unlisten: method(function() {
@@ -96,22 +98,15 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     oneway: true
   }),
 
-  pause(event) {
-    this.listeningPausedFor.add(event.type);
-  },
-
-  isPaused(event) {
-    if (this.listeningPausedFor.has(event.type)) {
-      this.listeningPausedFor.delete(event.type);
-      return true;
-    }
-    return false;
-  },
+  // TODO: Probably belongs on TabActor
+  navigate: method(function(url) {
+    this.window.location = url;
+  }, {
+    request: { url: Arg(0, "string") },
+    oneway: true
+  }),
 
   onScroll(event) {
-    if (this.isPaused(event)) {
-      return;
-    }
     let element = event.target;
     if (event.target instanceof Ci.nsIDOMHTMLDocument) {
       element = event.target.documentElement;
@@ -128,8 +123,6 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     if (!target) {
       throw new Error(`Could not find element for selector ${selector}`);
     }
-    // Pause scroll listening, since this will generate our own scroll event
-    this.pause(eventSpec);
     target.scrollLeft = eventSpec.scrollLeft;
     target.scrollTop = eventSpec.scrollTop;
   },
