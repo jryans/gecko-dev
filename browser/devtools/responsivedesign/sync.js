@@ -4,50 +4,91 @@
 
 "use strict";
 
+const promise = require("promise");
+const { Task } = require("resource://gre/modules/Task.jsm");
+
 let Synchronizer = exports.Synchronizer = function(owner) {
   this.owner = owner;
-  this.viewports = owner.viewports;
   this.onViewportAdded = this.onViewportAdded.bind(this);
-  this.onEventOverheard = this.onEventOverheard.bind(this);
-  this.owner.on("viewport-added", this.onViewports);
+  this.owner.on("viewport-added", this.onViewportAdded);
+  this.syncViewports = [];
+  this.owner.viewports.forEach(v => this.onViewportAdded(null, v));
 };
 
 Synchronizer.prototype = {
 
-  get syncs() {
-    return this.viewports.map(v => v.responsiveBrowser.viewportTarget.sync);
-  },
-
-  destroy() {
+  destroy: Task.async(function*() {
     this.owner.off("viewport-added", this.onViewportAdded);
-    this.stop();
+    yield this.stop();
     this.owner = null;
-    this.viewports = null;
-  },
+    this.syncViewports = null;
+  }),
 
   onViewportAdded(_, viewport) {
-    this.viewports = this.owner.viewports;
-    let sync = viewport.responsiveBrowser.viewportTarget.sync;
-    sync.on("overheard", this.onEventOverheard);
-    sync.listen();
+    let syncViewport = new SyncViewport({
+      synchronizer: this,
+      viewport
+    });
+    this.syncViewports.push(syncViewport);
+    if (this.active) {
+      syncViewport.addHandlers();
+    }
   },
 
   start() {
-    this.syncs.forEach(sync => {
-      sync.on("overheard", this.onEventOverheard);
-      sync.listen();
-    });
+    if (this.active) {
+      return promise.resolve();
+    }
+    this.active = true;
+    return promise.all(this.syncViewports.map(v => v.addHandlers()));
   },
 
   stop() {
-    this.syncs.forEach(sync => {
-      sync.off("overheard", this.onEventOverheard);
-      sync.unlisten();
-    });
+    if (!this.active) {
+      return promise.resolve();
+    }
+    this.active = false;
+    return promise.all(this.syncViewports.map(v => v.removeHandlers()));
   },
 
-  onEventOverheard(event) {
-    console.log(event);
+};
+
+let SyncViewport = function(options) {
+  this.synchronizer = options.synchronizer;
+  this.viewport = options.viewport;
+  this.onScroll = this.onScroll.bind(this);
+};
+
+SyncViewport.prototype = {
+
+  get sync() {
+    return this.viewport.responsiveBrowser.viewportTarget.sync;
+  },
+
+  get otherViewports() {
+    return this.synchronizer.syncViewports.filter(v => v !== this);
+  },
+
+  listenFor: {
+    "scroll": "onScroll"
+  },
+
+  addHandlers: Task.async(function*() {
+    for (let type in this.listenFor) {
+      this.sync.on(type, this[this.listenFor[type]]);
+    }
+    yield this.sync.listen();
+  }),
+
+  removeHandlers: Task.async(function*() {
+    for (let type in this.listenFor) {
+      this.sync.off(type, this[this.listenFor[type]]);
+    }
+    yield this.sync.unlisten();
+  }),
+
+  onScroll(eventSpec) {
+    this.otherViewports.forEach(v => v.sync.dispatch(eventSpec));
   },
 
 };

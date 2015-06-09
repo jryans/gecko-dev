@@ -245,7 +245,7 @@ ResponsiveUI.prototype = {
   /**
    * Destroy the nodes. Remove listeners. Reset the style.
    */
-  close: function() {
+  close: Task.async(function*() {
     if (this.closing) {
       return;
     }
@@ -253,7 +253,7 @@ ResponsiveUI.prototype = {
 
     this.unCheckMenus();
 
-    this.synchronizer.destroy();
+    yield this.synchronizer.destroy();
     this.synchronizer = null;
 
     // Destroy viewports
@@ -296,7 +296,7 @@ ResponsiveUI.prototype = {
       this.touchEventHandler.stop();
     }
     this._telemetry.toolClosed("responsive");
-  },
+  }),
 
   addViewport() {
     let viewport = new ResponsiveViewport(this);
