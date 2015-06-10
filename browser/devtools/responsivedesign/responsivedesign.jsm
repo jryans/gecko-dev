@@ -187,7 +187,7 @@ function ResponsiveUI(aWindow, aTab) {
   this.removePreset = this.removePreset.bind(this);
   this.rotate = this.rotate.bind(this);
   this.screenshot = this.screenshot.bind(this);
-  this.synchronize = this.synchronize.bind(this);
+  this.toggleSynchronize = this.toggleSynchronize.bind(this);
   this.addViewport = this.addViewport.bind(this);
   this.touch = this.toggleTouch.bind(this);
   this.close = this.close.bind(this);
@@ -268,7 +268,7 @@ ResponsiveUI.prototype = {
     this.screenshotbutton
         .removeEventListener("command", this.screenshot, true);
     this.synchronizebutton
-        .removeEventListener("command", this.synchronize, true);
+        .removeEventListener("command", this.toggleSynchronize, true);
     this.addviewportbutton
         .removeEventListener("command", this.addViewport, true);
     this.closebutton.removeEventListener("command", this.close, true);
@@ -310,8 +310,15 @@ ResponsiveUI.prototype = {
     return this.viewports[0];
   },
 
-  synchronize() {
-    this.synchronizer.start();
+  toggleSynchronize() {
+    let active = this.synchronizebutton.hasAttribute("active");
+    if (!active) {
+      this.synchronizebutton.setAttribute("active", "true");
+      this.synchronizer.start();
+    } else {
+      this.synchronizebutton.removeAttribute("active");
+      this.synchronizer.stop();
+    }
   },
 
   /**
@@ -475,7 +482,8 @@ ResponsiveUI.prototype = {
     this.synchronizebutton.classList.add("devtools-responsiveui-synchronize");
     this.synchronizebutton.setAttribute("tooltiptext",
       Strings.GetStringFromName("responsiveUI.synchronize"));
-    this.synchronizebutton.addEventListener("command", this.synchronize, true);
+    this.synchronizebutton
+        .addEventListener("command", this.toggleSynchronize, true);
     this.globalToolbar.appendChild(this.synchronizebutton);
 
     this.addviewportbutton = this.chromeDoc.createElement("toolbarbutton");

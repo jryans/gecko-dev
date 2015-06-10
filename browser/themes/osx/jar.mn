@@ -491,6 +491,7 @@ browser.jar:
   skin/classic/browser/devtools/responsiveui-screenshot@2x.png   (../shared/devtools/images/responsivemode/responsiveui-screenshot@2x.png)
   skin/classic/browser/devtools/simulator.svg               (../shared/devtools/images/responsivemode/simulator.svg)
   skin/classic/browser/devtools/synchronize.svg             (../shared/devtools/images/responsivemode/synchronize.svg)
+  skin/classic/browser/devtools/unsynchronize.svg           (../shared/devtools/images/responsivemode/unsynchronize.svg)
   skin/classic/browser/devtools/toggle-tools.png            (../shared/devtools/images/toggle-tools.png)
   skin/classic/browser/devtools/toggle-tools@2x.png         (../shared/devtools/images/toggle-tools@2x.png)
   skin/classic/browser/devtools/dock-bottom@2x.png          (../shared/devtools/images/dock-bottom@2x.png)

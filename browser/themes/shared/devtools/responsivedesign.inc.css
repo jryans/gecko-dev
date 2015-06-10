@@ -252,6 +252,10 @@ html|*.responsive-portal:-moz-focusring {
   list-style-image: url("chrome://browser/skin/devtools/synchronize.svg");
 }
 
+.devtools-responsiveui-synchronize[active] {
+  list-style-image: url("chrome://browser/skin/devtools/unsynchronize.svg");
+}
+
 .devtools-responsiveui-synchronize > .toolbarbutton-icon {
   filter: invert(1) brightness(0.8);
 }
