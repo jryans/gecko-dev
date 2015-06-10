@@ -77,6 +77,7 @@ ViewportTarget.prototype = {
       client: this.client,
       chrome: false
     });
+    this._target.then(target => target.addOwner(this));
     return this._target;
   },
 
@@ -98,10 +99,14 @@ ViewportTarget.prototype = {
   },
 
   destroy() {
+    if (this.connection && this.client) {
+      this.client.removeListener("tabListChanged", this.onTabListChanged);
+    }
+    if (this._target) {
+      this._target.then(target => target.removeOwner(this));
+      this._target = null;
+    }
     if (this.connection) {
-      if (this.client) {
-        this.client.removeListener("tabListChanged", this.onTabListChanged);
-      }
       this.connection.disconnect();
     }
     this.connection = null;
@@ -118,8 +123,11 @@ ViewportTarget.prototype = {
 
   onTabListChanged: Task.async(function*() {
     this.globalForm = yield this.listTabs();
-    // It's up to |select| to find a meaningful value, and it may fail.
-    this.form = yield this.owner.select(this.globalForm);
+    // We might reach here after destruction, so ensure we still have |owner|
+    if (this.owner) {
+      // It's up to |select| to find a meaningful value, and it may fail.
+      this.form = yield this.owner.select(this.globalForm);
+    }
   }),
 
 };

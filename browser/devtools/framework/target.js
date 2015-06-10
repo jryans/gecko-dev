@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* globals XPCOMUtils, DebuggerServer, DebuggerClient */
 
 "use strict";
 
@@ -648,6 +649,24 @@ TabTarget.prototype = {
   toString: function() {
     return 'TabTarget:' + (this._tab ? this._tab : (this._form && this._form.actor));
   },
+
+  // Use a reference counting system, so targets can be shared, instead of the
+  // toolbox assuming it should destroy on close.
+  _owners: new Set(),
+
+  addOwner(owner) {
+    this._owners.add(owner);
+    return promise.resolve();
+  },
+
+  removeOwner(owner) {
+    this._owners.delete(owner);
+    if (this._owners.size == 0) {
+      return this.destroy();
+    }
+    return promise.resolve();
+  },
+
 };
 
 

@@ -116,6 +116,7 @@ const ToolboxButtons = exports.ToolboxButtons = [
  */
 function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._target = target;
+  this._target.addOwner(this);
   this._toolPanels = new Map();
   this._telemetry = new Telemetry();
 
@@ -1980,7 +1981,7 @@ Toolbox.prototype = {
       this._target = null;
       this.highlighterUtils.release();
       target.off("close", this.destroy);
-      return target.destroy();
+      return target.removeOwner(this);
     }, console.error).then(() => {
       this.emit("destroyed");
 
