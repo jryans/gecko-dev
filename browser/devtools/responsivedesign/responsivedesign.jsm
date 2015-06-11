@@ -30,6 +30,7 @@ let { ViewportTarget } = require("devtools/viewport-target");
 let { extend } = require("sdk/core/heritage");
 let { DebuggerServer } = require("devtools/server/main");
 let { Synchronizer } = require("devtools/sync");
+let { Router } = require("devtools/router");
 
 XPCOMUtils.defineLazyModuleGetter(this, "TouchEventHandler",
   "resource://gre/modules/devtools/touch-events.js");
@@ -227,6 +228,7 @@ function ResponsiveUI(aWindow, aTab) {
   } catch(e) {}
 
   this.synchronizer = new Synchronizer(this);
+  this.router = new Router(this);
 
   ActiveTabs.set(aTab, this);
 
@@ -255,6 +257,8 @@ ResponsiveUI.prototype = {
 
     yield this.synchronizer.destroy();
     this.synchronizer = null;
+    yield this.router.destroy();
+    this.router = null;
 
     // Destroy viewports
     this.viewports = this.viewports.filter(v => v.destroy());
@@ -315,9 +319,11 @@ ResponsiveUI.prototype = {
     if (!active) {
       this.synchronizebutton.setAttribute("active", "true");
       this.synchronizer.start();
+      this.router.start();
     } else {
       this.synchronizebutton.removeAttribute("active");
       this.synchronizer.stop();
+      this.router.stop();
     }
   },
 
