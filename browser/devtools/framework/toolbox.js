@@ -423,9 +423,9 @@ Toolbox.prototype = {
       // destruction event, resulting in the shared profiler connection being
       // opened and closed outside of the test that originally opened the
       // toolbox.
-      if (gDevTools.testing) {
-        yield profilerReady;
-      }
+      // if (gDevTools.testing) {
+      //   yield profilerReady;
+      // }
 
       this.emit("ready");
     }.bind(this)).then(null, console.error.bind(console));
@@ -1951,7 +1951,7 @@ Toolbox.prototype = {
     }));
 
     // Destroy the profiler connection
-    outstanding.push(this.destroyPerformance());
+    // outstanding.push(this.destroyPerformance());
 
     // We need to grab a reference to win before this._host is destroyed.
     let win = this.frame.ownerGlobal;
