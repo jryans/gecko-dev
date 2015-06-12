@@ -110,6 +110,7 @@ function TransportProxy(target) {
   this.completedRequests = [];
   this.target = target;
   this.hooks = this.target.hooks;
+  // TODO: Switch to events from the transport?
   this.target.hooks = new Proxy(this.hooks, this);
 }
 
