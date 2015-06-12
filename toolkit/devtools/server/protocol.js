@@ -885,6 +885,8 @@ let Actor = Class({
       throw ex;
     }
     packet.from = packet.from || this.actorID;
+    // TODO: Metadata for TransportProxy, find a better way
+    packet.event = true;
     this.conn.send(packet);
   },
 
@@ -1318,6 +1320,8 @@ let frontProto = function(proto) {
       }
       if (spec.oneway) {
         // Fire-and-forget oneway packets.
+        // TODO: Metadata for TransportProxy, find a better way
+        packet.oneway = true;
         this.send(packet);
         return undefined;
       }

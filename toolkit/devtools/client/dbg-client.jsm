@@ -23,7 +23,10 @@ this.EXPORTED_SYMBOLS = ["DebuggerTransport",
                          "RootClient",
                          "LongStringClient",
                          "EnvironmentClient",
-                         "ObjectClient"];
+                         "ObjectClient",
+                         "ThreadStateTypes",
+                         "UnsolicitedNotifications",
+                         "UnsolicitedPauses"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -204,7 +207,7 @@ function eventSource(aProto) {
  * Set of protocol messages that affect thread state, and the
  * state the actor is in after each message.
  */
-const ThreadStateTypes = {
+this.ThreadStateTypes = {
   "paused": "paused",
   "resumed": "attached",
   "detached": "detached"
@@ -214,7 +217,7 @@ const ThreadStateTypes = {
  * Set of protocol messages that are sent by the server without a prior request
  * by the client.
  */
-const UnsolicitedNotifications = {
+this.UnsolicitedNotifications = {
   "consoleAPICall": "consoleAPICall",
   "eventNotification": "eventNotification",
   "fileActivity": "fileActivity",
@@ -246,7 +249,7 @@ const UnsolicitedNotifications = {
  * Set of pause types that are sent by the server and not as an immediate
  * response to a client request.
  */
-const UnsolicitedPauses = {
+this.UnsolicitedPauses = {
   "resumeLimit": "resumeLimit",
   "debuggerStatement": "debuggerStatement",
   "breakpoint": "breakpoint",

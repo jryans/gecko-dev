@@ -58,9 +58,12 @@ let SyncViewport = function(options) {
   this.viewport = options.viewport;
   this.onScroll = this.onScroll.bind(this);
   this.onWillNavigate = this.onWillNavigate.bind(this);
+  this.listeningPausedFor = new Set();
 };
 
 SyncViewport.prototype = {
+
+  listeningPausedFor: null,
 
   get sync() {
     return this.viewport.responsiveBrowser.viewportTarget.sync;
@@ -78,8 +81,6 @@ SyncViewport.prototype = {
     "scroll": { from: "sync", method: "onScroll" },
     "will-navigate": { from: "target", method: "onWillNavigate" },
   },
-
-  listeningPausedFor: new Set(),
 
   addHandlers: Task.async(function*() {
     for (let type in this.listenFor) {
