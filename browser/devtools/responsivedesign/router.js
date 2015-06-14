@@ -91,7 +91,7 @@ RouterViewport.prototype = {
       return;
     }
     this.proxy.destroy();
-    target.client._transport = this.proxy.target;
+    target.client._transport = this.proxy.transport;
     this.proxy = null;
   }),
 
@@ -105,22 +105,22 @@ RouterViewport.prototype = {
  * the destination of a packet from one to connection into a match actor from a
  * different connection.
  */
-function TransportProxy(target) {
+function TransportProxy(transport) {
   this.pendingRequests = new Map();
   this.completedExchanges = [];
   this.countersByType = new Map();
   this.actorAnnouncements = new Map();
   this.send = this.send.bind(this);
   this.onPacket = this.onPacket.bind(this);
-  this.target = target;
-  this.hooks = this.target.hooks;
+  this.transport = transport;
+  this.hooks = this.transport.hooks;
   // TODO: Switch to events from the transport?
-  this.target.hooks = new Proxy(this.hooks, this);
+  this.transport.hooks = new Proxy(this.hooks, this);
 }
 
 TransportProxy.prototype = {
 
-  target: null,
+  transport: null,
 
   hooks: null,
 
@@ -150,7 +150,7 @@ TransportProxy.prototype = {
   actorAnnouncements: null,
 
   destroy() {
-    this.target.hooks = this.hooks;
+    this.transport.hooks = this.hooks;
   },
 
   get(target, name) {
@@ -169,7 +169,7 @@ TransportProxy.prototype = {
         reply: { oneway }
       });
       // Send the one-way request
-      this.target.send(packet);
+      this.transport.send(packet);
       return;
     }
     // Track new pending request
@@ -177,7 +177,7 @@ TransportProxy.prototype = {
     requestsForActor.push(packet);
     this.pendingRequests.set(to, requestsForActor);
     // Send the request
-    this.target.send(packet);
+    this.transport.send(packet);
   },
 
   onPacket(packet) {
