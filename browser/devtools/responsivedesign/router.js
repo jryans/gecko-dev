@@ -161,7 +161,7 @@ TransportProxy.prototype = {
   },
 
   send(packet) {
-    let { to, oneway } = packet;
+    let { to, _oneway: oneway } = packet;
     // Handle one-way specially
     if (oneway) {
       this.inspectCompletedExchange({
@@ -211,8 +211,8 @@ TransportProxy.prototype = {
   },
 
   isEvent(packet) {
-    let { event, type } = packet;
-    return event ||
+    let { _event, type } = packet;
+    return _event ||
            type in UnsolicitedNotifications ||
            (type == ThreadStateTypes.paused &&
             packet.why.type in UnsolicitedPauses);

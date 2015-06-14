@@ -65,12 +65,16 @@ SyncViewport.prototype = {
 
   listeningPausedFor: null,
 
+  get viewportTarget() {
+    return this.viewport.responsiveBrowser.viewportTarget;
+  },
+
   get sync() {
-    return this.viewport.responsiveBrowser.viewportTarget.sync;
+    return this.viewportTarget.sync;
   },
 
   get target() {
-    return this.viewport.responsiveBrowser.viewportTarget.target;
+    return this.viewportTarget.target;
   },
 
   get otherViewports() {
@@ -83,6 +87,7 @@ SyncViewport.prototype = {
   },
 
   addHandlers: Task.async(function*() {
+    yield this.viewportTarget.formSelected;
     for (let type in this.listenFor) {
       let routing = this.listenFor[type];
       let source = yield this[routing.from];

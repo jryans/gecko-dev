@@ -33,9 +33,14 @@ loader.lazyRequireGetter(this, "SyncFront",
 let ViewportTarget = exports.ViewportTarget = function(owner) {
   this.owner = owner;
   this.onTabListChanged = this.onTabListChanged.bind(this);
+  this.formDeferred = promise.defer();
+  this.formSelected = this.formDeferred.promise;
 };
 
 ViewportTarget.prototype = {
+
+  formDeferred: null,
+  formSelected: null,
 
   get client() {
     return this.connection.client;
@@ -127,6 +132,9 @@ ViewportTarget.prototype = {
     if (this.owner) {
       // It's up to |select| to find a meaningful value, and it may fail.
       this.form = yield this.owner.select(this.globalForm);
+      if (this.form) {
+        this.formDeferred.resolve();
+      }
     }
   }),
 
