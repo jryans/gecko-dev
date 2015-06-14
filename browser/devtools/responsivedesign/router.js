@@ -62,8 +62,12 @@ let RouterViewport = function(options) {
 
 RouterViewport.prototype = {
 
+  get viewportTarget() {
+    return this.viewport.responsiveBrowser.viewportTarget;
+  },
+
   get target() {
-    return this.viewport.responsiveBrowser.viewportTarget.target;
+    return this.viewportTarget.target;
   },
 
   get otherViewports() {
@@ -75,9 +79,10 @@ RouterViewport.prototype = {
       // Already installed
       return;
     }
+    yield this.viewportTarget.formSelected;
     let target = yield this.target;
     let transport = target.client._transport;
-    this.proxy = new TransportProxy(transport);
+    this.proxy = new TransportProxy(transport, target.form);
     target.client._transport = new Proxy(transport, this.proxy);
   }),
 
@@ -105,17 +110,20 @@ RouterViewport.prototype = {
  * the destination of a packet from one to connection into a match actor from a
  * different connection.
  */
-function TransportProxy(transport) {
+function TransportProxy(transport, rootForm) {
   this.pendingRequests = new Map();
   this.completedExchanges = [];
+  this.completedExchangesByKey = new Map();
   this.countersByType = new Map();
   this.actorAnnouncements = new Map();
+  this.actorPaths = new Map();
   this.send = this.send.bind(this);
   this.onPacket = this.onPacket.bind(this);
   this.transport = transport;
   this.hooks = this.transport.hooks;
   // TODO: Switch to events from the transport?
   this.transport.hooks = new Proxy(this.hooks, this);
+  this.bootstrap(rootForm);
 }
 
 TransportProxy.prototype = {
@@ -134,6 +142,12 @@ TransportProxy.prototype = {
   completedExchanges: null,
 
   /**
+   * Map of completed exchanges by exchange key.
+   * TODO: Reduce to actor exchanges only?
+   */
+  completedExchangesByKey: null,
+
+  /**
    * Map of packet counters per [actor, type] tuple.
    * Allows assigning unique IDs to each exchange.
    */
@@ -149,6 +163,18 @@ TransportProxy.prototype = {
    */
   actorAnnouncements: null,
 
+  /**
+   * Map of actor IDs to an array of path steps needed to find the same value:
+   * [
+   *   {
+   *     exchangeID,
+   *     keyPath
+   *   },
+   *   ...
+   * ]
+   */
+  actorPaths: null,
+
   destroy() {
     this.transport.hooks = this.hooks;
   },
@@ -160,14 +186,30 @@ TransportProxy.prototype = {
     return target[name];
   },
 
+  /**
+   * Since the router can be enabled after the target's main form was retrieved
+   * over the transport, we bootstrap our actor knowledge here by manually
+   * adding the root form.  This ensures we know the path to all the top level
+   * actors the target offers.
+   */
+  bootstrap(rootForm) {
+    this.inspectCompletedExchange(new Exchange({
+      request: { bootstrap: true },
+      reply: Object.assign({
+        from: "root",
+        type: "bootstrap",
+      }, rootForm)
+    }, this));
+  },
+
   send(packet) {
     let { to, _oneway: oneway } = packet;
     // Handle one-way specially
     if (oneway) {
-      this.inspectCompletedExchange({
+      this.inspectCompletedExchange(new Exchange({
         request: packet,
         reply: { oneway }
-      });
+      }, this));
       // Send the one-way request
       this.transport.send(packet);
       return;
@@ -184,10 +226,10 @@ TransportProxy.prototype = {
     let { from } = packet;
     // Handle events specially
     if (this.isEvent(packet)) {
-      this.inspectCompletedExchange({
+      this.inspectCompletedExchange(new Exchange({
         request: { event: true },
         reply: packet
-      });
+      }, this));
       // Deliver the event
       this.hooks.onPacket(packet);
       return;
@@ -202,10 +244,10 @@ TransportProxy.prototype = {
     if (requestsForActor.length === 0) {
       this.pendingRequests.delete(from);
     }
-    this.inspectCompletedExchange({
+    this.inspectCompletedExchange(new Exchange({
       request,
       reply: packet
-    });
+    }, this));
     // Deliver the reply
     this.hooks.onPacket(packet);
   },
@@ -219,7 +261,7 @@ TransportProxy.prototype = {
   },
 
   inspectCompletedExchange(exchange) {
-    let id = this.createExchangeID(exchange);
+    let { id, reply } = exchange;
 
     if (!id) {
       // Expected only for one-way requests, all others should continue
@@ -228,10 +270,8 @@ TransportProxy.prototype = {
       return;
     }
 
-    Object.assign(exchange, id);
-
     // Record any new actor announcements
-    this.findActorPairs(exchange.reply).forEach(([ keyPath, actorID ]) => {
+    this.findActorAnnouncements(reply).forEach(([ keyPath, actorID ]) => {
       this.actorAnnouncements.set(actorID, {
         exchangeID: id,
         keyPath
@@ -239,33 +279,116 @@ TransportProxy.prototype = {
     });
 
     this.completedExchanges.push(exchange);
+    this.completedExchangesByKey.set(exchange.key, exchange);
   },
 
-  createExchangeID({ request, reply }) {
-    let { from } = reply;
-    let type = request.type || reply.type;
-    if (!from || !type) {
-      // Expected only for one-way requests, all others should continue
-      return null;
-    }
-    let actorType = `${from}.${type}`;
-    let counter = this.countersByType.get(actorType) || 0;
-    let id = {
-      actor: from,
-      type,
-      counter
-    };
-    this.countersByType.set(actorType, ++counter);
-    return id;
-  },
-
-  findActorPairs(reply) {
+  findActorAnnouncements(reply) {
     return pairs(reply).filter(pair => this.isActor(pair));
   },
 
   isActor([ keyPath ]) {
     let last = keyPath[keyPath.length - 1];
     return last == "actor" || last.endsWith("Actor");
+  },
+
+  getActorPath(actor) {
+    if (this.actorPaths.has(actor)) {
+      return this.actorPaths.get(actor);
+    }
+
+    // Compute the full path by working back towards the root
+    // TODO: Look up intermediate paths to save time
+    let actorPath = [];
+    let currentActor = actor;
+    while (currentActor !== "root") {
+      let announcement = this.actorAnnouncements.get(currentActor);
+      if (!announcement) {
+        throw new Error(`No actor announcement for ${currentActor}`);
+      }
+      actorPath.unshift(announcement);
+      currentActor = announcement.exchangeID.actor;
+    }
+
+    this.actorPaths.set(actor, actorPath);
+    return actorPath;
+  },
+
+  findActor(actorPath) {
+    let actor = "root";
+    for (let { exchangeID, keyPath } of actorPath) {
+      let { type, counter } = exchangeID;
+      // Look up the exchange, but using *our* actor instead
+      let exchangeKey = Exchange.keyFromID({
+        actor,
+        type,
+        counter,
+      });
+      let exchange = this.completedExchangesByKey.get(exchangeKey);
+      if (!exchange) {
+        throw new Error(`No exchange for ${exchangeKey}`);
+      }
+      let { reply } = exchange;
+      actor = keyPath.reduce((object, key) => object[key], reply);
+    }
+    return actor;
+  },
+
+};
+
+function Exchange({ request, reply }, proxy) {
+  this.request = request;
+  this.reply = reply;
+  this.proxy = proxy;
+  this.createID();
+}
+
+Exchange.keyFromID = function({ actor, type, counter }) {
+  return `${actor}.${type}[${counter}]`;
+};
+
+Exchange.prototype = {
+
+  request: null,
+
+  reply: null,
+
+  proxy: null,
+
+  createID() {
+    let { from } = this.reply;
+    let type = this.request.type || this.reply.type;
+    if (!from || !type) {
+      // Expected only for one-way requests, all others should continue
+      return;
+    }
+    let actorType = `${from}.${type}`;
+    let counter = this.proxy.countersByType.get(actorType) || 0;
+    Object.assign(this, {
+      actor: from,
+      type,
+      counter
+    });
+    this.proxy.countersByType.set(actorType, ++counter);
+  },
+
+  get key() {
+    if (!this.actor) {
+      // Expected only for one-way requests, all others should continue
+      return null;
+    }
+    return Exchange.keyFromID(this);
+  },
+
+  get id() {
+    if (!this.actor) {
+      // Expected only for one-way requests, all others should continue
+      return null;
+    }
+    return {
+      actor: this.actor,
+      type: this.type,
+      counter: this.counter,
+    };
   },
 
 };

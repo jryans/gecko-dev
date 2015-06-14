@@ -40,6 +40,7 @@ let ViewportTarget = exports.ViewportTarget = function(owner) {
 ViewportTarget.prototype = {
 
   formDeferred: null,
+  // TODO: Handle this better so consumers don't need to know about this
   formSelected: null,
 
   get client() {
