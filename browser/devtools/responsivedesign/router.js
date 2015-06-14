@@ -107,7 +107,11 @@ RouterViewport.prototype = {
  */
 function TransportProxy(target) {
   this.pendingRequests = new Map();
-  this.completedRequests = [];
+  this.completedExchanges = [];
+  this.countersByType = new Map();
+  this.actorAnnouncements = new Map();
+  this.send = this.send.bind(this);
+  this.onPacket = this.onPacket.bind(this);
   this.target = target;
   this.hooks = this.target.hooks;
   // TODO: Switch to events from the transport?
@@ -127,7 +131,23 @@ TransportProxy.prototype = {
    */
   pendingRequests: null,
 
-  completedRequests: null,
+  completedExchanges: null,
+
+  /**
+   * Map of packet counters per [actor, type] tuple.
+   * Allows assigning unique IDs to each exchange.
+   */
+  countersByType: null,
+
+  /**
+   * Map of actor IDs to an object containing data about the actor's original
+   * announcement:
+   * {
+   *   exchangeID,
+   *   keyPath
+   * }
+   */
+  actorAnnouncements: null,
 
   destroy() {
     this.target.hooks = this.hooks;
@@ -144,7 +164,7 @@ TransportProxy.prototype = {
     let { to, oneway } = packet;
     // Handle one-way specially
     if (oneway) {
-      this.completedRequests.push({
+      this.inspectCompletedExchange({
         request: packet,
         reply: { oneway }
       });
@@ -164,7 +184,7 @@ TransportProxy.prototype = {
     let { from } = packet;
     // Handle events specially
     if (this.isEvent(packet)) {
-      this.completedRequests.push({
+      this.inspectCompletedExchange({
         request: { event: true },
         reply: packet
       });
@@ -177,13 +197,12 @@ TransportProxy.prototype = {
     if (!requestsForActor || requestsForActor.length === 0) {
       throw new Error(`Unexpected packet from ${from},` +
                       ` ${JSON.stringify(packet)}`);
-
     }
     let request = requestsForActor.shift();
     if (requestsForActor.length === 0) {
       this.pendingRequests.delete(from);
     }
-    this.completedRequests.push({
+    this.inspectCompletedExchange({
       request,
       reply: packet
     });
@@ -199,4 +218,76 @@ TransportProxy.prototype = {
             packet.why.type in UnsolicitedPauses);
   },
 
+  inspectCompletedExchange(exchange) {
+    let id = this.createExchangeID(exchange);
+
+    if (!id) {
+      // Expected only for one-way requests, all others should continue
+      // One-way requests can't announce actors, so we're done
+      this.completedExchanges.push(exchange);
+      return;
+    }
+
+    Object.assign(exchange, id);
+
+    // Record any new actor announcements
+    this.findActorPairs(exchange.reply).forEach(([ keyPath, actorID ]) => {
+      this.actorAnnouncements.set(actorID, {
+        exchangeID: id,
+        keyPath
+      });
+    });
+
+    this.completedExchanges.push(exchange);
+  },
+
+  createExchangeID({ request, reply }) {
+    let { from } = reply;
+    let type = request.type || reply.type;
+    if (!from || !type) {
+      // Expected only for one-way requests, all others should continue
+      return null;
+    }
+    let actorType = `${from}.${type}`;
+    let counter = this.countersByType.get(actorType) || 0;
+    let id = {
+      actor: from,
+      type,
+      counter
+    };
+    this.countersByType.set(actorType, ++counter);
+    return id;
+  },
+
+  findActorPairs(reply) {
+    return pairs(reply).filter(pair => this.isActor(pair));
+  },
+
+  isActor([ keyPath ]) {
+    let last = keyPath[keyPath.length - 1];
+    return last == "actor" || last.endsWith("Actor");
+  },
+
 };
+
+/**
+ * Collect an array of key, value tuples for each item in an object.
+ *
+ * Nested arrays and objects are also visited.
+ * Keys are expressed as an array of path segments.
+ */
+function pairs(object) {
+  let result = [];
+  for (let key in object) {
+    let value = object[key];
+    if (typeof value == "object") {
+      pairs(value).forEach(pair => {
+        pair[0].unshift(key);
+        result.push(pair);
+      });
+    } else {
+      result.push([ [ key ], value ]);
+    }
+  }
+  return result;
+}
