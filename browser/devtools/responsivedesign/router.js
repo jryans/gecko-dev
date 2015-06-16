@@ -251,7 +251,9 @@ TransportProxy.prototype = {
 
   sendAndInform(packet) {
     this.transport.send(packet);
-    if (!this.isDrivingTransport) {
+    // If this is not the driving transport (no active toolbox), or the packet
+    // is specially marked to be ignored, then nothing more to do.
+    if (!this.isDrivingTransport || packet._routerIgnore) {
       return;
     }
     let rewritePairs = this.findActorPairs(packet).map(([ keyPath, actor ]) => {

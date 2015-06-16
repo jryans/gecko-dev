@@ -156,4 +156,9 @@ exports.SyncFront = protocol.FrontClass(SyncActor, {
     this.manage(this);
   },
 
+  send(packet) {
+    packet._routerIgnore = true;
+    protocol.Front.prototype.send.call(this, packet);
+  },
+
 });
