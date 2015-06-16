@@ -74,6 +74,10 @@ RouterViewport.prototype = {
     return this.router.routerViewports.filter(v => v !== this);
   },
 
+  get hasActiveToolbox() {
+    return !!this.viewport.toolboxActive;
+  },
+
   installProxy: Task.async(function*() {
     if (this.proxy) {
       // Already installed
@@ -82,8 +86,13 @@ RouterViewport.prototype = {
     yield this.viewportTarget.formSelected;
     let target = yield this.target;
     let transport = target.client._transport;
-    this.proxy = new TransportProxy(transport, target.form);
+    this.proxy = new TransportProxy({
+      transport,
+      viewport: this,
+      rootForm: target.form,
+    });
     target.client._transport = new Proxy(transport, this.proxy);
+    dump(`Transport proxy installed\n`);
   }),
 
   uninstallProxy: Task.async(function*() {
@@ -97,6 +106,7 @@ RouterViewport.prototype = {
     }
     this.proxy.destroy();
     target.client._transport = this.proxy.transport;
+    dump(`Transport proxy uninstalled\n`);
     this.proxy = null;
   }),
 
@@ -110,7 +120,8 @@ RouterViewport.prototype = {
  * the destination of a packet from one to connection into a match actor from a
  * different connection.
  */
-function TransportProxy(transport, rootForm) {
+function TransportProxy({ transport, viewport, rootForm }) {
+  this.viewport = viewport;
   this.pendingRequests = new Map();
   this.completedExchanges = [];
   this.completedExchangesByKey = new Map();
@@ -175,8 +186,13 @@ TransportProxy.prototype = {
    */
   actorPaths: null,
 
+  get isDrivingTransport() {
+    return this.viewport.hasActiveToolbox;
+  },
+
   destroy() {
     this.transport.hooks = this.hooks;
+    this.viewport = null;
   },
 
   get(target, name) {
@@ -211,7 +227,7 @@ TransportProxy.prototype = {
         reply: { oneway }
       }, this));
       // Send the one-way request
-      this.transport.send(packet);
+      this.sendAndInform(packet);
       return;
     }
     // Track new pending request
@@ -219,7 +235,36 @@ TransportProxy.prototype = {
     requestsForActor.push(packet);
     this.pendingRequests.set(to, requestsForActor);
     // Send the request
+    this.sendAndInform(packet);
+  },
+
+  sendAndInform(packet) {
     this.transport.send(packet);
+    if (!this.isDrivingTransport) {
+      return;
+    }
+    let rewritePairs = this.findActorPairs(packet).map(([ keyPath, actor ]) => {
+      let actorPath = this.getActorPath(actor);
+      return [ keyPath, actorPath ];
+    });
+    this.viewport.otherViewports.forEach(v => {
+      let packetClone = Object.assign({}, packet);
+      v.proxy.sendAfterRewrite(packetClone, rewritePairs);
+    });
+  },
+
+  sendAfterRewrite(packet, rewritePairs) {
+    rewritePairs.forEach(([ keyPath, actorPath ]) => {
+      let actor = this.findActor(actorPath);
+      keyPath.reduce((object, key, index) => {
+        let last = index == keyPath.length - 1;
+        if (!last) {
+          return object[key];
+        }
+        object[key] = actor;
+      }, packet);
+    });
+    this.send(packet);
   },
 
   onPacket(packet) {
@@ -271,7 +316,11 @@ TransportProxy.prototype = {
     }
 
     // Record any new actor announcements
-    this.findActorAnnouncements(reply).forEach(([ keyPath, actorID ]) => {
+    this.findActorPairs(reply).forEach(([ keyPath, actorID ]) => {
+      if (this.actorAnnouncements.has(actorID)) {
+        dump(`Ignored extra announcement for ${actorID}\n`);
+        return;
+      }
       this.actorAnnouncements.set(actorID, {
         exchangeID: id,
         keyPath
@@ -282,16 +331,23 @@ TransportProxy.prototype = {
     this.completedExchangesByKey.set(exchange.key, exchange);
   },
 
-  findActorAnnouncements(reply) {
-    return pairs(reply).filter(pair => this.isActor(pair));
+  findActorPairs(packet) {
+    return pairs(packet).filter(pair => this.isActor(pair));
   },
 
-  isActor([ keyPath ]) {
+  actorFilter: /server\d+.conn\d+/,
+
+  isActor([ keyPath, value ]) {
     let last = keyPath[keyPath.length - 1];
-    return last == "actor" || last.endsWith("Actor");
+    // "from" is neither an actor announcement or rewrite pair
+    if (last === "from") {
+      return false;
+    }
+    return this.actorFilter.test(value);
   },
 
   getActorPath(actor) {
+    dump(`Get path: ${actor}\n`)
     if (this.actorPaths.has(actor)) {
       return this.actorPaths.get(actor);
     }
@@ -301,11 +357,16 @@ TransportProxy.prototype = {
     let actorPath = [];
     let currentActor = actor;
     while (currentActor !== "root") {
+      dump(`Current actor: ${currentActor}\n`)
       let announcement = this.actorAnnouncements.get(currentActor);
+      dump(`Announcement: ${JSON.stringify(announcement, null, 2)}\n`)
       if (!announcement) {
         throw new Error(`No actor announcement for ${currentActor}`);
       }
       actorPath.unshift(announcement);
+      if (currentActor == announcement.exchangeID.actor) {
+        throw new Error(`Actor announcement for ${currentActor} is cyclical`);
+      }
       currentActor = announcement.exchangeID.actor;
     }
 
@@ -328,7 +389,12 @@ TransportProxy.prototype = {
         throw new Error(`No exchange for ${exchangeKey}`);
       }
       let { reply } = exchange;
-      actor = keyPath.reduce((object, key) => object[key], reply);
+      try {
+        actor = keyPath.reduce((object, key) => object[key], reply);
+      } catch(e) {
+        throw new Error(`Failed to locate [${keyPath}] in:\n` +
+                        `${JSON.stringify(reply, null, 2)}`);
+      }
     }
     return actor;
   },

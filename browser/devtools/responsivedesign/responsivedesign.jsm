@@ -3,7 +3,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* globals TouchEventHandler, SystemAppProxy, Strings */
+/* globals gDevTools, TouchEventHandler, SystemAppProxy, Strings */
 
 "use strict";
 
@@ -1053,6 +1053,12 @@ ResponsiveViewport.prototype = {
   },
 
   destroy() {
+    if (this.toolbox) {
+      this.toolboxActive = false;
+      this.toolbox.destroy();
+      this.toolbox = null;
+    }
+
     // Reset style of the stack.
     this.stack.removeAttribute("style");
 
@@ -1389,11 +1395,13 @@ ResponsiveViewport.prototype = {
 
   toggleToolbox: Task.async(function*() {
     let target = yield this.responsiveBrowser.target;
-    let toolbox = gDevTools.getToolbox(target);
-    if (toolbox) {
-      toolbox.destroy();
+    if (this.toolboxActive) {
+      this.toolboxActive = false;
+      this.toolbox.destroy();
+      this.toolbox = null;
     } else {
-      gDevTools.showToolbox(target, null, null, {
+      this.toolboxActive = true;
+      this.toolbox = yield gDevTools.showToolbox(target, null, null, {
         hostTab: this.tab
       });
     }
