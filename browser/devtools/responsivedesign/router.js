@@ -89,7 +89,6 @@ RouterViewport.prototype = {
     this.proxy = new TransportProxy({
       transport,
       viewport: this,
-      rootForm: target.form,
     });
     target.client._transport = new Proxy(transport, this.proxy);
     dump(`Transport proxy installed\n`);
@@ -120,7 +119,7 @@ RouterViewport.prototype = {
  * the destination of a packet from one to connection into a match actor from a
  * different connection.
  */
-function TransportProxy({ transport, viewport, rootForm }) {
+function TransportProxy({ transport, viewport }) {
   this.viewport = viewport;
   this.pendingRequests = new Map();
   this.completedExchanges = [];
@@ -134,7 +133,7 @@ function TransportProxy({ transport, viewport, rootForm }) {
   this.hooks = this.transport.hooks;
   // TODO: Switch to events from the transport?
   this.transport.hooks = new Proxy(this.hooks, this);
-  this.bootstrap(rootForm);
+  this.bootstrap();
 }
 
 TransportProxy.prototype = {
@@ -205,18 +204,30 @@ TransportProxy.prototype = {
   /**
    * Since the router can be enabled after the target's main form was retrieved
    * over the transport, we bootstrap our actor knowledge here by manually
-   * adding the root form.  This ensures we know the path to all the top level
-   * actors the target offers.
+   * adding the root form and thread actor.  This ensures we know the path to
+   * all previously seen actors.
    */
-  bootstrap(rootForm) {
+  bootstrap: Task.async(function*() {
+    let target = yield this.viewport.target;
     this.inspectCompletedExchange(new Exchange({
       request: { bootstrap: true },
       reply: Object.assign({
         from: "root",
         type: "bootstrap",
-      }, rootForm)
+      }, target.form)
     }, this));
-  },
+    if (!target.threadActor) {
+      return;
+    }
+    this.inspectCompletedExchange(new Exchange({
+      request: { bootstrap: true },
+      reply: {
+        from: target.form.actor,
+        type: "tabAttached",
+        threadActor: target.threadActor,
+      }
+    }, this));
+  }),
 
   send(packet) {
     let { to, _oneway: oneway } = packet;
