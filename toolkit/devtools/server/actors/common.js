@@ -235,6 +235,10 @@ ActorPool.prototype = {
         // typeName is a convention used with protocol.js-based actors
         prefix = aActor.prototype.actorPrefix || aActor.prototype.typeName;
       }
+      if (!prefix && typeof aActor == "object") {
+        // typeName is a convention used with protocol.js-based actors
+        prefix = aActor.actorPrefix || aActor.typeName;
+      }
       aActor.actorID = this.conn.allocID(prefix || undefined);
     }
 
