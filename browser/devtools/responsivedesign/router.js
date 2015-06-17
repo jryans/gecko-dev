@@ -1,13 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* globals ThreadStateTypes, UnsolicitedNotifications, UnsolicitedPauses,
+   EventEmitter */
 
 "use strict";
 
 const promise = require("promise");
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { ThreadStateTypes, UnsolicitedNotifications, UnsolicitedPauses } =
-  require("resource://gre/modules/devtools/dbg-client.jsm");
+loader.lazyRequireGetter(this, "ThreadStateTypes",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyRequireGetter(this, "UnsolicitedNotifications",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyRequireGetter(this, "UnsolicitedPauses",
+  "resource://gre/modules/devtools/dbg-client.jsm", true);
+loader.lazyRequireGetter(this, "EventEmitter",
+  "devtools/toolkit/event-emitter");
 
 let Router = exports.Router = function(owner) {
   this.owner = owner;
@@ -134,6 +142,7 @@ function TransportProxy({ transport, viewport }) {
   // TODO: Switch to events from the transport?
   this.transport.hooks = new Proxy(this.hooks, this);
   this.bootstrap();
+  EventEmitter.decorate(this);
 }
 
 TransportProxy.prototype = {
@@ -261,23 +270,37 @@ TransportProxy.prototype = {
       return [ keyPath, actorPath ];
     });
     this.viewport.otherViewports.forEach(v => {
-      let packetClone = Object.assign({}, packet);
-      v.proxy.sendAfterRewrite(packetClone, rewritePairs);
+      v.proxy.sendAfterRewrite(packet, rewritePairs);
     });
   },
 
   sendAfterRewrite(packet, rewritePairs) {
-    rewritePairs.forEach(([ keyPath, actorPath ]) => {
-      let actor = this.findActor(actorPath);
-      keyPath.reduce((object, key, index) => {
-        let last = index == keyPath.length - 1;
-        if (!last) {
-          return object[key];
-        }
-        object[key] = actor;
-      }, packet);
-    });
-    this.send(packet);
+    let rewrittenPacket = Object.assign({}, packet);
+    try {
+      rewritePairs.forEach(([ keyPath, actorPath ]) => {
+        let actor = this.findActor(actorPath);
+        keyPath.reduce((object, key, index) => {
+          let last = index == keyPath.length - 1;
+          if (!last) {
+            return object[key];
+          }
+          object[key] = actor;
+        }, rewrittenPacket);
+      });
+    } catch(e) {
+      if (!e.exchangeKey) {
+        throw e;
+      }
+      // We're missing an exchange key, so let's save the packet and hope that
+      // it will appear later.
+      let exchangeKey = e.exchangeKey;
+      dump(`Waiting for future exchange ${exchangeKey}\n`);
+      this.once(exchangeKey, () => {
+        dump(`Retrying after arrival of ${exchangeKey}\n`);
+        this.sendAfterRewrite(packet, rewritePairs);
+      });
+    }
+    this.send(rewrittenPacket);
   },
 
   onPacket(packet) {
@@ -342,6 +365,8 @@ TransportProxy.prototype = {
 
     this.completedExchanges.push(exchange);
     this.completedExchangesByKey.set(exchange.key, exchange);
+    // Retry any pending packets that were waiting for this exchange
+    this.emit(exchange.key);
   },
 
   findActorPairs(packet) {
@@ -399,7 +424,11 @@ TransportProxy.prototype = {
       });
       let exchange = this.completedExchangesByKey.get(exchangeKey);
       if (!exchange) {
-        throw new Error(`No exchange for ${exchangeKey}`);
+        let e = new Error(`No exchange for ${exchangeKey}`);
+        // Capture the exchangeKey so we can wait for it, in case it appears
+        // later in a future exchange.
+        e.exchangeKey = exchangeKey;
+        throw e;
       }
       let { reply } = exchange;
       try {
