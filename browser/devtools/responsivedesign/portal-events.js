@@ -22,8 +22,6 @@ PortalEvents.prototype = {
 
   events: [
     "blur",
-    "click",
-    "dblclick",
     "focus",
     "keydown",
     "keypress",
