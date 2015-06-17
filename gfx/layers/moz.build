@@ -324,7 +324,6 @@ UNIFIED_SOURCES += [
     'opengl/TextureClientOGL.cpp',
     'opengl/TextureHostOGL.cpp',
     'opengl/TexturePoolOGL.cpp',
-    'protobuf/LayerScopePacket.pb.cc',
     'ReadbackProcessor.cpp',
     'RenderTrace.cpp',
     'RotatedBuffer.cpp',
@@ -336,6 +335,7 @@ SOURCES += [
     'ImageContainer.cpp',
     'Layers.cpp',
     'LayerTreeInvalidation.cpp',
+    'protobuf/LayerScopePacket.pb.cc',
 ]
 
 # Disable RTTI in google protocol buffer

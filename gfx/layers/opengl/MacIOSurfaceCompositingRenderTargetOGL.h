@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/Attributes.h"         // for override
 #include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/gfx/MacIOSurface.h"
 #include "mozilla/gfx/Point.h"          // for IntSize, IntSizeTyped
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat, etc
 #include "mozilla/layers/Compositor.h"  // for SurfaceInitMode, etc
@@ -21,8 +22,6 @@
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_ERROR, NS_WARNING
 #include "nsString.h"                   // for nsAutoCString
-
-class MacIOSurface;
 
 namespace mozilla {
 namespace gl {
