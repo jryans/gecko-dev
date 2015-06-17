@@ -12,6 +12,10 @@
   position: relative;
 }
 
+.browserContainer[responsivemode] > statuspanel {
+  display: none;
+}
+
 .responsive-viewports[responsivemode] {
   display: block;
 }
