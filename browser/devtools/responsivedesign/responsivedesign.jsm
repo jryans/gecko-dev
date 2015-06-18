@@ -57,7 +57,11 @@ const INPUT_PARSER = /(\d+)[^\d]+(\d+)/;
 const SHARED_L10N =
   new ViewHelpers.L10N("chrome://browser/locale/devtools/shared.properties");
 
+const WIDTH_PREF = "devtools.responsiveUI.customWidth";
+const HEIGHT_PREF = "devtools.responsiveUI.customHeight";
+const CURRENT_PRESET_PREF = "devtools.responsiveUI.currentPreset";
 const PRESETS_PREF = "devtools.responsiveUI.presets";
+const ROTATE_PREF = "devtools.responsiveUI.rotate";
 
 let ActiveTabs = new Map();
 
@@ -154,39 +158,16 @@ function ResponsiveUI(aWindow, aTab) {
   this.tab = aTab;
   this.tabContainer = aWindow.gBrowser.tabContainer;
   this.chromeDoc = aWindow.document;
-  this.container = aWindow.gBrowser.getBrowserContainer(this.tab.linkedBrowser);
+  this.browserContainer =
+    aWindow.gBrowser.getBrowserContainer(this.tab.linkedBrowser);
   this.viewportsContainer =
-    this.container.querySelector(".responsive-viewports");
+    this.browserContainer.querySelector(".responsive-viewports");
   this._telemetry = new Telemetry();
 
-  // Try to load presets from prefs
-  if (Services.prefs.prefHasUserValue(PRESETS_PREF)) {
-    try {
-      presets = JSON.parse(Services.prefs.getCharPref(PRESETS_PREF));
-    } catch(e) {
-      // User pref is malformed.
-      Cu.reportError(`Could not parse pref "${PRESETS_PREF}": ${e}`);
-    }
-  }
-
-  this.customPreset = {key: "custom", custom: true};
-
-  if (Array.isArray(presets)) {
-    this.presets = [this.customPreset].concat(presets);
-  } else {
-    Cu.reportError(`Presets value (${PRESETS_PREF}) is malformed.`);
-    this.presets = [this.customPreset];
-  }
-
-  this.container.setAttribute("responsivemode", "true");
+  this.browserContainer.setAttribute("responsivemode", "true");
   this.viewportsContainer.setAttribute("responsivemode", "true");
 
   // Let's bind some callbacks.
-  this.presetSelected = this.presetSelected.bind(this);
-  this.handleManualInput = this.handleManualInput.bind(this);
-  this.addPreset = this.addPreset.bind(this);
-  this.removePreset = this.removePreset.bind(this);
-  this.rotate = this.rotate.bind(this);
   this.screenshot = this.screenshot.bind(this);
   this.toggleSynchronize = this.toggleSynchronize.bind(this);
   this.addViewport = this.addViewport.bind(this);
@@ -197,35 +178,13 @@ function ResponsiveUI(aWindow, aTab) {
   this.tab.addEventListener("TabClose", this);
   this.tabContainer.addEventListener("TabSelect", this);
 
+  this.buildUI();
+
   // Create a viewport for the tab's primary browser
   this.viewports = [];
   this.addViewport();
 
-  try {
-    let width = Services.prefs.getIntPref("devtools.responsiveUI.customWidth");
-    let height = Services.prefs.getIntPref("devtools.responsiveUI.customHeight");
-    this.customPreset.width = Math.min(MAX_WIDTH, width);
-    this.customPreset.height = Math.min(MAX_HEIGHT, height);
-
-    this.currentPresetKey = Services.prefs.getCharPref("devtools.responsiveUI.currentPreset");
-  } catch(e) {
-    // Default size. The first preset (custom) is the one that will be used.
-    let bbox = this.primaryViewport.stack.getBoundingClientRect();
-
-    this.customPreset.width = bbox.width - 40; // horizontal padding of the container
-    this.customPreset.height = bbox.height - 80; // vertical padding + toolbar height
-
-    this.currentPresetKey = this.presets[1].key; // most common preset
-  }
-
-  this.buildUI();
   this.checkMenus();
-
-  try {
-    if (Services.prefs.getBoolPref("devtools.responsiveUI.rotate")) {
-      this.rotate();
-    }
-  } catch(e) {}
 
   this.synchronizer = new Synchronizer(this);
   this.router = new Router(this);
@@ -264,11 +223,8 @@ ResponsiveUI.prototype = {
     this.viewports = this.viewports.filter(v => v.destroy());
 
     // Remove listeners.
-    this.menulist.removeEventListener("select", this.presetSelected, true);
-    this.menulist.removeEventListener("change", this.handleManualInput, true);
     this.tab.removeEventListener("TabClose", this);
     this.tabContainer.removeEventListener("TabSelect", this);
-    this.rotatebutton.removeEventListener("command", this.rotate, true);
     this.screenshotbutton
         .removeEventListener("command", this.screenshot, true);
     this.synchronizebutton
@@ -276,23 +232,20 @@ ResponsiveUI.prototype = {
     this.addviewportbutton
         .removeEventListener("command", this.addViewport, true);
     this.closebutton.removeEventListener("command", this.close, true);
-    this.addbutton.removeEventListener("command", this.addPreset, true);
-    this.removebutton
-        .removeEventListener("command", this.removePreset, true);
     if (!this.e10s) {
       this.touchbutton.removeEventListener("command", this.touch, true);
     }
 
     // Remove elements.
-    this.container.removeChild(this.viewportToolbar);
-    this.container.removeChild(this.globalToolbar);
+    this.browserContainer.removeChild(this.viewportToolbar);
+    this.browserContainer.removeChild(this.globalToolbar);
     if (this.bottomToolbar) {
       this.bottomToolbar.remove();
       delete this.bottomToolbar;
     }
 
     // Unset the responsive mode.
-    this.container.removeAttribute("responsivemode");
+    this.browserContainer.removeAttribute("responsivemode");
     this.viewportsContainer.removeAttribute("responsivemode");
 
     ActiveTabs.delete(this.tab);
@@ -305,8 +258,6 @@ ResponsiveUI.prototype = {
   addViewport() {
     let viewport = new ResponsiveViewport(this);
     this.viewports.push(viewport);
-    // For now, aim the toolbar's controls at the most recent viewport
-    this.editableViewport = viewport;
     this.emit("viewport-added", viewport);
   },
 
@@ -393,9 +344,6 @@ ResponsiveUI.prototype = {
    *
    * <vbox class="browserContainer"> From tabbrowser.xml
    *  <toolbar class="devtools-viewport-toolbar">
-   *    <menulist class="devtools-responsiveui-menulist"/>
-   *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
-   *                   tooltiptext="rotate"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
    *                   tooltiptext="touch"/>
    *    <toolbarbutton class="devtools-responsiveui-toolbarbutton"
@@ -427,28 +375,11 @@ ResponsiveUI.prototype = {
     this.viewportToolbar = this.chromeDoc.createElement("toolbar");
     this.viewportToolbar.className = "devtools-viewport-toolbar";
 
-    this.menulist = this.chromeDoc.createElement("menulist");
-    this.menulist.className = "devtools-responsiveui-menulist";
-    this.menulist.setAttribute("editable", "true");
-
-    this.menulist.addEventListener("select", this.presetSelected, true);
-    this.menulist.addEventListener("change", this.handleManualInput, true);
-
-    this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
-    this.rotatebutton.setAttribute("tabindex", "0");
-    this.rotatebutton.setAttribute("tooltiptext",
-      Strings.GetStringFromName("responsiveUI.rotate2"));
-    this.rotatebutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-rotate";
-    this.rotatebutton.addEventListener("command", this.rotate, true);
-
     this.screenshotbutton = this.chromeDoc.createElement("toolbarbutton");
     this.screenshotbutton.setAttribute("tabindex", "0");
     this.screenshotbutton.setAttribute("tooltiptext", Strings.GetStringFromName("responsiveUI.screenshot"));
     this.screenshotbutton.className = "devtools-responsiveui-toolbarbutton devtools-responsiveui-screenshot";
     this.screenshotbutton.addEventListener("command", this.screenshot, true);
-
-    this.viewportToolbar.appendChild(this.menulist);
-    this.viewportToolbar.appendChild(this.rotatebutton);
 
     if (!this.e10s) {
       this.touchbutton = this.chromeDoc.createElement("toolbarbutton");
@@ -461,23 +392,8 @@ ResponsiveUI.prototype = {
 
     this.viewportToolbar.appendChild(this.screenshotbutton);
 
-    this.container.insertBefore(this.viewportToolbar, this.viewportsContainer);
-
-    // Build the popup once before loading devices
-    this.buildPresetMenuPopup();
-
-    GetDevices().then(devices => {
-      for (let type in devices) {
-        let list = devices[type].filter(d => d.width && d.height && d.name)
-                                .map(d => {
-                                  d.key = d.name;
-                                  return d;
-                                });
-        this.presets = this.presets.concat(list);
-      }
-      // Re-build the popup now that we have devices
-      this.buildPresetMenuPopup();
-    });
+    this.browserContainer.insertBefore(this.viewportToolbar,
+                                       this.viewportsContainer);
 
     this.globalToolbar = this.chromeDoc.createElement("toolbar");
     this.globalToolbar.className = "devtools-global-toolbar";
@@ -510,7 +426,8 @@ ResponsiveUI.prototype = {
     this.closebutton.addEventListener("command", this.close, true);
     this.globalToolbar.appendChild(this.closebutton);
 
-    this.container.insertBefore(this.globalToolbar, this.viewportsContainer);
+    this.browserContainer.insertBefore(this.globalToolbar,
+                                       this.viewportsContainer);
   },
 
   // FxOS custom controls
@@ -572,255 +489,7 @@ ResponsiveUI.prototype = {
     });
     bottomToolbar.appendChild(homeButton);
     this.bottomToolbar = bottomToolbar;
-    this.container.appendChild(bottomToolbar);
-  },
-
-  /**
-   * Validate and apply any user input on the editable menulist
-   */
-  handleManualInput: function RUI_handleManualInput() {
-    let userInput = this.menulist.inputField.value;
-    let value = INPUT_PARSER.exec(userInput);
-    let selectedPreset = this.menuitems.get(this.selectedItem);
-
-    // In case of an invalide value, we show back the last preset
-    if (!value || value.length < 3) {
-      this.setMenuLabel(this.selectedItem, selectedPreset);
-      return;
-    }
-
-    this.rotateValue = false;
-
-    if (!selectedPreset.custom) {
-      let menuitem = this.customMenuitem;
-      this.currentPresetKey = this.customPreset.key;
-      this.menulist.selectedItem = menuitem;
-    }
-
-    let w = this.customPreset.width = parseInt(value[1],10);
-    let h = this.customPreset.height = parseInt(value[2],10);
-
-    this.saveCustomSize();
-    this.setSize(w, h);
-  },
-
-  buildPresetMenuPopup() {
-    this.menuitems = new Map();
-
-    let menupopup = this.chromeDoc.createElement("menupopup");
-    this.registerPresets(menupopup);
-    if (this.menulist.firstChild) {
-      this.menulist.replaceChild(menupopup, this.menulist.firstChild);
-    } else {
-      this.menulist.appendChild(menupopup);
-    }
-    this.addbutton = this.chromeDoc.createElement("menuitem");
-    this.addbutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.addPreset"));
-    this.addbutton.addEventListener("command", this.addPreset, true);
-
-    this.removebutton = this.chromeDoc.createElement("menuitem");
-    this.removebutton.setAttribute("label", Strings.GetStringFromName("responsiveUI.removePreset"));
-    this.removebutton.addEventListener("command", this.removePreset, true);
-
-    menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
-    menupopup.appendChild(this.addbutton);
-    menupopup.appendChild(this.removebutton);
-
-    if (this.selectedItem) {
-      this.menulist.selectedItem = this.selectedItem;
-    }
-  },
-
-  /**
-   * Build the presets list and append it to the menupopup.
-   *
-   * @param aParent menupopup.
-   */
-  registerPresets: function(aParent) {
-    let fragment = this.chromeDoc.createDocumentFragment();
-    let doc = this.chromeDoc;
-
-    for (let preset of this.presets) {
-      let menuitem = doc.createElement("menuitem");
-      menuitem.setAttribute("ispreset", true);
-      this.menuitems.set(menuitem, preset);
-
-      if (preset.key === this.currentPresetKey) {
-        menuitem.setAttribute("selected", "true");
-        this.selectedItem = menuitem;
-      }
-
-      if (preset.custom) {
-        this.customMenuitem = menuitem;
-      }
-
-      this.setMenuLabel(menuitem, preset);
-      fragment.appendChild(menuitem);
-    }
-    aParent.appendChild(fragment);
-  },
-
-  /**
-   * Set the menuitem label of a preset.
-   *
-   * @param aMenuitem menuitem to edit.
-   * @param aPreset associated preset.
-   */
-  setMenuLabel: function RUI_setMenuLabel(aMenuitem, aPreset) {
-    let size = SHARED_L10N.getFormatStr("dimensions",
-      Math.round(aPreset.width), Math.round(aPreset.height));
-
-    // .inputField might be not reachable yet (async XBL loading)
-    if (this.menulist.inputField) {
-      this.menulist.inputField.value = size;
-    }
-
-    if (aPreset.custom) {
-      size = Strings.formatStringFromName("responsiveUI.customResolution", [size], 1);
-    } else if (aPreset.name != null && aPreset.name !== "") {
-      size = Strings.formatStringFromName("responsiveUI.namedResolution", [size, aPreset.name], 2);
-    }
-
-    aMenuitem.setAttribute("label", size);
-  },
-
-  /**
-   * When a preset is selected, apply it.
-   */
-  presetSelected: function RUI_presetSelected() {
-    if (this.menulist.selectedItem.getAttribute("ispreset") === "true") {
-      this.selectedItem = this.menulist.selectedItem;
-
-      this.rotateValue = false;
-      let selectedPreset = this.menuitems.get(this.selectedItem);
-      this.loadPreset(selectedPreset);
-      this.currentPresetKey = selectedPreset.key;
-      this.saveCurrentPreset();
-
-      // Update the buttons hidden status according to the new selected preset
-      if (selectedPreset == this.customPreset) {
-        this.addbutton.hidden = false;
-        this.removebutton.hidden = true;
-      } else {
-        this.addbutton.hidden = true;
-        this.removebutton.hidden = false;
-      }
-    }
-  },
-
-  /**
-   * Apply a preset.
-   *
-   * @param aPreset preset to apply.
-   */
-  loadPreset: function RUI_loadPreset(aPreset) {
-    this.setSize(aPreset.width, aPreset.height, aPreset.name);
-  },
-
-  /**
-   * Add a preset to the list and the memory
-   */
-  addPreset: function RUI_addPreset() {
-    let w = this.customPreset.width;
-    let h = this.customPreset.height;
-    let newName = {};
-
-    let title = Strings.GetStringFromName("responsiveUI.customNamePromptTitle");
-    let message = Strings.formatStringFromName("responsiveUI.customNamePromptMsg", [w, h], 2);
-    let promptOk = Services.prompt.prompt(null, title, message, newName, null, {});
-
-    if (!promptOk) {
-      // Prompt has been cancelled
-      this.menulist.selectedItem = this.selectedItem;
-      return;
-    }
-
-    let newPreset = {
-      key: w + "x" + h,
-      name: newName.value,
-      width: w,
-      height: h
-    };
-
-    this.presets.push(newPreset);
-
-    // Sort the presets according to width/height ascending order
-    this.presets.sort(function RUI_sortPresets(aPresetA, aPresetB) {
-      // We keep custom preset at first
-      if (aPresetA.custom && !aPresetB.custom) {
-        return 1;
-      }
-      if (!aPresetA.custom && aPresetB.custom) {
-        return -1;
-      }
-
-      if (aPresetA.width === aPresetB.width) {
-        if (aPresetA.height === aPresetB.height) {
-          return 0;
-        } else {
-          return aPresetA.height > aPresetB.height;
-        }
-      } else {
-        return aPresetA.width > aPresetB.width;
-      }
-    });
-
-    this.savePresets();
-
-    let newMenuitem = this.chromeDoc.createElement("menuitem");
-    newMenuitem.setAttribute("ispreset", true);
-    this.setMenuLabel(newMenuitem, newPreset);
-
-    this.menuitems.set(newMenuitem, newPreset);
-    let idx = this.presets.indexOf(newPreset);
-    let beforeMenuitem = this.menulist.firstChild.childNodes[idx + 1];
-    this.menulist.firstChild.insertBefore(newMenuitem, beforeMenuitem);
-
-    this.menulist.selectedItem = newMenuitem;
-    this.currentPresetKey = newPreset.key;
-    this.saveCurrentPreset();
-  },
-
-  /**
-   * remove a preset from the list and the memory
-   */
-  removePreset: function RUI_removePreset() {
-    let selectedPreset = this.menuitems.get(this.selectedItem);
-    let w = selectedPreset.width;
-    let h = selectedPreset.height;
-
-    this.presets.splice(this.presets.indexOf(selectedPreset), 1);
-    this.menulist.firstChild.removeChild(this.selectedItem);
-    this.menuitems.delete(this.selectedItem);
-
-    this.customPreset.width = w;
-    this.customPreset.height = h;
-    let menuitem = this.customMenuitem;
-    this.setMenuLabel(menuitem, this.customPreset);
-    this.menulist.selectedItem = menuitem;
-    this.currentPresetKey = this.customPreset.key;
-
-    this.setSize(w, h);
-
-    this.savePresets();
-  },
-
-  /**
-   * Swap width and height.
-   */
-  rotate: function RUI_rotate() {
-    let selectedPreset = this.menuitems.get(this.selectedItem);
-    let width = this.rotateValue ? selectedPreset.height : selectedPreset.width;
-    let height = this.rotateValue ? selectedPreset.width : selectedPreset.height;
-
-    this.setSize(height, width);
-
-    if (selectedPreset.custom) {
-      this.saveCustomSize();
-    } else {
-      this.rotateValue = !this.rotateValue;
-      this.saveCurrentPreset();
-    }
+    this.browserContainer.appendChild(bottomToolbar);
   },
 
   /**
@@ -913,91 +582,7 @@ ResponsiveUI.prototype = {
      }
    },
 
-  /**
-   * Change the size of the editable viewport's browser.
-   */
-  setSize(width, height, name) {
-    this.editableViewport.setSize(width, height, name);
-  },
-
-  /**
-   * Update the custom size preset, if used.
-   */
-  updateCustomPreset(width, height) {
-    let selectedPreset = this.menuitems.get(this.selectedItem);
-
-    // We update the custom menuitem if we are using it
-    if (selectedPreset.custom) {
-      selectedPreset.width = width;
-      selectedPreset.height = height;
-
-      this.setMenuLabel(this.selectedItem, selectedPreset);
-    }
-  },
-
-  nudgeWidth(delta) {
-    return this.customPreset.width + delta;
-  },
-
-  nudgeHeight(delta) {
-    return this.customPreset.height + delta;
-  },
-
-  /**
-   * One of the viewports is starting to resize.
-   */
-  startResizing() {
-    let selectedPreset = this.menuitems.get(this.selectedItem);
-
-    if (!selectedPreset.custom) {
-      this.customPreset.width = this.rotateValue ? selectedPreset.height : selectedPreset.width;
-      this.customPreset.height = this.rotateValue ? selectedPreset.width : selectedPreset.height;
-
-      let menuitem = this.customMenuitem;
-      this.setMenuLabel(menuitem, this.customPreset);
-
-      this.currentPresetKey = this.customPreset.key;
-      this.menulist.selectedItem = menuitem;
-    }
-    this.container.style.pointerEvents = "none";
-  },
-
-  /**
-   * One of the viewports is stopping the resizing process.
-   */
-  stopResizing() {
-    this.container.style.pointerEvents = "auto";
-    this.saveCustomSize();
-  },
-
-  /**
-   * Store the custom size as a pref.
-   */
-   saveCustomSize: function RUI_saveCustomSize() {
-     Services.prefs.setIntPref("devtools.responsiveUI.customWidth", this.customPreset.width);
-     Services.prefs.setIntPref("devtools.responsiveUI.customHeight", this.customPreset.height);
-   },
-
-  /**
-   * Store the current preset as a pref.
-   */
-   saveCurrentPreset: function RUI_saveCurrentPreset() {
-     Services.prefs.setCharPref("devtools.responsiveUI.currentPreset", this.currentPresetKey);
-     Services.prefs.setBoolPref("devtools.responsiveUI.rotate", this.rotateValue);
-   },
-
-  /**
-   * Store the list of all registered presets as a pref.
-   */
-  savePresets: function RUI_savePresets() {
-    // We exclude the custom one
-    let registeredPresets = this.presets.filter(function (aPreset) {
-      return !aPreset.custom;
-    });
-
-    Services.prefs.setCharPref("devtools.responsiveUI.presets", JSON.stringify(registeredPresets));
-  },
-}
+};
 
 function ResponsiveViewport(ui) {
   this.ui = ui;
@@ -1066,11 +651,14 @@ ResponsiveViewport.prototype = {
       this.stopResizing();
     }
 
+    this.sizeWidgets.destroy();
+
     // Remove elements
     this.toggleToolboxButton.removeEventListener("command", this.toggleToolbox, true);
     this.browserTypeMenu
         .removeEventListener("select", this.onSelectBrowserType);
     this.viewportContainer.removeChild(this.header);
+    this.viewportContainer.removeChild(this.sizeToolbar);
 
     this.stack.removeChild(this.resizer);
     this.stack.removeChild(this.resizeBarV);
@@ -1136,6 +724,7 @@ ResponsiveViewport.prototype = {
    *   <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
    *     <stack class="browserStack"> From tabbrowser.xml
    *       <box class="responsive-header"/>
+   *       <toolbar class="responsive-size-toolbar"/>
    *       <browser/>
    *       <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
    *       <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
@@ -1203,6 +792,16 @@ ResponsiveViewport.prototype = {
     this.resizeBarH.setAttribute("tooltiptext", resizerTooltip);
     this.resizeBarH.onmousedown = this.startResizing;
     this.stack.appendChild(this.resizeBarH);
+
+    // Size Toolbar
+    this.sizeToolbar = this.chromeDoc.createElement("toolbar");
+    this.sizeToolbar.className = "responsive-size-toolbar";
+    this.viewportContainer.insertBefore(this.sizeToolbar, this.stack);
+    this.sizeWidgets = new ResponsiveSizeWidgets({
+      viewport: this,
+      container: this.sizeToolbar,
+    })
+    this.sizeWidgets.buildUI();
   },
 
   /**
@@ -1294,7 +893,7 @@ ResponsiveViewport.prototype = {
     this.sizeLabel.setAttribute("value", size);
 
     // Notify UI to update the custom preset
-    this.ui.updateCustomPreset(width, height);
+    this.sizeWidgets.updateCustomPreset(width, height);
 
     if (this.responsiveBrowser) {
       this.responsiveBrowser.setSize(width, height);
@@ -1305,7 +904,7 @@ ResponsiveViewport.prototype = {
    * Start the process of resizing the browser.
    */
   startResizing(event) {
-    this.ui.startResizing();
+    this.sizeWidgets.startResizing();
 
     this.mainWindow.addEventListener("mouseup", this.stopResizing, true);
     this.mainWindow.addEventListener("mousemove", this.onDrag, true);
@@ -1347,8 +946,8 @@ ResponsiveViewport.prototype = {
       deltaY /= SLOW_RATIO;
     }
 
-    let width = this.ui.nudgeWidth(deltaX);
-    let height = this.ui.nudgeHeight(deltaY);
+    let width = this.sizeWidgets.nudgeWidth(deltaX);
+    let height = this.sizeWidgets.nudgeHeight(deltaY);
 
     if (shift) {
       let roundedWidth, roundedHeight;
@@ -1379,7 +978,7 @@ ResponsiveViewport.prototype = {
    * Stop the browser resizing process.
    */
   stopResizing() {
-    this.ui.stopResizing();
+    this.sizeWidgets.stopResizing();
 
     this.mainWindow.removeEventListener("mouseup", this.stopResizing, true);
     this.mainWindow.removeEventListener("mousemove", this.onDrag, true);
@@ -1406,6 +1005,467 @@ ResponsiveViewport.prototype = {
       });
     }
   }),
+
+};
+
+function ResponsiveSizeWidgets({ viewport, container }) {
+  this.viewport = viewport;
+  this.container = container;
+
+  // Try to load presets from prefs
+  if (Services.prefs.prefHasUserValue(PRESETS_PREF)) {
+    try {
+      presets = JSON.parse(Services.prefs.getCharPref(PRESETS_PREF));
+    } catch(e) {
+      // User pref is malformed.
+      Cu.reportError(`Could not parse pref "${PRESETS_PREF}": ${e}`);
+    }
+  }
+
+  this.customPreset = {key: "custom", custom: true};
+
+  if (Array.isArray(presets)) {
+    this.presets = [this.customPreset].concat(presets);
+  } else {
+    Cu.reportError(`Presets value (${PRESETS_PREF}) is malformed.`);
+    this.presets = [this.customPreset];
+  }
+
+  this.presetSelected = this.presetSelected.bind(this);
+  this.handleManualInput = this.handleManualInput.bind(this);
+  this.addPreset = this.addPreset.bind(this);
+  this.removePreset = this.removePreset.bind(this);
+  this.rotate = this.rotate.bind(this);
+
+  try {
+    let width = Services.prefs.getIntPref(WIDTH_PREF);
+    let height = Services.prefs.getIntPref(HEIGHT_PREF);
+    this.customPreset.width = Math.min(MAX_WIDTH, width);
+    this.customPreset.height = Math.min(MAX_HEIGHT, height);
+
+    this.currentPresetKey = Services.prefs.getCharPref(CURRENT_PRESET_PREF);
+  } catch(e) {
+    // Default size. The first preset (custom) is the one that will be used.
+    let bbox = this.ui.primaryViewport.stack.getBoundingClientRect();
+
+    this.customPreset.width = bbox.width - 40; // horizontal padding of the container
+    this.customPreset.height = bbox.height - 80; // vertical padding + toolbar height
+
+    this.currentPresetKey = this.presets[1].key; // most common preset
+  }
+
+  try {
+    if (Services.prefs.getBoolPref("devtools.responsiveUI.rotate")) {
+      this.rotate();
+    }
+  } catch(e) {}
+}
+
+ResponsiveSizeWidgets.prototype = {
+
+  get ui() {
+    return this.viewport.ui;
+  },
+
+  get chromeDoc() {
+    return this.ui.chromeDoc;
+  },
+
+  destroy() {
+    this.menulist.removeEventListener("select", this.presetSelected, true);
+    this.menulist.removeEventListener("change", this.handleManualInput, true);
+    this.rotatebutton.removeEventListener("command", this.rotate, true);
+    this.addbutton.removeEventListener("command", this.addPreset, true);
+    this.removebutton
+        .removeEventListener("command", this.removePreset, true);
+  },
+
+  /**
+   * Build the size widgets for a viewport.
+   *
+   * <menulist class="devtools-responsiveui-menulist"/>
+   * <toolbarbutton class="devtools-responsiveui-toolbarbutton"
+   *                tooltiptext="rotate"/>
+   */
+  buildUI() {
+    this.menulist = this.chromeDoc.createElement("menulist");
+    this.menulist.className = "devtools-responsiveui-menulist";
+    this.menulist.setAttribute("editable", "true");
+    this.menulist.addEventListener("select", this.presetSelected, true);
+    this.menulist.addEventListener("change", this.handleManualInput, true);
+
+    this.rotatebutton = this.chromeDoc.createElement("toolbarbutton");
+    this.rotatebutton.setAttribute("tabindex", "0");
+    this.rotatebutton.setAttribute("tooltiptext",
+      Strings.GetStringFromName("responsiveUI.rotate2"));
+    this.rotatebutton.classList.add("devtools-responsiveui-toolbarbutton");
+    this.rotatebutton.classList.add("devtools-responsiveui-rotate");
+    this.rotatebutton.addEventListener("command", this.rotate, true);
+
+    this.container.appendChild(this.menulist);
+    this.container.appendChild(this.rotatebutton);
+
+    // Build the popup once before loading devices
+    this.buildPresetMenuPopup();
+
+    GetDevices().then(devices => {
+      for (let type in devices) {
+        let list = devices[type].filter(d => d.width && d.height && d.name)
+                                .map(d => {
+                                  d.key = d.name;
+                                  return d;
+                                });
+        this.presets = this.presets.concat(list);
+      }
+      // Re-build the popup now that we have devices
+      this.buildPresetMenuPopup();
+    });
+  },
+
+  /**
+   * Validate and apply any user input on the editable menulist
+   */
+  handleManualInput() {
+    let userInput = this.menulist.inputField.value;
+    let value = INPUT_PARSER.exec(userInput);
+    let selectedPreset = this.menuitems.get(this.selectedItem);
+
+    // In case of an invalide value, we show back the last preset
+    if (!value || value.length < 3) {
+      this.setMenuLabel(this.selectedItem, selectedPreset);
+      return;
+    }
+
+    this.rotateValue = false;
+
+    if (!selectedPreset.custom) {
+      let menuitem = this.customMenuitem;
+      this.currentPresetKey = this.customPreset.key;
+      this.menulist.selectedItem = menuitem;
+    }
+
+    let w = this.customPreset.width = parseInt(value[1], 10);
+    let h = this.customPreset.height = parseInt(value[2], 10);
+
+    this.saveCustomSize();
+    this.setSize(w, h);
+  },
+
+  buildPresetMenuPopup() {
+    this.menuitems = new Map();
+
+    let menupopup = this.chromeDoc.createElement("menupopup");
+    this.registerPresets(menupopup);
+    if (this.menulist.firstChild) {
+      this.menulist.replaceChild(menupopup, this.menulist.firstChild);
+    } else {
+      this.menulist.appendChild(menupopup);
+    }
+    this.addbutton = this.chromeDoc.createElement("menuitem");
+    this.addbutton.setAttribute("label",
+      Strings.GetStringFromName("responsiveUI.addPreset"));
+    this.addbutton.addEventListener("command", this.addPreset, true);
+
+    this.removebutton = this.chromeDoc.createElement("menuitem");
+    this.removebutton.setAttribute("label",
+      Strings.GetStringFromName("responsiveUI.removePreset"));
+    this.removebutton.addEventListener("command", this.removePreset, true);
+
+    menupopup.appendChild(this.chromeDoc.createElement("menuseparator"));
+    menupopup.appendChild(this.addbutton);
+    menupopup.appendChild(this.removebutton);
+
+    if (this.selectedItem) {
+      this.menulist.selectedItem = this.selectedItem;
+    }
+  },
+
+  /**
+   * Build the presets list and append it to the menupopup.
+   *
+   * @param aParent menupopup.
+   */
+  registerPresets(aParent) {
+    let fragment = this.chromeDoc.createDocumentFragment();
+    let doc = this.chromeDoc;
+
+    for (let preset of this.presets) {
+      let menuitem = doc.createElement("menuitem");
+      menuitem.setAttribute("ispreset", true);
+      this.menuitems.set(menuitem, preset);
+
+      if (preset.key === this.currentPresetKey) {
+        menuitem.setAttribute("selected", "true");
+        this.selectedItem = menuitem;
+      }
+
+      if (preset.custom) {
+        this.customMenuitem = menuitem;
+      }
+
+      this.setMenuLabel(menuitem, preset);
+      fragment.appendChild(menuitem);
+    }
+    aParent.appendChild(fragment);
+  },
+
+  /**
+   * Set the menuitem label of a preset.
+   *
+   * @param aMenuitem menuitem to edit.
+   * @param aPreset associated preset.
+   */
+  setMenuLabel(aMenuitem, aPreset) {
+    let size = SHARED_L10N.getFormatStr("dimensions",
+      Math.round(aPreset.width), Math.round(aPreset.height));
+
+    // .inputField might be not reachable yet (async XBL loading)
+    if (this.menulist.inputField) {
+      this.menulist.inputField.value = size;
+    }
+
+    if (aPreset.custom) {
+      size = Strings.formatStringFromName("responsiveUI.customResolution",
+                                          [size], 1);
+    } else if (aPreset.name != null && aPreset.name !== "") {
+      size = Strings.formatStringFromName("responsiveUI.namedResolution",
+                                          [size, aPreset.name], 2);
+    }
+
+    aMenuitem.setAttribute("label", size);
+  },
+
+  /**
+   * When a preset is selected, apply it.
+   */
+  presetSelected() {
+    if (this.menulist.selectedItem.getAttribute("ispreset") === "true") {
+      this.selectedItem = this.menulist.selectedItem;
+
+      this.rotateValue = false;
+      let selectedPreset = this.menuitems.get(this.selectedItem);
+      this.loadPreset(selectedPreset);
+      this.currentPresetKey = selectedPreset.key;
+      this.saveCurrentPreset();
+
+      // Update the buttons hidden status according to the new selected preset
+      if (selectedPreset == this.customPreset) {
+        this.addbutton.hidden = false;
+        this.removebutton.hidden = true;
+      } else {
+        this.addbutton.hidden = true;
+        this.removebutton.hidden = false;
+      }
+    }
+  },
+
+  /**
+   * Apply a preset.
+   *
+   * @param aPreset preset to apply.
+   */
+  loadPreset(aPreset) {
+    this.setSize(aPreset.width, aPreset.height, aPreset.name);
+  },
+
+  /**
+   * Add a preset to the list and the memory
+   */
+  addPreset() {
+    let w = this.customPreset.width;
+    let h = this.customPreset.height;
+    let newName = {};
+
+    let title = Strings.GetStringFromName("responsiveUI.customNamePromptTitle");
+    let message =
+      Strings.formatStringFromName("responsiveUI.customNamePromptMsg",
+                                   [w, h], 2);
+    let promptOk = Services.prompt.prompt(null, title, message, newName,
+                                          null, {});
+
+    if (!promptOk) {
+      // Prompt has been cancelled
+      this.menulist.selectedItem = this.selectedItem;
+      return;
+    }
+
+    let newPreset = {
+      key: w + "x" + h,
+      name: newName.value,
+      width: w,
+      height: h
+    };
+
+    this.presets.push(newPreset);
+
+    // Sort the presets according to width/height ascending order
+    this.presets.sort((aPresetA, aPresetB) => {
+      // We keep custom preset at first
+      if (aPresetA.custom && !aPresetB.custom) {
+        return 1;
+      }
+      if (!aPresetA.custom && aPresetB.custom) {
+        return -1;
+      }
+
+      if (aPresetA.width === aPresetB.width) {
+        if (aPresetA.height === aPresetB.height) {
+          return 0;
+        } else {
+          return aPresetA.height > aPresetB.height;
+        }
+      } else {
+        return aPresetA.width > aPresetB.width;
+      }
+    });
+
+    this.savePresets();
+
+    let newMenuitem = this.chromeDoc.createElement("menuitem");
+    newMenuitem.setAttribute("ispreset", true);
+    this.setMenuLabel(newMenuitem, newPreset);
+
+    this.menuitems.set(newMenuitem, newPreset);
+    let idx = this.presets.indexOf(newPreset);
+    let beforeMenuitem = this.menulist.firstChild.childNodes[idx + 1];
+    this.menulist.firstChild.insertBefore(newMenuitem, beforeMenuitem);
+
+    this.menulist.selectedItem = newMenuitem;
+    this.currentPresetKey = newPreset.key;
+    this.saveCurrentPreset();
+  },
+
+  /**
+   * remove a preset from the list and the memory
+   */
+  removePreset() {
+    let selectedPreset = this.menuitems.get(this.selectedItem);
+    let w = selectedPreset.width;
+    let h = selectedPreset.height;
+
+    this.presets.splice(this.presets.indexOf(selectedPreset), 1);
+    this.menulist.firstChild.removeChild(this.selectedItem);
+    this.menuitems.delete(this.selectedItem);
+
+    this.customPreset.width = w;
+    this.customPreset.height = h;
+    let menuitem = this.customMenuitem;
+    this.setMenuLabel(menuitem, this.customPreset);
+    this.menulist.selectedItem = menuitem;
+    this.currentPresetKey = this.customPreset.key;
+
+    this.setSize(w, h);
+
+    this.savePresets();
+  },
+
+  /**
+   * Swap width and height.
+   */
+  rotate() {
+    let selectedPreset = this.menuitems.get(this.selectedItem);
+    let width = this.rotateValue ? selectedPreset.height : selectedPreset.width;
+    let height = this.rotateValue ? selectedPreset.width : selectedPreset.height;
+
+    this.setSize(height, width);
+
+    if (selectedPreset.custom) {
+      this.saveCustomSize();
+    } else {
+      this.rotateValue = !this.rotateValue;
+      this.saveCurrentPreset();
+    }
+  },
+
+  /**
+   * Change the size of the viewport's browser.
+   */
+  setSize(width, height, name) {
+    this.viewport.setSize(width, height, name);
+  },
+
+  /**
+   * Update the custom size preset, if used.
+   */
+  updateCustomPreset(width, height) {
+    let selectedPreset = this.menuitems.get(this.selectedItem);
+
+    // We update the custom menuitem if we are using it
+    if (selectedPreset && selectedPreset.custom) {
+      selectedPreset.width = width;
+      selectedPreset.height = height;
+
+      this.setMenuLabel(this.selectedItem, selectedPreset);
+    }
+  },
+
+  nudgeWidth(delta) {
+    return this.customPreset.width + delta;
+  },
+
+  nudgeHeight(delta) {
+    return this.customPreset.height + delta;
+  },
+
+  /**
+   * One of the viewports is starting to resize.
+   */
+  startResizing() {
+    let selectedPreset = this.menuitems.get(this.selectedItem);
+
+    if (!selectedPreset.custom) {
+      if (this.rotateValue) {
+        this.customPreset.width = selectedPreset.height;
+        this.customPreset.height = selectedPreset.width;
+      } else {
+        this.customPreset.width = selectedPreset.width;
+        this.customPreset.height = selectedPreset.height;
+      }
+
+      let menuitem = this.customMenuitem;
+      this.setMenuLabel(menuitem, this.customPreset);
+
+      this.currentPresetKey = this.customPreset.key;
+      this.menulist.selectedItem = menuitem;
+    }
+    this.ui.browserContainer.style.pointerEvents = "none";
+  },
+
+  /**
+   * One of the viewports is stopping the resizing process.
+   */
+  stopResizing() {
+    this.ui.browserContainer.style.pointerEvents = "auto";
+    this.saveCustomSize();
+  },
+
+  /**
+   * Store the custom size as a pref.
+   */
+   saveCustomSize() {
+     Services.prefs.setIntPref(WIDTH_PREF, this.customPreset.width);
+     Services.prefs.setIntPref(HEIGHT_PREF, this.customPreset.height);
+   },
+
+  /**
+   * Store the current preset as a pref.
+   */
+   saveCurrentPreset() {
+     Services.prefs.setCharPref(CURRENT_PRESET_PREF, this.currentPresetKey);
+     Services.prefs.setBoolPref(ROTATE_PREF, this.rotateValue);
+   },
+
+  /**
+   * Store the list of all registered presets as a pref.
+   */
+  savePresets() {
+    // We exclude the custom one
+    let registeredPresets = this.presets.filter(preset => {
+      return !preset.custom;
+    });
+
+    Services.prefs.setCharPref(PRESETS_PREF, JSON.stringify(registeredPresets));
+  },
 
 };
 

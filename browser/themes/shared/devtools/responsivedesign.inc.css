@@ -40,7 +40,8 @@ html|*.responsive-portal:-moz-focusring {
 }
 
 .devtools-viewport-toolbar,
-.devtools-global-toolbar {
+.devtools-global-toolbar,
+.responsive-size-toolbar {
   -moz-appearance: none;
   background: transparent;
   /* text color is textColor from dark theme, since no theme is applied to
