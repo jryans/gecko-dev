@@ -723,8 +723,8 @@ ResponsiveViewport.prototype = {
    * <hbox class="responsive-viewports"> From tabbrowser.xml
    *   <vbox class="responsive-viewport"> Viewport 0, from tabbrowser.xml
    *     <stack class="browserStack"> From tabbrowser.xml
-   *       <box class="responsive-header"/>
    *       <toolbar class="responsive-size-toolbar"/>
+   *       <box class="responsive-header"/>
    *       <browser/>
    *       <box class="devtools-responsiveui-resizehandle" bottom="0" right="0"/>
    *       <box class="devtools-responsiveui-resizebarV" top="0" right="0"/>
@@ -745,14 +745,6 @@ ResponsiveViewport.prototype = {
     this.header = this.chromeDoc.createElement("box");
     this.header.className = "responsive-header";
     this.viewportContainer.insertBefore(this.header, this.stack);
-
-    this.sizeLabel = this.chromeDoc.createElement("label");
-    this.sizeLabel.className = "responsive-size";
-    this.header.appendChild(this.sizeLabel);
-
-    let spacer = this.chromeDoc.createElement("spacer");
-    spacer.setAttribute("flex", "1");
-    this.header.appendChild(spacer);
 
     this.toggleToolboxButton = this.chromeDoc.createElement("toolbarbutton");
     this.toggleToolboxButton.setAttribute("tabindex", "0");
@@ -796,7 +788,7 @@ ResponsiveViewport.prototype = {
     // Size Toolbar
     this.sizeToolbar = this.chromeDoc.createElement("toolbar");
     this.sizeToolbar.className = "responsive-size-toolbar";
-    this.viewportContainer.insertBefore(this.sizeToolbar, this.stack);
+    this.viewportContainer.insertBefore(this.sizeToolbar, this.header);
     this.sizeWidgets = new ResponsiveSizeWidgets({
       viewport: this,
       container: this.sizeToolbar,
@@ -884,13 +876,6 @@ ResponsiveViewport.prototype = {
     if (!this.ignoreX) {
       this.resizeBarH.setAttribute("left", Math.round(width / 2));
     }
-
-    let size = SHARED_L10N.getFormatStr("dimensions", width, height);
-    if (this.name) {
-      size = Strings.formatStringFromName("responsiveUI.namedResolution",
-                                          [size, this.name], 2);
-    }
-    this.sizeLabel.setAttribute("value", size);
 
     // Notify UI to update the custom preset
     this.sizeWidgets.updateCustomPreset(width, height);
