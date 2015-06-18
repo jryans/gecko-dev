@@ -17,7 +17,7 @@
 }
 
 .responsive-viewports[responsivemode] {
-  display: block;
+  overflow: scroll;
 }
 
 html|*.responsive-portal:-moz-focusring {
