@@ -56,7 +56,7 @@ Synchronizer.prototype = {
 let SyncViewport = function(options) {
   this.synchronizer = options.synchronizer;
   this.viewport = options.viewport;
-  this.onScroll = this.onScroll.bind(this);
+  this.onUIEvent = this.onUIEvent.bind(this);
   this.onWillNavigate = this.onWillNavigate.bind(this);
   this.listeningPausedFor = new Set();
 };
@@ -82,7 +82,9 @@ SyncViewport.prototype = {
   },
 
   listenFor: {
-    "scroll": { from: "sync", method: "onScroll" },
+    "mousedown": { from: "sync", method: "onUIEvent" },
+    "mouseup": { from: "sync", method: "onUIEvent" },
+    "scroll": { from: "sync", method: "onUIEvent" },
     "will-navigate": { from: "target", method: "onWillNavigate" },
   },
 
@@ -121,12 +123,12 @@ SyncViewport.prototype = {
     return false;
   },
 
-  onScroll(eventSpec) {
+  onUIEvent(eventSpec) {
     if (this.isPaused(eventSpec.type)) {
       return;
     }
     this.otherViewports.forEach(v => {
-      // Pause scroll listening, since this will generate a scroll event
+      // Pause listening for this type, since this will generate an event
       v.pause(eventSpec.type);
       v.sync.dispatch(eventSpec);
     });

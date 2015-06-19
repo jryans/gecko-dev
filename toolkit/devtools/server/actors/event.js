@@ -115,19 +115,7 @@ let EventActor = exports.EventActor = protocol.ActorClass({
   },
 
   sendMouseEvent(eventSpec) {
-    // TODO: Clamp other positions to offsetX/Y somewhere
-    let x = eventSpec.offsetX;
-    let y = eventSpec.offsetY;
-    let clickCount = 0;
-    if (eventSpec.type == "mousedown" || eventSpec.type == "mouseup") {
-      clickCount = 1;
-    }
-    let modifiers = this._parseModifiers(eventSpec);
-    let pressure = eventSpec.pressure || eventSpec.mozPressure || 0;
-    let inputSource = eventSpec.inputSource || eventSpec.mozInputSource || 0;
-    this.utils.sendMouseEvent(eventSpec.type, x, y, eventSpec.button,
-                              clickCount, modifiers, false, pressure,
-                              inputSource, eventSpec.isSynthesized);
+    eventUtils.sendMouseEvent(this.utils, eventSpec);
   },
 
   sendWheelEvent(eventSpec) {

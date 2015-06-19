@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* globals events, CssLogic */
+/* globals events, CssLogic, eventUtils */
 
 "use strict";
 
@@ -11,6 +11,8 @@ const { method, Arg } = protocol;
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "CssLogic",
                          "devtools/styleinspector/css-logic", true);
+loader.lazyRequireGetter(this, "eventUtils",
+                         "devtools/server/actors/utils/event");
 
 let SyncActor = exports.SyncActor = protocol.ActorClass({
 
@@ -29,8 +31,9 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
   initialize(conn, tab) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tab = tab;
+    this.onMouse = this.onMouse.bind(this);
     this.onScroll = this.onScroll.bind(this);
-    this.onEventOverheard = this.onEventOverheard.bind(this);
+    this.emitEventOverheard = this.emitEventOverheard.bind(this);
   },
 
   disconnect() {
@@ -50,11 +53,20 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     return this.window.document;
   },
 
+  get utils() {
+    return this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils);
+  },
+
   listenFor: {
-    "scroll": "onScroll"
+    "mousedown": "onMouse",
+    "mouseup": "onMouse",
+    "scroll": "onScroll",
   },
 
   dispatchFor: {
+    "mousedown": "sendMouseEvent",
+    "mouseup": "sendMouseEvent",
     "navigate": "navigate",
     "scroll": "scroll",
   },
@@ -106,6 +118,32 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     oneway: true
   }),
 
+  onMouse(event) {
+    let element = event.target;
+    if (event.target instanceof Ci.nsIDOMHTMLDocument) {
+      element = event.target.documentElement;
+    }
+    event.targetSelector = CssLogic.findCssSelector(element);
+    let rect = element.getBoundingClientRect();
+    event.normRectX = (event.clientX - rect.left) / (rect.right  - rect.left);
+    event.normRectY = (event.clientY - rect.top)  / (rect.bottom - rect.top);
+    this.emitEventOverheard(event);
+  },
+
+  sendMouseEvent(eventSpec) {
+    let selector = eventSpec.targetSelector;
+    let target = this.document.querySelector(selector);
+    if (!target) {
+      throw new Error(`Could not find element for selector ${selector}`);
+    }
+    let rect = target.getBoundingClientRect();
+    eventSpec.offsetX = rect.left + eventSpec.normRectX *
+                                    (rect.right  - rect.left);
+    eventSpec.offsetY = rect.top  + eventSpec.normRectY *
+                                    (rect.bottom - rect.top);
+    eventUtils.sendMouseEvent(this.utils, eventSpec);
+  },
+
   onScroll(event) {
     let element = event.target;
     if (event.target instanceof Ci.nsIDOMHTMLDocument) {
@@ -114,7 +152,7 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     event.targetSelector = CssLogic.findCssSelector(element);
     event.scrollLeft = element.scrollLeft;
     event.scrollTop = element.scrollTop;
-    this.onEventOverheard(event);
+    this.emitEventOverheard(event);
   },
 
   scroll(eventSpec) {
@@ -127,7 +165,7 @@ let SyncActor = exports.SyncActor = protocol.ActorClass({
     target.scrollTop = eventSpec.scrollTop;
   },
 
-  onEventOverheard(event) {
+  emitEventOverheard(event) {
     let eventSpec = {};
     for (let key in event) {
       if (key[0] !== key[0].toLowerCase()) {
