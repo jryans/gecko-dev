@@ -711,7 +711,7 @@ Toolbox.prototype = {
       dockBox.removeChild(dockBox.firstChild);
     }
 
-    if (!this._target.isLocalTab) {
+    if (this.hostType == Toolbox.HostType.CUSTOM) {
       return;
     }
 
@@ -1574,7 +1574,7 @@ Toolbox.prototype = {
    * @return {Host} host
    *        The created host object
    */
-  _createHost: function(hostType, options) {
+  _createHost: function(hostType, options = this._hostOptions) {
     if (!Hosts[hostType]) {
       throw new Error("Unknown hostType: " + hostType);
     }
@@ -1613,7 +1613,8 @@ Toolbox.prototype = {
    *        The host type of the new host object
    */
   switchHost: function(hostType) {
-    if (hostType == this._host.type || !this._target.isLocalTab) {
+    if (hostType == this._host.type ||
+        this.hostType == Toolbox.HostType.CUSTOM) {
       return null;
     }
 
