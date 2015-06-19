@@ -988,6 +988,7 @@ ResponsiveViewport.prototype = {
       this.toolbox = yield gDevTools.showToolbox(target, null, null, {
         hostTab: this.tab
       });
+      this.toolbox.on("destroy", () => this.toolboxActive = false);
     }
   }),
 
