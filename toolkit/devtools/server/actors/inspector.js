@@ -3544,6 +3544,7 @@ var InspectorActor = exports.InspectorActor = protocol.ActorClass({
       events.once(this.walker, "destroyed", () => {
         this._walkerPromise = null;
         this._pageStylePromise = null;
+        this._highlighterPromise = null;
       });
       deferred.resolve(this.walker);
     };
