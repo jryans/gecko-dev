@@ -772,6 +772,10 @@ ResponsiveViewport.prototype = {
         .addEventListener("command", this.toggleToolbox, true);
     this.header.appendChild(this.toggleToolboxButton);
 
+    let spacer = this.chromeDoc.createElement("spacer");
+    spacer.setAttribute("flex", "1");
+    this.header.appendChild(spacer);
+
     this.buildBrowserTypeMenu();
 
     // Resizers
@@ -845,8 +849,8 @@ ResponsiveViewport.prototype = {
     this.browserTypes.set(localBrowser, LocalResponsiveBrowser);
 
     let simulatorBrowser = this.chromeDoc.createElement("menuitem");
-    simulatorBrowser.setAttribute("label", "Simulator");
-    simulatorBrowser.setAttribute("image", "chrome://browser/skin/devtools/simulator.svg");
+    simulatorBrowser.setAttribute("label", "Firefox OS 3.0 Simulator");
+    simulatorBrowser.setAttribute("image", "chrome://browser/skin/devtools/simulator.png");
     simulatorBrowser.classList.add("menuitem-iconic");
     simulatorBrowser.classList.add("responsive-browser-type-simulator");
     menupopup.appendChild(simulatorBrowser);
