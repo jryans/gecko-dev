@@ -108,6 +108,9 @@ html|*.responsive-portal:-moz-focusring {
   margin-bottom: 2px;
 }
 
+.ios-simulator-content {
+}
+
 .devtools-responsiveui-toolbarbutton > .toolbarbutton-icon {
   width: 16px;
   height: 16px;

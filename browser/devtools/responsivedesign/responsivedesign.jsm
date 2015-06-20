@@ -850,11 +850,21 @@ ResponsiveViewport.prototype = {
 
     let simulatorBrowser = this.chromeDoc.createElement("menuitem");
     simulatorBrowser.setAttribute("label", "Firefox OS 3.0 Simulator");
-    simulatorBrowser.setAttribute("image", "chrome://browser/skin/devtools/simulator.png");
+    simulatorBrowser.setAttribute("image",
+      "chrome://browser/skin/devtools/b2g-simulator.png");
     simulatorBrowser.classList.add("menuitem-iconic");
     simulatorBrowser.classList.add("responsive-browser-type-simulator");
     menupopup.appendChild(simulatorBrowser);
-    this.browserTypes.set(simulatorBrowser, SimulatorResponsiveBrowser);
+    this.browserTypes.set(simulatorBrowser, FxOSSimulatorResponsiveBrowser);
+
+    let iosBrowser = this.chromeDoc.createElement("menuitem");
+    iosBrowser.setAttribute("label", "iOS 8.3 Simulator");
+    iosBrowser.setAttribute("image",
+      "chrome://browser/skin/devtools/ios-simulator.png");
+    iosBrowser.classList.add("menuitem-iconic");
+    iosBrowser.classList.add("responsive-browser-type-simulator");
+    menupopup.appendChild(iosBrowser);
+    this.browserTypes.set(iosBrowser, iOSSimulatorResponsiveBrowser);
 
     this.browserTypeMenu.selectedItem = localBrowser;
   },
@@ -1622,12 +1632,12 @@ LocalResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
 
 });
 
-function SimulatorResponsiveBrowser(viewport) {
+function FxOSSimulatorResponsiveBrowser(viewport) {
   ResponsiveBrowser.call(this, viewport);
   this.init();
 }
 
-SimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
+FxOSSimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
 
   get surface() {
     return {
@@ -1718,6 +1728,36 @@ SimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
     height += deltaHeight;
     this.windowInfo = yield this.viewportTarget.window.resize(width, height);
     this.portal.resize();
+  }),
+
+});
+
+function iOSSimulatorResponsiveBrowser(viewport) {
+  ResponsiveBrowser.call(this, viewport);
+  this.init();
+}
+
+iOSSimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
+
+  get chromeDoc() {
+    return this.ui.chromeDoc;
+  },
+
+  init: function() {
+    this.image = this.chromeDoc.createElement("image");
+    this.image.setAttribute("src",
+      "chrome://browser/skin/devtools/ios-simulator-content.png");
+    this.image.classList.add("ios-simulator-content");
+    this.container.appendChild(this.image);
+  },
+
+  destroy() {
+    this.image.remove();
+    this.image = null;
+    ResponsiveBrowser.prototype.destroy.call(this);
+  },
+
+  setSize: Task.async(function*(width, height) {
   }),
 
 });
