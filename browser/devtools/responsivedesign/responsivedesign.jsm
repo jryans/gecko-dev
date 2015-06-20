@@ -63,6 +63,9 @@ const CURRENT_PRESET_PREF = "devtools.responsiveUI.currentPreset";
 const PRESETS_PREF = "devtools.responsiveUI.presets";
 const ROTATE_PREF = "devtools.responsiveUI.rotate";
 
+const NEED_RELOAD_NOTIFICATION = "responsive-ui-need-reload";
+const SYNCHRONIZE_NOTIFICATION = "responsive-ui-synchronize";
+
 let ActiveTabs = new Map();
 
 let ResponsiveUIManager = this.ResponsiveUIManager = {
@@ -267,14 +270,26 @@ ResponsiveUI.prototype = {
 
   toggleSynchronize() {
     let active = this.synchronizebutton.hasAttribute("active");
+    let nbox = this.mainWindow.gBrowser.getNotificationBox();
     if (!active) {
       this.synchronizebutton.setAttribute("active", "true");
       this.synchronizer.start();
       this.router.start();
+      nbox.appendNotification(
+        Strings.GetStringFromName("responsiveUI.synchronizeActive"),
+        SYNCHRONIZE_NOTIFICATION,
+        null,
+        nbox.PRIORITY_INFO_LOW,
+        null
+      );
     } else {
       this.synchronizebutton.removeAttribute("active");
       this.synchronizer.stop();
       this.router.stop();
+      let note = nbox.getNotificationWithValue(SYNCHRONIZE_NOTIFICATION);
+      if (note) {
+        nbox.removeNotification(note);
+      }
     }
   },
 
@@ -539,7 +554,7 @@ ResponsiveUI.prototype = {
 
    hideTouchNotification: function RUI_hideTouchNotification() {
      let nbox = this.mainWindow.gBrowser.getNotificationBox(this.browser);
-     let n = nbox.getNotificationWithValue("responsive-ui-need-reload");
+     let n = nbox.getNotificationWithValue(NEED_RELOAD_NOTIFICATION);
      if (n) {
        n.close();
      }
@@ -574,7 +589,7 @@ ResponsiveUI.prototype = {
 
          nbox.appendNotification(
            Strings.GetStringFromName("responsiveUI.needReload"),
-           "responsive-ui-need-reload",
+           NEED_RELOAD_NOTIFICATION,
            null,
            nbox.PRIORITY_INFO_LOW,
            buttons);
