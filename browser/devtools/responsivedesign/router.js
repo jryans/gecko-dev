@@ -373,7 +373,7 @@ TransportProxy.prototype = {
     return pairs(packet).filter(pair => this.isActor(pair));
   },
 
-  actorFilter: /server\d+.conn\d+/,
+  actorFilter: /^server\d+.conn\d+/,
 
   isActor([ keyPath, value ]) {
     let last = keyPath[keyPath.length - 1];
