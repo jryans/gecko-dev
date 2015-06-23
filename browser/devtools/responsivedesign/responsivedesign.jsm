@@ -179,6 +179,8 @@ function ResponsiveUI(aWindow, aTab) {
 
   // Events
   this.tab.addEventListener("TabClose", this);
+  // TODO: Remove, demo only
+  this.mainWindow.addEventListener("keypress", this);
   this.tabContainer.addEventListener("TabSelect", this);
 
   this.buildUI();
@@ -227,6 +229,8 @@ ResponsiveUI.prototype = {
 
     // Remove listeners.
     this.tab.removeEventListener("TabClose", this);
+    // TODO: Remove, demo only
+    this.mainWindow.removeEventListener("keypress", this);
     this.tabContainer.removeEventListener("TabSelect", this);
     this.screenshotbutton
         .removeEventListener("command", this.screenshot, true);
@@ -333,6 +337,37 @@ ResponsiveUI.prototype = {
           this.checkMenus();
         } else if (!this.mainWindow.gBrowser.selectedTab.responsiveUI) {
           this.unCheckMenus();
+        }
+        break;
+      // TODO: Remove, demo only
+      case "keypress":
+        if (aEvent.metaKey && aEvent.key === "1") {
+          this.browserContainer.setAttribute("stage1", "true");
+          this.browserContainer.removeAttribute("stage2");
+          this.browserContainer.removeAttribute("stage3");
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
+        }
+        if (aEvent.metaKey && aEvent.key === "2") {
+          this.browserContainer.removeAttribute("stage1");
+          this.browserContainer.setAttribute("stage2", "true");
+          this.browserContainer.removeAttribute("stage3");
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
+        }
+        if (aEvent.metaKey && aEvent.key === "3") {
+          this.browserContainer.removeAttribute("stage1");
+          this.browserContainer.removeAttribute("stage2");
+          this.browserContainer.setAttribute("stage3", "true");
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
+        }
+        if (aEvent.metaKey && aEvent.key === "0") {
+          this.browserContainer.removeAttribute("stage1");
+          this.browserContainer.removeAttribute("stage2");
+          this.browserContainer.removeAttribute("stage3");
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
         }
         break;
     }

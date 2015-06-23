@@ -414,3 +414,39 @@ html|*.responsive-portal:-moz-focusring {
     background-image: url("chrome://browser/skin/devtools/responsive-se-resizer@2x.png");
   }
 }
+
+/* Whistler Demo */
+
+.browserContainer[responsivemode][stage1] .devtools-responsiveui-screenshot {
+  margin-left: 215px;
+}
+
+.browserContainer[responsivemode][stage1] .devtools-global-toolbar {
+  right: initial;
+}
+
+.browserContainer[responsivemode][stage1] .devtools-responsiveui-synchronize,
+.browserContainer[responsivemode][stage2] .devtools-responsiveui-synchronize,
+.browserContainer[responsivemode][stage3] .devtools-responsiveui-synchronize,
+.browserContainer[responsivemode][stage1] .devtools-responsiveui-add-viewport {
+  display: none;
+}
+
+.browserContainer[responsivemode][stage1] .responsive-header,
+.browserContainer[responsivemode][stage2] .responsive-header {
+  position: absolute;
+  top: -500px;
+}
+
+.browserContainer[responsivemode][stage1] .responsive-size-toolbar {
+  position: absolute;
+  left: 58px;
+  top: 5px;
+}
+
+.browserContainer[responsivemode][stage1] .responsive-size-toolbar menulist {
+  width: 130px;
+  position: relative;
+  top: -4px;
+  line-height: 22px;
+}
