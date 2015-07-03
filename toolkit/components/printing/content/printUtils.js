@@ -29,11 +29,11 @@
  *
  * Messages sent:
  *
- *   Printing:Print
- *     This message is sent to kick off a print job for a particular content
- *     window (which is passed along with the message). We also pass print
- *     settings with this message - though bug 1088070 will have us gather
- *     those settings from the content process instead.
+ *   Printing:PrintWindow
+ *   Printing:PrintWindowID
+ *     These messages are sent to kick off a print job for a particular content
+ *     window. PrintWindow passes the window as a CPOW, whereas PrintWindowID
+ *     passes the outer window ID to be printed as windowID.
  *
  *   Printing:Preview:Enter
  *     This message is sent to put content into print preview mode. We pass
@@ -95,25 +95,29 @@ var PrintUtils = {
   },
 
   /**
-   * Starts printing the contents of aWindow.
+   * Starts printing the contents of aWindowOrWindowID.
    *
-   * @param aWindow
-   *        An nsIDOMWindow to initiate the printing of. If the chrome window
-   *        is not running with remote tabs, this defaults to window.content if
-   *        omitted. If running with remote tabs, the caller must pass in the
-   *        content window to be printed. This function throws if that invariant
-   *        is violated.
-   * @param aBrowser (optional for non-remote browsers)
-   *        The remote <xul:browser> that contains aWindow. This argument is
-   *        not necessary if aWindow came from a non-remote browser, but is
-   *        strictly required otherwise. This function will throw if aWindow
-   *        comes from a remote browser and aBrowser is not provided. This
-   *        browser must have its type attribute set to "content",
+   * @param aWindowOrWindowID
+   *        An nsIDOMWindow or an outer window ID to initiate the printing of.
+   *        If the chrome window is not running with remote tabs, this defaults
+   *        to window.content if omitted. If running with remote tabs, the
+   *        caller must pass in the content window to be printed. This function
+   *        throws if that invariant is violated.
+   * @param aBrowser (optional if aWindowOrWindowID is a non-remote
+   *                  nsIDOMWindow, required otherwise).
+   *        The <xul:browser> that contains aWindowOrWindowID. This function
+   *        will throw if:
+   *
+   *        1) aWindowOrWindowID is an nsIDOMWindow CPOW from a remote browser
+   *           and aBrowser is not provided.
+   *        2) aWindowOrWindowID is a window ID and aBrowser is not provided.
+   *
+   *        aBrowser must have its type attribute set to "content",
    *        "content-targetable", or "content-primary".
    */
-  print: function (aWindow, aBrowser)
+  print: function (aWindowOrWindowID, aBrowser)
   {
-    if (!aWindow) {
+    if (!aWindowOrWindowID) {
       // If we're using remote browsers, chances are that window.content will
       // not be defined.
       if (this.usingRemoteTabs) {
@@ -121,21 +125,35 @@ var PrintUtils = {
                         "a content window to PrintUtils.print.");
       }
       // Otherwise, we should have access to window.content.
-      aWindow = window.content;
+      aWindowOrWindowID = window.content;
     }
 
-    if (Components.utils.isCrossProcessWrapper(aWindow)) {
+    if (Number.isInteger(aWindowOrWindowID)) {
       if (!aBrowser) {
+        throw new Error("PrintUtils.print expects a browser to be passed if " +
+                        "aWindowOrWindowID is an outer window ID");
+      }
+      let mm = aBrowser.messageManager;
+      mm.sendAsyncMessage("Printing:PrintWindowID", {
+        windowID: aWindowOrWindowID,
+      });
+      return;
+    }
+
+    let aWindow = aWindowOrWindowID;
+
+    if (!aBrowser) {
+      if (Components.utils.isCrossProcessWrapper(aWindow)) {
         throw new Error("PrintUtils.print expects a remote browser passed as " +
                         "an argument if the content window is a CPOW.");
+      } else if (aWindow instanceof Components.interfaces.nsIDOMWindow) {
+        // For content windows coming from non-remote browsers, the browser can
+        // be resolved as the chromeEventHandler.
+        aBrowser = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                          .getInterface(Components.interfaces.nsIWebNavigation)
+                          .QueryInterface(Components.interfaces.nsIDocShell)
+                          .chromeEventHandler;
       }
-    } else {
-      // For content windows coming from non-remote browsers, the browser can
-      // be resolved as the chromeEventHandler.
-      aBrowser = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                        .getInterface(Components.interfaces.nsIWebNavigation)
-                        .QueryInterface(Components.interfaces.nsIDocShell)
-                        .chromeEventHandler;
     }
 
     if (!aBrowser) {
@@ -144,7 +162,6 @@ var PrintUtils = {
     }
 
     let mm = aBrowser.messageManager;
-
     mm.sendAsyncMessage("Printing:Print", null, {
       contentWindow: aWindow,
     });
@@ -410,9 +427,8 @@ var PrintUtils = {
     // listener.
     let ppBrowser = this._listener.getPrintPreviewBrowser();
     let mm = ppBrowser.messageManager;
-    mm.sendAsyncMessage("Printing:Preview:Enter", null, {
-      contentWindow: this._sourceBrowser.contentWindowAsCPOW ||
-                     this._sourceBrowser.contentWindow,
+    mm.sendAsyncMessage("Printing:Preview:Enter", {
+      windowID: this._sourceBrowser.outerWindowID,
     });
 
     if (this._webProgressPP.value) {

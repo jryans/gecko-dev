@@ -375,7 +375,8 @@ let Printing = {
     "Printing:Preview:Exit",
     "Printing:Preview:Navigate",
     "Printing:Preview:UpdatePageCount",
-    "Printing:Print",
+    "Printing:PrintWindow",
+    "Printing:PrintWindowID",
   ],
 
   init() {
@@ -392,7 +393,7 @@ let Printing = {
     let data = message.data;
     switch(message.name) {
       case "Printing:Preview:Enter": {
-        this.enterPrintPreview(objects.contentWindow);
+        this.enterPrintPreview(Services.wm.getOuterWindowWithId(data.windowID));
         break;
       }
 
@@ -411,8 +412,13 @@ let Printing = {
         break;
       }
 
-      case "Printing:Print": {
+      case "Printing:PrintWindow": {
         this.print(objects.contentWindow);
+        break;
+      }
+
+      case "Printing:PrintWindowID": {
+        this.print(Services.wm.getOuterWindowWithId(data.windowID));
         break;
       }
     }
