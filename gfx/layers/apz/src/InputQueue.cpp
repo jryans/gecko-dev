@@ -13,8 +13,8 @@
 #include "mozilla/layers/APZThreadUtils.h"
 #include "OverscrollHandoffState.h"
 
-#define INPQ_LOG(...)
-// #define INPQ_LOG(...) printf_stderr("INPQ: " __VA_ARGS__)
+// #define INPQ_LOG(...)
+#define INPQ_LOG(...) printf_stderr("INPQ: " __VA_ARGS__)
 
 namespace mozilla {
 namespace layers {

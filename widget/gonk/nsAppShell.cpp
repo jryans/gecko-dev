@@ -717,6 +717,7 @@ addMultiTouch(MultiTouchInput& aMultiTouch,
 
     SingleTouchData touchData(id, point, ScreenSize(radiusX, radiusY),
                               rotationAngle, force);
+    printf_stderr("    ... adding touch point at %d,%d\n", point.x, point.y);
 
     aMultiTouch.mTouches.AppendElement(touchData);
 }
@@ -736,17 +737,21 @@ GeckoInputDispatcher::notifyMotion(const NotifyMotionArgs* args)
     case AMOTION_EVENT_ACTION_DOWN:
     case AMOTION_EVENT_ACTION_POINTER_DOWN:
         touchType = MultiTouchInput::MULTITOUCH_START;
+        printf_stderr("Gonk creating touchstart\n");
         break;
     case AMOTION_EVENT_ACTION_MOVE:
         touchType = MultiTouchInput::MULTITOUCH_MOVE;
+        printf_stderr("Gonk creating touchmove\n");
         break;
     case AMOTION_EVENT_ACTION_UP:
     case AMOTION_EVENT_ACTION_POINTER_UP:
         touchType = MultiTouchInput::MULTITOUCH_END;
+        printf_stderr("Gonk creating touchend\n");
         break;
     case AMOTION_EVENT_ACTION_OUTSIDE:
     case AMOTION_EVENT_ACTION_CANCEL:
         touchType = MultiTouchInput::MULTITOUCH_CANCEL;
+        printf_stderr("Gonk creating touchcancel\n");
         break;
     case AMOTION_EVENT_ACTION_HOVER_EXIT:
     case AMOTION_EVENT_ACTION_HOVER_ENTER:

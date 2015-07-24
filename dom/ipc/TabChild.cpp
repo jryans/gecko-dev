@@ -2069,7 +2069,7 @@ TabChild::RecvRealTouchEvent(const WidgetTouchEvent& aEvent,
                              const uint64_t& aInputBlockId,
                              const nsEventStatus& aApzResponse)
 {
-  TABC_LOG("Receiving touch event of type %d\n", aEvent.message);
+  printf_stderr("TabChild receiving touch event of type %d\n", aEvent.message);
 
   WidgetTouchEvent localEvent(aEvent);
   localEvent.widget = mPuppetWidget;

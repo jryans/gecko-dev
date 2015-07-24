@@ -463,8 +463,12 @@ APZCCallbackHelper::ApplyCallbackTransform(WidgetTouchEvent& aEvent,
                                            const CSSToLayoutDeviceScale& aScale)
 {
   for (size_t i = 0; i < aEvent.touches.Length(); i++) {
+    LayoutDeviceIntPoint orig = aEvent.touches[i]->mRefPoint;
     aEvent.touches[i]->mRefPoint = ApplyCallbackTransform(
         aEvent.touches[i]->mRefPoint, aGuid, aScale);
+    printf_stderr("    ... using final point (%d,%d) after callback on (%d,%d)\n",
+        aEvent.touches[i]->mRefPoint.x, aEvent.touches[i]->mRefPoint.y,
+        orig.x, orig.y);
   }
 }
 
