@@ -26,6 +26,7 @@
               name: "webideTmpApp",
               folder: tmpDir
             });
+            yield waitForUpdate(win, "project-validated");
 
             let project = win.AppManager.selectedProject;
             tmpDir = FileUtils.getDir("TmpD", ["webidetmpapp"]);
