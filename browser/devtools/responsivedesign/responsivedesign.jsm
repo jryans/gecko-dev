@@ -1687,8 +1687,8 @@ FxOSSimulatorResponsiveBrowser.prototype = extend(ResponsiveBrowser.prototype, {
     this.simulator = new Simulator({
       width: this.viewport.width,
       height: this.viewport.height,
-      b2gBinary: "/Users/jryans/projects/mozilla/gecko-dev/obj-firefox-release-b2g-desktop/dist/B2G.app/Contents/MacOS/b2g",
-      gaiaProfile: "/Users/jryans/projects/mozilla/gaia/profile",
+      b2gBinary: "/Users/jryans/projects/mozilla/dt-sync/B2G.app/Contents/MacOS/b2g",
+      gaiaProfile: "/Users/jryans/projects/mozilla/dt-sync/gaia-profile",
     });
     this.portal = new Portal(this);
     yield this.viewportTarget.init();
