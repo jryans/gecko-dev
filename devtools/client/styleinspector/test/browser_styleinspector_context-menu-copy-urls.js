@@ -5,7 +5,7 @@
 
 /* Tests both Copy URL and Copy Data URL context menu items */
 
-const PROPERTIES_URL = "chrome://global/locale/devtools/styleinspector.properties";
+const PROPERTIES_URL = "chrome://devtools-shared/locale/styleinspector.properties";
 const TEST_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=";
 
 // invalid URL still needs to be reachable otherwise getImageDataUrl will timeout.
