@@ -21,6 +21,7 @@ chrome.jar:
   content/devtools/adb.js               (content/devtools/adb.js)
 #endif
 * content/devtools/debugger.js          (content/devtools/debugger.js)
+  content/devtools/toolbox.js           (content/devtools/toolbox.js)
   content/devtools/hud.js               (content/devtools/hud.js)
 #ifdef FXOS_SIMULATOR
   content/desktop.css                   (content/desktop.css)

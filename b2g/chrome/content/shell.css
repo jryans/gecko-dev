@@ -29,6 +29,11 @@ iframe {
   -moz-user-select: none;
 }
 
+#toolbox {
+  height: 50vh;
+  top: initial;
+}
+
 %ifdef MOZ_GRAPHENE
 
 body.content-loaded > #installing {

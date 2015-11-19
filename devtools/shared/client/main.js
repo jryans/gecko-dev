@@ -328,6 +328,8 @@ DebuggerClient.prototype = {
    *        received from the debugging server.
    */
   connect: function (aOnConnected) {
+    let deferred = promise.defer();
+
     this.emit("connect");
 
     // Also emit the event on the |DebuggerServer| object (not on
@@ -339,9 +341,12 @@ DebuggerClient.prototype = {
       if (aOnConnected) {
         aOnConnected(aApplicationType, aTraits);
       }
+      deferred.resolve();
     });
 
     this._transport.ready();
+
+    return deferred.promise;
   },
 
   /**
