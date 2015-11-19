@@ -43,7 +43,11 @@ this.Heritage = {
    */
   getOwnPropertyDescriptors: function(aObject) {
     return Object.getOwnPropertyNames(aObject).reduce((aDescriptor, aName) => {
-      aDescriptor[aName] = Object.getOwnPropertyDescriptor(aObject, aName);
+      try {
+        aDescriptor[aName] = Object.getOwnPropertyDescriptor(aObject, aName);
+      } catch (e) {
+        dump(`${e}\n`);
+      }
       return aDescriptor;
     }, {});
   }
