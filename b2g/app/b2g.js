@@ -1161,6 +1161,10 @@ pref("extensions.blocklist.interval", 86400);
 pref("extensions.blocklist.url", "https://blocklist.addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
 pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blocklist/");
 
+// Number of usages of the web console or scratchpad. If this is less than 5,
+// then pasting code into the web console or scratchpad is disabled
+pref("devtools.selfxss.count", 5);
+
 // Because we can't have nice things.
 #ifdef MOZ_GRAPHENE
 #include ../graphene/graphene.js
