@@ -32,7 +32,7 @@ let DevToolsToolboxManager = {
     if (detail.type !== "toggle-devtools-toolbox") {
       return;
     }
-    this.createToolbox();
+    this.toggleToolbox();
   },
 
   makeTarget: Task.async(function*() {
@@ -49,6 +49,14 @@ let DevToolsToolboxManager = {
     };
     return TargetFactory.forRemoteTab(options);
   }),
+
+  toggleToolbox() {
+    if (this.toolboxPromise) {
+      this.destroyToolbox();
+    } else {
+      this.createToolbox();
+    }
+  },
 
   createToolbox: Task.async(function*() {
     // If |this.toolboxPromise| exists, there is already a live toolbox
@@ -81,6 +89,42 @@ let DevToolsToolboxManager = {
     let host = Toolbox.HostType.CUSTOM;
     let options = { customIframe: iframe, zoom: false, uid: iframe.uid };
     return gDevTools.showToolbox(target, null, host, options);
+  },
+
+  destroyToolbox: function() {
+    // Only have a live toolbox if |this.toolboxPromise| exists
+    if (this.toolboxPromise) {
+      let toolboxPromise = this.toolboxPromise;
+      this.toolboxPromise = null;
+      return toolboxPromise.then(toolbox => toolbox.destroy());
+    }
+  },
+
+  /**
+   * There are many ways to close a toolbox:
+   *   * Close button inside the toolbox
+   *   * Toggle toolbox wrench in WebIDE
+   *   * Disconnect the current runtime gracefully
+   *   * Yank cord out of device
+   *   * Close or crash the app/tab
+   * We can't know for sure which one was used here, so reset the
+   * |toolboxPromise| since someone must be destroying it to reach here,
+   * and call our own close method.
+   */
+  _onToolboxClosed: function(promise, iframe) {
+    // Only save toolbox size, disable wrench button, workaround focus issue...
+    // if we are closing the last toolbox:
+    //  - toolboxPromise is nullified by destroyToolbox and is still null here
+    //    if no other toolbox has been opened in between,
+    //  - having two distinct promise means we are receiving closed event
+    //    for a previous, non-current, toolbox.
+    if (!this.toolboxPromise || this.toolboxPromise === promise) {
+      this.toolboxPromise = null;
+      /*Services.prefs.setIntPref("devtools.toolbox.footer.height", iframe.height);*/
+    }
+    // We have to destroy the iframe, otherwise, the keybindings of webide don't work
+    // properly anymore.
+    iframe.remove();
   },
 
 };
