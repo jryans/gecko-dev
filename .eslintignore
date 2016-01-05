@@ -6,7 +6,6 @@ obj*/**
 
 # Temporarily ignore HTML files that still need to be fixed.
 browser/extensions/loop/**/*.html
-devtools/**/*.html
 
 # We ignore all these directories by default, until we get them enabled.
 # If you are enabling a directory, please add directory specific exclusions
@@ -18,7 +17,6 @@ caps/**
 chrome/**
 config/**
 db/**
-devtools/**
 docshell/**
 dom/**
 editor/**
@@ -125,6 +123,35 @@ browser/extensions/loop/ui/ui-showcase.js
 browser/extensions/loop/standalone/dist
 
 # devtools/ exclusions
+devtools/client/*.js
+devtools/client/aboutdebugging/**
+devtools/client/animationinspector/**
+devtools/client/canvasdebugger/**
+devtools/client/commandline/**
+devtools/client/debugger/**
+devtools/client/eyedropper/**
+devtools/client/framework/**
+devtools/client/inspector/**
+devtools/client/jsonview/**
+devtools/client/memory/**
+devtools/client/netmonitor/**
+devtools/client/performance/**
+devtools/client/projecteditor/**
+devtools/client/promisedebugger/**
+devtools/client/responsivedesign/**
+devtools/client/scratchpad/**
+devtools/client/shadereditor/**
+devtools/client/shared/**
+devtools/client/sourceeditor/**
+devtools/client/storage/**
+devtools/client/styleeditor/**
+devtools/client/tilt/**
+devtools/client/webaudioeditor/**
+devtools/client/webconsole/**
+devtools/client/webide/**
+devtools/server/**
+devtools/shared/**
+
 # Ignore d3
 devtools/client/shared/d3.js
 devtools/client/webaudioeditor/lib/dagre-d3.js
@@ -141,6 +168,7 @@ devtools/client/markupview/test/lib_*
 devtools/client/framework/toolbox-process-window.js
 devtools/client/performance/system.js
 devtools/client/webide/webide-prefs.js
+devtools/client/preferences/**
 
 # Ignore various libs
 devtools/shared/jsbeautify/*
