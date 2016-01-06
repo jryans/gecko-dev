@@ -4,6 +4,11 @@
 
 "use strict";
 
+const promise = require("promise");
+const { Task } = require("resource://gre/modules/Task.jsm");
+
+const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
+
 /**
  * ResponsiveUIManager is the external API for the browser UI, etc. to use when
  * open and closing the responsive UI.
@@ -41,7 +46,7 @@ exports.ResponsiveUIManager = {
    */
   runIfNeeded(window, tab) {
     if (!this.isActiveForTab(tab)) {
-      // TODO: Unimplemented
+      this._activeTabs.set(tab, new ResponsiveUI(window, tab));
     }
   },
 
@@ -102,3 +107,51 @@ exports.ResponsiveUIManager = {
     }
   }
 };
+
+function ResponsiveUI(window, tab) {
+  this._window = window;
+  this._tab = tab;
+  this.init();
+}
+
+ResponsiveUI.prototype = {
+
+  /**
+   * For the moment, we open the tool by:
+   * 1. Recording the tab's URL
+   * 2. Navigating the tab to the tool
+   * 3. Passing along the URL to the tool to open in the viewport
+   *
+   * This approach is simple, but it also discards the user's state on the page.
+   * It's just like opening a fresh tab and pasting the URL.
+   *
+   * In the future, we can do better by using swapFrameLoaders to preserve the
+   * state.  Platform discussions are in progress to make this happen.
+   */
+  init: Task.async(function*() {
+    let tabBrowser = this._tab.linkedBrowser;
+    let contentURI = tabBrowser.documentURI.spec;
+    // Should we use a fresh tab?
+    tabBrowser.loadURI(TOOL_URL);
+    yield tabLoaded(this._tab);
+    let toolWindow = tabBrowser.contentWindow;
+    toolWindow.addViewport(contentURI);
+  }),
+
+};
+
+function tabLoaded(tab) {
+  let deferred = promise.defer();
+
+  function handle(event) {
+    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+        event.target.location.href == "about:blank") {
+      return;
+    }
+    tab.linkedBrowser.removeEventListener("load", handle, true);
+    deferred.resolve(event);
+  }
+
+  tab.linkedBrowser.addEventListener("load", handle, true, true);
+  return deferred.promise;
+}
