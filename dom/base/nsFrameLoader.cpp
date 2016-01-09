@@ -863,14 +863,15 @@ nsFrameLoader::Hide()
 }
 
 nsresult
-nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
-                                         RefPtr<nsFrameLoader>& aFirstToSwap,
-                                         RefPtr<nsFrameLoader>& aSecondToSwap)
+nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
+                                         nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
+
   Element* ourContent = mOwnerContent;
-  Element* otherContent = aOther->mOwnerContent;
+  Element* otherContent = other->mOwnerContent;
 
   if (!ourContent || !otherContent) {
     // Can't handle this
@@ -899,34 +900,34 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  if (mInSwap || aOther->mInSwap) {
+  if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  mInSwap = aOther->mInSwap = true;
+  mInSwap = other->mInSwap = true;
 
   nsIFrame* ourFrame = ourContent->GetPrimaryFrame();
   nsIFrame* otherFrame = otherContent->GetPrimaryFrame();
   if (!ourFrame || !otherFrame) {
-    mInSwap = aOther->mInSwap = false;
+    mInSwap = other->mInSwap = false;
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   nsSubDocumentFrame* ourFrameFrame = do_QueryFrame(ourFrame);
   if (!ourFrameFrame) {
-    mInSwap = aOther->mInSwap = false;
+    mInSwap = other->mInSwap = false;
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   rv = ourFrameFrame->BeginSwapDocShells(otherFrame);
   if (NS_FAILED(rv)) {
-    mInSwap = aOther->mInSwap = false;
+    mInSwap = other->mInSwap = false;
     return rv;
   }
 
-  mRemoteBrowser->SwapLayerTreeObservers(aOther->mRemoteBrowser);
+  mRemoteBrowser->SwapLayerTreeObservers(other->mRemoteBrowser);
 
   nsCOMPtr<nsIBrowserDOMWindow> otherBrowserDOMWindow =
-    aOther->mRemoteBrowser->GetBrowserDOMWindow();
+    other->mRemoteBrowser->GetBrowserDOMWindow();
   nsCOMPtr<nsIBrowserDOMWindow> browserDOMWindow =
     mRemoteBrowser->GetBrowserDOMWindow();
 
@@ -934,43 +935,44 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  aOther->mRemoteBrowser->SetBrowserDOMWindow(browserDOMWindow);
+  other->mRemoteBrowser->SetBrowserDOMWindow(browserDOMWindow);
   mRemoteBrowser->SetBrowserDOMWindow(otherBrowserDOMWindow);
 
   // Native plugin windows used by this remote content need to be reparented.
   if (nsPIDOMWindowOuter* newWin = ourDoc->GetWindow()) {
     RefPtr<nsIWidget> newParent = nsGlobalWindow::Cast(newWin)->GetMainWidget();
     const ManagedContainer<mozilla::plugins::PPluginWidgetParent>& plugins =
-      aOther->mRemoteBrowser->ManagedPPluginWidgetParent();
+      other->mRemoteBrowser->ManagedPPluginWidgetParent();
     for (auto iter = plugins.ConstIter(); !iter.Done(); iter.Next()) {
       static_cast<mozilla::plugins::PluginWidgetParent*>(iter.Get()->GetKey())->SetParent(newParent);
     }
   }
 
   MaybeUpdatePrimaryTabParent(eTabParentRemoved);
-  aOther->MaybeUpdatePrimaryTabParent(eTabParentRemoved);
+  other->MaybeUpdatePrimaryTabParent(eTabParentRemoved);
 
   SetOwnerContent(otherContent);
-  aOther->SetOwnerContent(ourContent);
+  other->SetOwnerContent(ourContent);
 
   mRemoteBrowser->SetOwnerElement(otherContent);
-  aOther->mRemoteBrowser->SetOwnerElement(ourContent);
+  other->mRemoteBrowser->SetOwnerElement(ourContent);
 
   MaybeUpdatePrimaryTabParent(eTabParentChanged);
-  aOther->MaybeUpdatePrimaryTabParent(eTabParentChanged);
+  other->MaybeUpdatePrimaryTabParent(eTabParentChanged);
 
   RefPtr<nsFrameMessageManager> ourMessageManager = mMessageManager;
-  RefPtr<nsFrameMessageManager> otherMessageManager = aOther->mMessageManager;
+  RefPtr<nsFrameMessageManager> otherMessageManager = other->mMessageManager;
   // Swap and setup things in parent message managers.
   if (mMessageManager) {
-    mMessageManager->SetCallback(aOther);
+    mMessageManager->SetCallback(other);
   }
-  if (aOther->mMessageManager) {
-    aOther->mMessageManager->SetCallback(this);
+  if (other->mMessageManager) {
+    other->mMessageManager->SetCallback(this);
   }
-  mMessageManager.swap(aOther->mMessageManager);
+  mMessageManager.swap(other->mMessageManager);
 
-  aFirstToSwap.swap(aSecondToSwap);
+  aOurLoaderOwner->SetFrameLoader(other);
+  aOtherLoaderOwner->SetFrameLoader(this);
 
   ourFrameFrame->EndSwapDocShells(otherFrame);
 
@@ -980,10 +982,10 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
   ourDoc->FlushPendingNotifications(Flush_Layout);
   otherDoc->FlushPendingNotifications(Flush_Layout);
 
-  mInSwap = aOther->mInSwap = false;
+  mInSwap = other->mInSwap = false;
 
   Unused << mRemoteBrowser->SendSwappedWithOtherRemoteLoader();
-  Unused << aOther->mRemoteBrowser->SendSwappedWithOtherRemoteLoader();
+  Unused << other->mRemoteBrowser->SendSwappedWithOtherRemoteLoader();
   return NS_OK;
 }
 
@@ -1042,26 +1044,24 @@ private:
 };
 
 nsresult
-nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
-                                   RefPtr<nsFrameLoader>& aFirstToSwap,
-                                   RefPtr<nsFrameLoader>& aSecondToSwap)
+nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
+                                   nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
-  NS_PRECONDITION((aFirstToSwap == this && aSecondToSwap == aOther) ||
-                  (aFirstToSwap == aOther && aSecondToSwap == this),
-                  "Swapping some sort of random loaders?");
-  NS_ENSURE_STATE(!mInShow && !aOther->mInShow);
+  RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
 
-  if (IsRemoteFrame() && aOther->IsRemoteFrame()) {
-    return SwapWithOtherRemoteLoader(aOther, aFirstToSwap, aSecondToSwap);
+  NS_ENSURE_STATE(!mInShow && !other->mInShow);
+
+  if (IsRemoteFrame() && other->IsRemoteFrame()) {
+    return SwapWithOtherRemoteLoader(aOurLoaderOwner, aOtherLoaderOwner);
   }
 
-  if (IsRemoteFrame() || aOther->IsRemoteFrame()) {
+  if (IsRemoteFrame() || other->IsRemoteFrame()) {
     NS_WARNING("Swapping remote and non-remote frames is not currently supported");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   Element* ourContent = mOwnerContent;
-  Element* otherContent = aOther->mOwnerContent;
+  Element* otherContent = other->mOwnerContent;
 
   if (!ourContent || !otherContent) {
     // Can't handle this
@@ -1078,7 +1078,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   }
 
   RefPtr<nsDocShell> ourDocshell = static_cast<nsDocShell*>(GetExistingDocShell());
-  RefPtr<nsDocShell> otherDocshell = static_cast<nsDocShell*>(aOther->GetExistingDocShell());
+  RefPtr<nsDocShell> otherDocshell = static_cast<nsDocShell*>(other->GetExistingDocShell());
   if (!ourDocshell || !otherDocshell) {
     // How odd
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -1206,10 +1206,10 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
       return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  if (mInSwap || aOther->mInSwap) {
+  if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  AutoResetInFrameSwap autoFrameSwap(this, aOther, ourDocshell, otherDocshell,
+  AutoResetInFrameSwap autoFrameSwap(this, other, ourDocshell, otherDocshell,
                                      ourEventTarget, otherEventTarget);
 
   nsIFrame* ourFrame = ourContent->GetPrimaryFrame();
@@ -1255,10 +1255,10 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   // Note that we rely on this to deal with setting mObservingOwnerContent to
   // false and calling RemoveMutationObserver as needed.
   SetOwnerContent(otherContent);
-  aOther->SetOwnerContent(ourContent);
+  other->SetOwnerContent(ourContent);
 
   AddTreeItemToTreeOwner(ourDocshell, otherOwner, otherParentType, nullptr);
-  aOther->AddTreeItemToTreeOwner(otherDocshell, ourOwner, ourParentType,
+  other->AddTreeItemToTreeOwner(otherDocshell, ourOwner, ourParentType,
                                  nullptr);
 
   // SetSubDocumentFor nulls out parent documents on the old child doc if a
@@ -1274,7 +1274,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   otherWindow->SetFrameElementInternal(ourFrameElement);
 
   RefPtr<nsFrameMessageManager> ourMessageManager = mMessageManager;
-  RefPtr<nsFrameMessageManager> otherMessageManager = aOther->mMessageManager;
+  RefPtr<nsFrameMessageManager> otherMessageManager = other->mMessageManager;
   // Swap pointers in child message managers.
   if (mChildMessageManager) {
     nsInProcessTabChildGlobal* tabChild =
@@ -1282,22 +1282,23 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
     tabChild->SetOwner(otherContent);
     tabChild->SetChromeMessageManager(otherMessageManager);
   }
-  if (aOther->mChildMessageManager) {
+  if (other->mChildMessageManager) {
     nsInProcessTabChildGlobal* otherTabChild =
-      static_cast<nsInProcessTabChildGlobal*>(aOther->mChildMessageManager.get());
+      static_cast<nsInProcessTabChildGlobal*>(other->mChildMessageManager.get());
     otherTabChild->SetOwner(ourContent);
     otherTabChild->SetChromeMessageManager(ourMessageManager);
   }
   // Swap and setup things in parent message managers.
   if (mMessageManager) {
-    mMessageManager->SetCallback(aOther);
+    mMessageManager->SetCallback(other);
   }
-  if (aOther->mMessageManager) {
-    aOther->mMessageManager->SetCallback(this);
+  if (other->mMessageManager) {
+    other->mMessageManager->SetCallback(this);
   }
-  mMessageManager.swap(aOther->mMessageManager);
+  mMessageManager.swap(other->mMessageManager);
 
-  aFirstToSwap.swap(aSecondToSwap);
+  aOurLoaderOwner->SetFrameLoader(other);
+  aOtherLoaderOwner->SetFrameLoader(this);
 
   // Drop any cached content viewers in the two session histories.
   nsCOMPtr<nsISHistoryInternal> ourInternalHistory =

@@ -182,6 +182,12 @@ nsGenericHTMLFrameElement::GetFrameLoader()
   return loader.forget();
 }
 
+NS_IMETHODIMP_(void)
+nsGenericHTMLFrameElement::SetFrameLoader(nsFrameLoader *aFrameLoader)
+{
+  mFrameLoader = aFrameLoader;
+}
+
 NS_IMETHODIMP
 nsGenericHTMLFrameElement::GetParentApplication(mozIApplication** aApplication)
 {
@@ -214,8 +220,29 @@ nsGenericHTMLFrameElement::GetParentApplication(mozIApplication** aApplication)
 NS_IMETHODIMP
 nsGenericHTMLFrameElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner)
 {
-  // We don't support this yet
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (!aOtherOwner) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  ErrorResult rv;
+  SwapFrameLoaders(*aOtherOwner, rv);
+  return rv.StealNSResult();
+}
+
+void
+nsGenericHTMLFrameElement::SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+                                            ErrorResult& rv)
+{
+  RefPtr<nsFrameLoader> ourLoader = GetFrameLoader();
+  nsCOMPtr<nsIFrameLoaderOwner> ourLoaderOwner = this;
+  nsCOMPtr<nsIFrameLoaderOwner> otherLoaderOwner = &aOtherOwner;
+
+  if (!ourLoader) {
+      rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+      return;
+  }
+
+  rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, otherLoaderOwner);
 }
 
 NS_IMETHODIMP
@@ -711,11 +738,4 @@ nsGenericHTMLFrameElement::InitializeBrowserAPI()
   MOZ_ASSERT(mFrameLoader);
   InitBrowserElementAPI();
   return NS_OK;
-}
-
-void
-nsGenericHTMLFrameElement::SwapFrameLoaders(nsXULElement& aOtherOwner,
-                                            ErrorResult& aError)
-{
-  aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }

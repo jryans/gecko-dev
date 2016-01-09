@@ -118,7 +118,9 @@ interface XULElement : Element {
 
 // And the things from nsIFrameLoaderOwner
 [NoInterfaceObject]
-interface MozFrameLoaderOwner {
+interface MozFrameLoaderOwner {};
+
+partial interface MozFrameLoaderOwner {
   [ChromeOnly]
   readonly attribute MozFrameLoader? frameLoader;
 
@@ -126,7 +128,7 @@ interface MozFrameLoaderOwner {
   void setIsPrerendered();
 
   [ChromeOnly, Throws]
-  void swapFrameLoaders(XULElement aOtherOwner);
+  void swapFrameLoaders(MozFrameLoaderOwner aOtherOwner);
 };
 
 XULElement implements GlobalEventHandlers;

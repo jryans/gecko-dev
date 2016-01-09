@@ -576,7 +576,9 @@ public:
                                mozilla::ErrorResult& rv);
     // Style() inherited from nsStyledElement
     already_AddRefed<nsFrameLoader> GetFrameLoader();
-    void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& rv);
+    NS_IMETHOD_(void) SetFrameLoader(nsFrameLoader *aFrameLoader);
+    void SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+                          mozilla::ErrorResult& rv);
 
     nsINode* GetScopeChainParent() const override
     {
@@ -646,7 +648,7 @@ protected:
     virtual mozilla::EventListenerManager*
       GetEventListenerManagerForAttr(nsIAtom* aAttrName,
                                      bool* aDefer) override;
-  
+
     /**
      * Add a listener for the specified attribute, if appropriate.
      */
@@ -673,7 +675,7 @@ protected:
     // appropriate value.
     nsIControllers *Controllers() {
       nsDOMSlots* slots = GetExistingDOMSlots();
-      return slots ? slots->mControllers : nullptr; 
+      return slots ? slots->mControllers : nullptr;
     }
 
     void UnregisterAccessKey(const nsAString& aOldValue);

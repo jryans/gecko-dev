@@ -74,7 +74,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsGenericHTMLFrameElement,
                                            nsGenericHTMLElement)
 
-  void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& aError);
+  void SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+                        mozilla::ErrorResult& aError);
 
   static bool BrowserFramesEnabled();
 

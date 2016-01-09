@@ -14,6 +14,7 @@
 #define NSOBJECTLOADINGCONTENT_H_
 
 #include "mozilla/Attributes.h"
+#include "nsFrameLoader.h"
 #include "nsImageLoadingContent.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
@@ -22,13 +23,11 @@
 #include "nsIRunnable.h"
 #include "nsIThreadInternal.h"
 #include "nsIFrame.h"
-#include "nsIFrameLoader.h"
 
 class nsAsyncInstantiateEvent;
 class nsStopPluginRunnable;
 class AutoSetInstantiatingToFalse;
 class nsPluginFrame;
-class nsFrameLoader;
 class nsXULElement;
 class nsPluginInstanceOwner;
 
@@ -207,7 +206,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       return mURI;
     }
-  
+
     /**
      * The default state that this plugin would be without manual activation.
      * @returns PLUGIN_ACTIVE if the default state would be active.
@@ -222,7 +221,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       return !!mInstanceOwner;
     }
-    void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& aRv)
+    void SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+                          mozilla::ErrorResult& aRv)
     {
       aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
     }
@@ -400,11 +400,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      *                          object (codebase attribute)
      * - mType                : The type the object is determined to be based
      *                          on the above
-     * 
+     *
      * NOTE The class assumes that mType is the currently loaded type at various
      *      points, so the caller of this function must take the appropriate
      *      actions to ensure this
-     * 
+     *
      * NOTE This function does not perform security checks, only determining the
      *      requested type and parameters of the object.
      *
@@ -506,7 +506,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      * Returns a ObjectType value corresponding to the type of content we would
      * support the given MIME type as, taking capabilities and plugin state
      * into account
-     * 
+     *
      * NOTE this does not consider whether the content would be suppressed by
      *      click-to-play or other content policy checks
      */

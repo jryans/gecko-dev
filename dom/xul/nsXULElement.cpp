@@ -1618,6 +1618,16 @@ nsXULElement::GetFrameLoader()
     return loader.forget();
 }
 
+NS_IMETHODIMP_(void)
+nsXULElement::SetFrameLoader(nsFrameLoader *aFrameLoader)
+{
+  nsXULSlots* slots = static_cast<nsXULSlots*>(GetExistingSlots());
+  if (!slots)
+      return;
+
+  slots->mFrameLoader = aFrameLoader;
+}
+
 nsresult
 nsXULElement::GetParentApplication(mozIApplication** aApplication)
 {
@@ -1639,38 +1649,30 @@ nsXULElement::SetIsPrerendered()
 nsresult
 nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner)
 {
-    nsCOMPtr<nsIContent> otherContent(do_QueryInterface(aOtherOwner));
-    NS_ENSURE_TRUE(otherContent, NS_ERROR_NOT_IMPLEMENTED);
-
-    nsXULElement* otherEl = FromContent(otherContent);
-    NS_ENSURE_TRUE(otherEl, NS_ERROR_NOT_IMPLEMENTED);
+    if (!aOtherOwner) {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
 
     ErrorResult rv;
-    SwapFrameLoaders(*otherEl, rv);
+    SwapFrameLoaders(*aOtherOwner, rv);
     return rv.StealNSResult();
 }
 
 void
-nsXULElement::SwapFrameLoaders(nsXULElement& aOtherElement, ErrorResult& rv)
+nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+                               ErrorResult& rv)
 {
-    if (&aOtherElement == this) {
-        // nothing to do
-        return;
-    }
+    RefPtr<nsFrameLoader> ourLoader = GetFrameLoader();
+    nsCOMPtr<nsIFrameLoaderOwner> ourLoaderOwner =
+      do_QueryInterface(NS_ISUPPORTS_CAST(nsIDOMXULElement*, this));
+    nsCOMPtr<nsIFrameLoaderOwner> otherLoaderOwner = &aOtherOwner;
 
-    nsXULSlots *ourSlots = static_cast<nsXULSlots*>(GetExistingDOMSlots());
-    nsXULSlots *otherSlots =
-        static_cast<nsXULSlots*>(aOtherElement.GetExistingDOMSlots());
-    if (!ourSlots || !ourSlots->mFrameLoader ||
-        !otherSlots || !otherSlots->mFrameLoader) {
-        // Can't handle swapping when there is nothing to swap... yet.
+    if (!ourLoader) {
         rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
         return;
     }
 
-    rv = ourSlots->mFrameLoader->SwapWithOtherLoader(otherSlots->mFrameLoader,
-                                                     ourSlots->mFrameLoader,
-                                                     otherSlots->mFrameLoader);
+    rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, otherLoaderOwner);
 }
 
 NS_IMETHODIMP

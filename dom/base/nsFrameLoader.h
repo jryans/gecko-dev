@@ -126,13 +126,11 @@ public:
   // The guts of an nsIFrameLoaderOwner::SwapFrameLoader implementation.  A
   // frame loader owner needs to call this, and pass in the two references to
   // nsRefPtrs for frame loaders that need to be swapped.
-  nsresult SwapWithOtherLoader(nsFrameLoader* aOther,
-                               RefPtr<nsFrameLoader>& aFirstToSwap,
-                               RefPtr<nsFrameLoader>& aSecondToSwap);
+  nsresult SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
+                               nsIFrameLoaderOwner* aOtherLoaderOwner);
 
-  nsresult SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
-                                     RefPtr<nsFrameLoader>& aFirstToSwap,
-                                     RefPtr<nsFrameLoader>& aSecondToSwap);
+  nsresult SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
+                                     nsIFrameLoaderOwner* aOtherLoaderOwner);
 
   /**
    * Return the primary frame for our owning content, or null if it
