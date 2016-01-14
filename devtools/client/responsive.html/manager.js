@@ -6,6 +6,7 @@
 
 const promise = require("promise");
 const { Task } = require("resource://gre/modules/Task.jsm");
+const EventEmitter = require("devtools/shared/event-emitter");
 
 const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
@@ -107,6 +108,10 @@ exports.ResponsiveUIManager = {
     }
   }
 };
+
+// GCLI commands in ../responsivedesign/resize-commands.js listen for events
+// from this object to know when the UI for a tab has opened or closed.
+EventEmitter.decorate(exports.ResponsiveUIManager);
 
 function ResponsiveUI(window, tab) {
   this._window = window;
