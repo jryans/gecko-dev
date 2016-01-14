@@ -31,7 +31,8 @@ exports.ResponsiveUIManager = {
    */
   toggle(window, tab) {
     if (this.isActiveForTab(tab)) {
-      this._activeTabs.get(tab).close();
+      this._activeTabs.get(tab).destroy();
+      this._activeTabs.delete(tab);
     } else {
       this.runIfNeeded(window, tab);
     }
@@ -97,8 +98,8 @@ exports.ResponsiveUIManager = {
         break;
       case "resize off":
         if (this.isActiveForTab(tab)) {
-          // TODO: Probably the wrong API
-          this._activeTabs.get(tab).close();
+          this._activeTabs.get(tab).destroy();
+          this._activeTabs.delete(tab);
         }
         break;
       case "resize toggle":
@@ -136,12 +137,17 @@ ResponsiveUI.prototype = {
   init: Task.async(function*() {
     let tabBrowser = this._tab.linkedBrowser;
     let contentURI = tabBrowser.documentURI.spec;
-    // Should we use a fresh tab?
+    // TODO: Should we use a fresh tab?
     tabBrowser.loadURI(TOOL_URL);
     yield tabLoaded(this._tab);
     let toolWindow = tabBrowser.contentWindow;
     toolWindow.addViewport(contentURI);
   }),
+
+  destroy() {
+    let tabBrowser = this._tab.linkedBrowser;
+    tabBrowser.goBack();
+  },
 
 };
 
