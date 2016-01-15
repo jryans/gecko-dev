@@ -1,4 +1,4 @@
-(function(){
+(function() {
   "use strict";
 
   function addPropertyTo(target, methodName, value) {
@@ -53,6 +53,12 @@
     "map", "filter", "slice", "concat", "reduce", "reduceRight"
   ]);
 
+  var mutatingDateMethods = mutatingObjectMethods.concat([
+    "setDate", "setFullYear", "setHours", "setMilliseconds", "setMinutes", "setMonth", "setSeconds",
+    "setTime", "setUTCDate", "setUTCFullYear", "setUTCHours", "setUTCMilliseconds", "setUTCMinutes",
+    "setUTCMonth", "setUTCSeconds", "setYear"
+  ]);
+
   function ImmutableError(message) {
     var err       = new Error(message);
     err.__proto__ = ImmutableError;
@@ -65,7 +71,7 @@
     // Tag it so we can quickly tell it's immutable later.
     addImmutabilityTag(obj);
 
-    if ("development" === "development") {
+    if ("development" !== "production") {
       // Make all mutating methods throw exceptions.
       for (var index in bannedMethods) {
         if (bannedMethods.hasOwnProperty(index)) {
@@ -88,6 +94,45 @@
     });
   }
 
+  function arraySet(idx, value) {
+    if (idx in this && this[idx] === value) {
+      return this;
+    }
+
+    var mutable = asMutableArray.call(this);
+    mutable[idx] = Immutable(value);
+    return makeImmutableArray(mutable);
+  }
+
+  var immutableEmptyArray = Immutable([]);
+
+  function arraySetIn(pth, value) {
+    var head = pth[0];
+
+    if (pth.length === 1) {
+      return arraySet.call(this, head, value);
+    } else {
+      var tail = pth.slice(1);
+      var thisHead = this[head];
+      var newValue;
+
+      if (typeof(thisHead) === "object" && thisHead !== null && typeof(thisHead.setIn) === "function") {
+        // Might (validly) be object or array
+        newValue = thisHead.setIn(tail, value);
+      } else {
+        newValue = arraySetIn.call(immutableEmptyArray, tail, value);
+      }
+
+      if (head in this && thisHead === newValue) {
+        return this;
+      }
+
+      var mutable = asMutableArray.call(this);
+      mutable[head] = newValue;
+      return makeImmutableArray(mutable);
+    }
+  }
+
   function makeImmutableArray(array) {
     // Don't change their implementations, but wrap these functions to make sure
     // they always return an immutable value.
@@ -101,12 +146,24 @@
     addPropertyTo(array, "flatMap",  flatMap);
     addPropertyTo(array, "asObject", asObject);
     addPropertyTo(array, "asMutable", asMutableArray);
+    addPropertyTo(array, "set", arraySet);
+    addPropertyTo(array, "setIn", arraySetIn);
 
     for(var i = 0, length = array.length; i < length; i++) {
       array[i] = Immutable(array[i]);
     }
 
     return makeImmutable(array, mutatingArrayMethods);
+  }
+
+  function makeImmutableDate(date) {
+    addPropertyTo(date, "asMutable", asMutableDate);
+
+    return makeImmutable(date, mutatingDateMethods);
+  }
+
+  function asMutableDate() {
+    return new Date(this.getTime());
   }
 
   /**
@@ -146,21 +203,26 @@
    *
    * @param {array} keysToRemove - A list of strings representing the keys to exclude in the return value. Instead of providing a single array, this method can also be called by passing multiple strings as separate arguments.
    */
-  function without(keysToRemove) {
+  function without(remove) {
     // Calling .without() with no arguments is a no-op. Don't bother cloning.
-    if (arguments.length === 0) {
+    if (typeof remove === "undefined" && arguments.length === 0) {
       return this;
     }
 
-    // If we weren't given an array, use the arguments list.
-    if (!(keysToRemove instanceof Array)) {
-      keysToRemove = Array.prototype.slice.call(arguments);
+    if (typeof remove !== "function") {
+      // If we weren't given an array, use the arguments list.
+      var keysToRemoveArray = (remove instanceof Array) ?
+         remove : Array.prototype.slice.call(arguments);
+
+      remove = function(val, key) {
+        return keysToRemoveArray.indexOf(key) !== -1;
+      };
     }
 
     var result = this.instantiateEmptyObject();
 
     for (var key in this) {
-      if (this.hasOwnProperty(key) && (keysToRemove.indexOf(key) === -1)) {
+      if (this.hasOwnProperty(key) && !remove(this[key], key)) {
         result[key] = this[key];
       }
     }
@@ -174,7 +236,7 @@
 
     if(opts && opts.deep) {
       for(i = 0, length = this.length; i < length; i++) {
-        result.push( asDeepMutable(this[i]) );
+        result.push(asDeepMutable(this[i]));
       }
     } else {
       for(i = 0, length = this.length; i < length; i++) {
@@ -248,12 +310,10 @@
       throw new TypeError("Immutable#merge can only be invoked with objects or arrays, not " + JSON.stringify(other));
     }
 
-    var anyChanges    = false,
-        result        = quickCopy(this, this.instantiateEmptyObject()), // A shallow clone of this object.
-        receivedArray = (other instanceof Array),
+    var receivedArray = (other instanceof Array),
         deep          = config && config.deep,
         merger        = config && config.merger,
-        key;
+        result;
 
     // Use the given key to extract a value from the given object, then place
     // that value in the result object under the same key. If that resulted
@@ -261,23 +321,39 @@
     function addToResult(currentObj, otherObj, key) {
       var immutableValue = Immutable(otherObj[key]);
       var mergerResult = merger && merger(currentObj[key], immutableValue, config);
-      if (merger && mergerResult && mergerResult === currentObj[key]) return;
+      var currentValue = currentObj[key];
 
-      anyChanges = anyChanges ||
-        mergerResult !== undefined ||
+      if ((result !== undefined) ||
+        (mergerResult !== undefined) ||
         (!currentObj.hasOwnProperty(key) ||
-        ((immutableValue !== currentObj[key]) &&
+        ((immutableValue !== currentValue) &&
           // Avoid false positives due to (NaN !== NaN) evaluating to true
-          (immutableValue === immutableValue)));
+          (immutableValue === immutableValue)))) {
 
-      if (mergerResult) {
-        result[key] = mergerResult;
-      } else if (deep && isMergableObject(currentObj[key]) && isMergableObject(immutableValue)) {
-        result[key] = currentObj[key].merge(immutableValue, config);
-      } else {
-        result[key] = immutableValue;
+        var newValue;
+
+        if (mergerResult) {
+          newValue = mergerResult;
+        } else if (deep && isMergableObject(currentValue) && isMergableObject(immutableValue)) {
+          newValue = currentValue.merge(immutableValue, config);
+        } else {
+          newValue = immutableValue;
+        }
+
+        // We check (newValue === newValue) because (NaN !== NaN) in JS
+        if (((currentValue !== newValue) && (newValue === newValue)) ||
+            !currentObj.hasOwnProperty(key)) {
+          if (result === undefined) {
+            // Make a shallow clone of the current object.
+            result = quickCopy(currentObj, currentObj.instantiateEmptyObject());
+          }
+
+          result[key] = newValue;
+        }
       }
     }
+
+    var key;
 
     // Achieve prioritization by overriding previous values that get in the way.
     if (!receivedArray) {
@@ -300,12 +376,50 @@
       }
     }
 
-    if (anyChanges) {
+    if (result === undefined) {
+      return this;
+    } else {
       return makeImmutableObject(result,
         {instantiateEmptyObject: this.instantiateEmptyObject});
+    }
+  }
+
+  var immutableEmptyObject = Immutable({});
+
+  function objectSetIn(path, value) {
+    var head = path[0];
+    if (path.length === 1) {
+      return objectSet.call(this, head, value);
+    }
+
+    var tail = path.slice(1);
+    var newValue;
+    var thisHead = this[head];
+
+    if (this.hasOwnProperty(head) && typeof(thisHead) === "object" && thisHead !== null && typeof(thisHead.setIn) === "function") {
+      // Might (validly) be object or array
+      newValue = thisHead.setIn(tail, value);
     } else {
+      newValue = objectSetIn.call(immutableEmptyObject, tail, value);
+    }
+
+    if (this.hasOwnProperty(head) && thisHead === newValue) {
       return this;
     }
+
+    var mutable = quickCopy(this, this.instantiateEmptyObject());
+    mutable[head] = newValue;
+    return makeImmutableObject(mutable, this);
+  }
+
+  function objectSet(property, value) {
+    if (this.hasOwnProperty(property) && this[property] === value) {
+      return this;
+    }
+
+    var mutable = quickCopy(this, this.instantiateEmptyObject());
+    mutable[property] = Immutable(value);
+    return makeImmutableObject(mutable, this);
   }
 
   function asMutableObject(opts) {
@@ -343,6 +457,8 @@
     addPropertyTo(obj, "without", without);
     addPropertyTo(obj, "asMutable", asMutableObject);
     addPropertyTo(obj, "instantiateEmptyObject", instantiateEmptyObject);
+    addPropertyTo(obj, "set", objectSet);
+    addPropertyTo(obj, "setIn", objectSetIn);
 
     return makeImmutable(obj, mutatingObjectMethods);
   }
@@ -353,7 +469,7 @@
     } else if (obj instanceof Array) {
       return makeImmutableArray(obj.slice());
     } else if (obj instanceof Date) {
-      return makeImmutable(new Date(obj.getTime()));
+      return makeImmutableDate(new Date(obj.getTime()));
     } else {
       // Don't freeze the object we were given; make a clone and use that.
       var prototype = options && options.prototype;
