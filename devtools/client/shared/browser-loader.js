@@ -42,6 +42,9 @@ function BrowserLoader(baseURI, window) {
     sharedGlobal: true,
     sandboxPrototype: window,
     paths: Object.assign({}, loaderOptions.paths),
+    globals: {
+      console: window.console,
+    },
     invisibleToDebugger: loaderOptions.invisibleToDebugger,
     require: (id, require) => {
       const uri = require.resolve(id);
