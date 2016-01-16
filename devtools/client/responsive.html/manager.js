@@ -141,7 +141,7 @@ ResponsiveUI.prototype = {
     tabBrowser.loadURI(TOOL_URL);
     yield tabLoaded(this._tab);
     let toolWindow = tabBrowser.contentWindow;
-    toolWindow.addViewport(contentURI);
+    toolWindow.addInitialViewport(contentURI);
   }),
 
   destroy() {
