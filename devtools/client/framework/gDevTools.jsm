@@ -4,6 +4,8 @@
 
 "use strict";
 
+/* global DebuggerServer, DebuggerClient, TargetFactory, Toolbox */
+
 this.EXPORTED_SYMBOLS = [ "gDevTools", "DevTools", "gDevToolsBrowser" ];
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
@@ -15,11 +17,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 // can update all of them while keeping gDevTools.jsm as-is
 // Bug 1188405 is going to refactor this JSM into a commonjs module
 // so that it can be reloaded as other modules.
-let require, loader, promise, DefaultTools, DefaultThemes;
+let require, loader, promise, DefaultTools, DefaultThemes, DevToolsLoader;
 let loadDependencies = () => {
   let l = Cu.import("resource://devtools/shared/Loader.jsm", {});
   require = l.require;
   loader = l.loader;
+  DevToolsLoader = l.DevToolsLoader;
   promise = require("promise");
   // Load target and toolbox lazily as they need gDevTools to be fully initialized
   loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
@@ -719,7 +722,7 @@ var gDevToolsBrowser = {
     }
   },
 
-  _getContentProcessTarget: function () {
+  _getContentProcessTarget: function() {
     // Create a DebuggerServer in order to connect locally to it
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
@@ -767,8 +770,61 @@ var gDevToolsBrowser = {
     return deferred.promise;
   },
 
-  openContentProcessToolbox: function () {
+  openContentProcessToolbox: function() {
     this._getContentProcessTarget()
+        .then(target => {
+          // Display a new toolbox, in a new window, with debugger by default
+          return gDevTools.showToolbox(target, "jsdebugger",
+                                       Toolbox.HostType.WINDOW);
+        });
+  },
+
+  _getMainProcessTarget: function() {
+    // Create a separate loader instance, so that we can be sure to receive a
+    // separate instance of the DebuggingServer from the rest of the devtools.
+    // This allows us to safely use the tools against even the actors and
+    // DebuggingServer itself, especially since we can mark this loader as
+    // invisible to the debugger (unlike the usual loader settings).
+    let loader = new DevToolsLoader();
+    loader.invisibleToDebugger = true;
+    loader.main("devtools/server/main");
+    let debuggerServer = loader.DebuggerServer;
+    console.log("Created a separate loader instance for the DebuggerServer.");
+
+    debuggerServer.init();
+    debuggerServer.addBrowserActors();
+    debuggerServer.allowChromeProcess = true;
+    console.log("initialized and added the browser actors for the DebuggerServer.");
+
+    let transport = debuggerServer.connectPipe();
+    let client = new DebuggerClient(transport);
+
+    let deferred = promise.defer();
+    client.connect().then(() => {
+      client.getProcess().then(response => {
+        let options = {
+          form: response.form,
+          client: client,
+          chrome: true,
+          isTabActor: true
+        };
+        return TargetFactory.forRemoteTab(options);
+      }).then(target => {
+        // Ensure closing the connection in order to cleanup
+        // the debugger client and also the server created in the
+        // content process
+        target.on("close", () => {
+          client.close();
+        });
+        deferred.resolve(target);
+      });
+    });
+
+    return deferred.promise;
+  },
+
+  openMainProcessToolbox: function() {
+    this._getMainProcessTarget()
         .then(target => {
           // Display a new toolbox, in a new window, with debugger by default
           return gDevTools.showToolbox(target, "jsdebugger",
