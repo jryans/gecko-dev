@@ -3497,7 +3497,8 @@ nsDocShell::CanAccessItem(nsIDocShellTreeItem* aTargetItem,
     return false;
   }
 
-  if (targetDS->GetIsInBrowserElement() != accessingDS->GetIsInBrowserElement() ||
+  if (targetDS->GetIsInIsolatedMozBrowserElement() !=
+        accessingDS->GetIsInIsolatedMozBrowserElement() ||
       targetDS->GetAppId() != accessingDS->GetAppId()) {
     return false;
   }
@@ -13931,9 +13932,9 @@ nsDocShell::GetInheritedFrameType()
 }
 
 /* [infallible] */ NS_IMETHODIMP
-nsDocShell::GetIsInBrowserElement(bool* aIsInBrowserElement)
+nsDocShell::GetIsInIsolatedMozBrowserElement(bool* aIsInIsolatedMozBrowserElement)
 {
-  *aIsInBrowserElement = (GetInheritedFrameType() == eFrameTypeBrowser);
+  *aIsInIsolatedMozBrowserElement = (GetInheritedFrameType() == eFrameTypeBrowser);
   return NS_OK;
 }
 
