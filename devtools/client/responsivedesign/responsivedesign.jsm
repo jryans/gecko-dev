@@ -40,7 +40,7 @@ const INPUT_PARSER = /(\d+)[^\d]+(\d+)/;
 const SHARED_L10N = new ViewHelpers.L10N("chrome://devtools/locale/shared.properties");
 
 function debug(msg) {
-  // dump(`RDM UI: ${msg}\n`);
+  dump(`RDM UI: ${msg}\n`);
 }
 
 var ActiveTabs = new Map();

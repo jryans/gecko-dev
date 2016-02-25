@@ -27,7 +27,7 @@ var global = this;
   addMessageListener("ResponsiveMode:Stop", stopResponsiveMode);
 
   function debug(msg) {
-    // dump(`RDM CHILD: ${msg}\n`);
+    dump(`RDM CHILD: ${msg}\n`);
   }
 
   function startResponsiveMode({data:data}) {
