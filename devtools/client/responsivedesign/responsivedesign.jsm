@@ -938,20 +938,38 @@ ResponsiveUI.prototype = {
      }
    }),
 
+  waitForReload() {
+    let navigatedDeferred = promise.defer();
+    let onNavigated = (_, { state }) => {
+      if (state != "stop") {
+        return;
+      }
+      this.client.removeListener("tabNavigated", onNavigated);
+      navigatedDeferred.resolve();
+    };
+    this.client.addListener("tabNavigated", onNavigated);
+    return navigatedDeferred.promise;
+  },
+
   /**
    * Change the user agent string
    */
-  changeUA: function() {
+  changeUA: Task.async(function*() {
     let value = this.userAgentInput.value;
     if (value) {
       this.userAgentInput.setAttribute("attention", "true");
     } else {
       this.userAgentInput.removeAttribute("attention");
     }
-    this.tabClient.reconfigure({customUserAgent: value}, () => {
-      ResponsiveUIManager.emit("userAgentChanged", { tab: this.tab });
-    });
-  },
+
+    // Changing the UA triggers an automatic reload.  Ensure we wait for this to
+    // complete before emitting the changed event, so that tests wait for the
+    // reload.
+    let reloaded = this.waitForReload();
+    yield this.tabClient.reconfigure({customUserAgent: value});
+    yield reloaded;
+    ResponsiveUIManager.emit("userAgentChanged", { tab: this.tab });
+  }),
 
   /**
    * Get the current width and height.
