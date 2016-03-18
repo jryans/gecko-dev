@@ -15,7 +15,8 @@
 %globalKeysDTD;
 ]>
 
-<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        no-theme="true">
 
   <script type="application/javascript;version=1.8"
           src="chrome://devtools/content/shared/theme-switching.js"/>
