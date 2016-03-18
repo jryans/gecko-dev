@@ -65,6 +65,15 @@ MainProcessSingleton.prototype = {
     })
   },
 
+  initDebuggerServer(message) {
+    // load devtools component on-demand
+    // Only reply if we are in a real main process
+    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      let {init} = Cu.import("resource://devtools/server/main-process-server.jsm", {});
+      init(message);
+    }
+  },
+
   observe: function(subject, topic, data) {
     switch (topic) {
     case "app-startup": {
@@ -75,12 +84,14 @@ MainProcessSingleton.prototype = {
       Services.mm.loadFrameScript("chrome://global/content/browser-content.js", true);
       Services.ppmm.loadProcessScript("chrome://global/content/process-content.js", true);
       Services.ppmm.addMessageListener("Console:Log", this.logConsoleMessage);
+      Services.ppmm.addMessageListener("DevTools:InitDebuggerServer", this.initDebuggerServer);
       Services.mm.addMessageListener("Search:AddEngine", this.addSearchEngine);
       break;
     }
 
     case "xpcom-shutdown":
       Services.ppmm.removeMessageListener("Console:Log", this.logConsoleMessage);
+      Services.ppmm.removeMessageListener("DevTools:InitDebuggerServer", this.initDebuggerServer);
       Services.mm.removeMessageListener("Search:AddEngine", this.addSearchEngine);
       break;
     }

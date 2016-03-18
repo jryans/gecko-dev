@@ -4,12 +4,14 @@
 
 "use strict";
 
-const { Cu, Ci } = require("chrome");
-
+const { Ci, Cc } = require("chrome");
 const { TargetFactory } = require("devtools/client/framework/target");
 const { DebuggerServer } = require("devtools/server/main");
 const { DebuggerClient } = require("devtools/shared/client/main");
 const { Task } = require("resource://gre/modules/Task.jsm");
+const Services = require("Services");
+const { ChildDebuggerTransport } =
+  require("devtools/shared/transport/transport");
 
 /**
  * Construct a Target for a given URL object having various query parameters:
@@ -47,9 +49,7 @@ exports.targetFromURL = Task.async(function*(url) {
 
   // Once about:debugging start supporting remote targets and use this helper,
   // client will also be defined by url params.
-  let client = createClient();
-
-  yield client.connect();
+  let client = yield createConnectedClient();
 
   let form, isTabActor;
   if (type === "tab") {
@@ -95,7 +95,35 @@ exports.targetFromURL = Task.async(function*(url) {
   return TargetFactory.forRemoteTab({ client, form, chrome, isTabActor });
 });
 
-function createClient() {
+var createConnectedClient = Task.async(function*() {
+  if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+    dump("START TUNNEL IN MAIN\n")
+
+    let mm = Cc["@mozilla.org/childprocessmessagemanager;1"]
+               .getService(Ci.nsISyncMessageSender);
+    let prefix = "target-tunnel";
+
+    let transport = new ChildDebuggerTransport(mm, prefix);
+    let client = new DebuggerClient(transport);
+    let clientConnected = client.connect();
+
+    let serverInited = new Promise(resolve => {
+      let onDone = msg => {
+        mm.removeMessageListener("DevTools:InitDebuggerServer:Done", onDone);
+        resolve();
+      };
+      mm.addMessageListener("DevTools:InitDebuggerServer:Done", onDone);
+    });
+    mm.sendAsyncMessage("DevTools:InitDebuggerServer", {
+      prefix
+    });
+
+    yield Promise.all([ clientConnected, serverInited ]);
+    dump("TUNNEL READY\n")
+
+    return client;
+  }
+
   // Setup a server if we don't have one already running
   if (!DebuggerServer.initialized) {
     DebuggerServer.init();
@@ -103,4 +131,4 @@ function createClient() {
   }
 
   return new DebuggerClient(DebuggerServer.connectPipe());
-}
+});

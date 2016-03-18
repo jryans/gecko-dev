@@ -31,7 +31,8 @@ FINAL_LIBRARY = 'xul'
 DevToolsModules(
     'child.js',
     'content-globals.js',
-    'content-server.jsm',
+    'content-process-server.jsm',
+    'main-process-server.jsm',
     'main.js',
     'primitive.js',
     'protocol.js',
