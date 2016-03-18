@@ -104,7 +104,7 @@ nsChromeRegistryContent::RegisterSubstitution(const SubstitutionMapping& aSubsti
   nsresult rv = io->GetProtocolHandler(aSubstitution.scheme.get(), getter_AddRefs(ph));
   if (NS_FAILED(rv))
     return;
-  
+
   nsCOMPtr<nsISubstitutingProtocolHandler> sph (do_QueryInterface(ph));
   if (!sph)
     return;
@@ -143,7 +143,7 @@ nsChromeRegistryContent::RegisterOverride(const OverrideMapping& aOverride)
                  aOverride.overrideURI.charset.get(), nullptr, io);
   if (NS_FAILED(rv))
     return;
-  
+
   mOverrideTable.Put(chromeURI, overrideURI);
 }
 
@@ -232,7 +232,7 @@ nsChromeRegistryContent::GetSelectedLocale(const nsACString& aPackage,
   aLocale = mLocale;
   return NS_OK;
 }
-  
+
 NS_IMETHODIMP
 nsChromeRegistryContent::Observe(nsISupports* aSubject, const char* aTopic,
                                  const char16_t* aData)
@@ -244,14 +244,14 @@ NS_IMETHODIMP
 nsChromeRegistryContent::GetStyleOverlays(nsIURI *aChromeURL,
                                           nsISimpleEnumerator **aResult)
 {
-  CONTENT_NOT_IMPLEMENTED();
+  return NS_NewEmptyEnumerator(aResult);
 }
 
 NS_IMETHODIMP
 nsChromeRegistryContent::GetXULOverlays(nsIURI *aChromeURL,
                                         nsISimpleEnumerator **aResult)
 {
-  CONTENT_NOT_IMPLEMENTED();
+  return NS_NewEmptyEnumerator(aResult);
 }
 
 nsresult nsChromeRegistryContent::UpdateSelectedLocale()
