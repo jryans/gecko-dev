@@ -26,6 +26,13 @@
 
   let devtoolsStyleSheets = new WeakMap();
 
+  const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+  const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+  const Services = require("Services");
+  const { gDevTools } = require("devtools/client/framework/devtools");
+  const StylesheetUtils = require("sdk/stylesheet/utils");
+  const { watchCSS } = require("devtools/client/shared/css-reload");
+
   function forceStyle() {
     let computedStyle = window.getComputedStyle(documentElement);
     if (!computedStyle) {
@@ -106,18 +113,20 @@
     }
 
     // Floating scroll-bars like in OSX
-    let hiddenDOMWindow = Cc["@mozilla.org/appshell/appShellService;1"]
-                 .getService(Ci.nsIAppShellService)
-                 .hiddenDOMWindow;
+    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      let hiddenDOMWindow = Cc["@mozilla.org/appshell/appShellService;1"]
+                   .getService(Ci.nsIAppShellService)
+                   .hiddenDOMWindow;
 
-    // TODO: extensions might want to customize scrollbar styles too.
-    if (!hiddenDOMWindow.matchMedia("(-moz-overlay-scrollbars)").matches) {
-      if (newTheme == "dark") {
-        StylesheetUtils.loadSheet(window, SCROLLBARS_URL, "agent");
-      } else if (oldTheme == "dark") {
-        StylesheetUtils.removeSheet(window, SCROLLBARS_URL, "agent");
+      // TODO: extensions might want to customize scrollbar styles too.
+      if (!hiddenDOMWindow.matchMedia("(-moz-overlay-scrollbars)").matches) {
+        if (newTheme == "dark") {
+          StylesheetUtils.loadSheet(window, SCROLLBARS_URL, "agent");
+        } else if (oldTheme == "dark") {
+          StylesheetUtils.removeSheet(window, SCROLLBARS_URL, "agent");
+        }
+        forceStyle();
       }
-      forceStyle();
     }
 
     Promise.all(loadEvents).then(() => {
@@ -156,13 +165,6 @@
       switchTheme(data.newValue, data.oldValue);
     }
   }
-
-  const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
-  const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
-  const Services = require("Services");
-  const { gDevTools } = require("devtools/client/framework/devtools");
-  const StylesheetUtils = require("sdk/stylesheet/utils");
-  const { watchCSS } = require("devtools/client/shared/css-reload");
 
   if (documentElement.hasAttribute("force-theme")) {
     switchTheme(documentElement.getAttribute("force-theme"));
