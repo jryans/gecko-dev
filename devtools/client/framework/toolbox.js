@@ -580,8 +580,8 @@ Toolbox.prototype = {
   },
 
   _saveSplitConsoleHeight: function() {
-    Services.prefs.setIntPref(SPLITCONSOLE_HEIGHT_PREF,
-      this.webconsolePanel.height);
+    /*Services.prefs.setIntPref(SPLITCONSOLE_HEIGHT_PREF,
+      this.webconsolePanel.height);*/
   },
 
   /**
@@ -713,7 +713,7 @@ Toolbox.prototype = {
 
     contViewer.fullZoom = zoomValue;
 
-    Services.prefs.setCharPref(ZOOM_PREF, zoomValue);
+    /*Services.prefs.setCharPref(ZOOM_PREF, zoomValue);*/
   },
 
   /**
@@ -1358,7 +1358,7 @@ Toolbox.prototype = {
     this.currentToolId = id;
     this._refreshConsoleDisplay();
     if (id != "options") {
-      Services.prefs.setCharPref(this._prefs.LAST_TOOL, id);
+      /*Services.prefs.setCharPref(this._prefs.LAST_TOOL, id);*/
     }
 
     return this.loadTool(id).then(panel => {
@@ -1416,7 +1416,7 @@ Toolbox.prototype = {
    */
   openSplitConsole: function() {
     this._splitConsole = true;
-    Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, true);
+    /*Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, true);*/
     this._refreshConsoleDisplay();
     this.emit("split-console");
 
@@ -1433,7 +1433,7 @@ Toolbox.prototype = {
    */
   closeSplitConsole: function() {
     this._splitConsole = false;
-    Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, false);
+    /*Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, false);*/
     this._refreshConsoleDisplay();
     this.emit("split-console");
 

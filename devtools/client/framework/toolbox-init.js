@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env browser */
+
 "use strict";
 
 // URL constructor doesn't support about: scheme
@@ -20,6 +22,11 @@ if (url.search.length > 1) {
   const { DebuggerServer } = require("devtools/server/main");
   const { DebuggerClient } = require("devtools/shared/client/main");
   const { Task } = require("resource://gre/modules/Task.jsm");
+  const Services = require("Services");
+
+  if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+    require("devtools/client/main");
+  }
 
   // `host` is the frame element loading the toolbox.
   let host = window.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -60,7 +67,13 @@ if (url.search.length > 1) {
     }
   } else {
     targetFromURL(url).then(target => {
-      let options = { customIframe: host };
+      let options = {
+        customIframe: {
+          contentWindow: window,
+          contentDocument: document,
+          setAttribute() {},
+        }
+      };
       return gDevTools.showToolbox(target, null, Toolbox.HostType.CUSTOM, options);
     }).then(null, e => {
       window.alert("Unable to start the toolbox:" + e.message);
