@@ -7,8 +7,8 @@
 // Register about:devtools-toolbox which allows to open a devtools toolbox
 // in a Firefox tab or a custom html iframe in browser.html
 
-const { Ci, Cu, Cm, components } = require("chrome");
-const Services = require("Services");
+const { interfaces: Ci, utils: Cu } = Components;
+const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
 const { nsIAboutModule } = Ci;
 
@@ -18,43 +18,23 @@ AboutURL.prototype = {
   uri: Services.io.newURI("chrome://devtools/content/framework/toolbox.xul",
                           null, null),
   classDescription: "about:devtools-toolbox",
-  classID: components.ID("11342911-3135-45a8-8d71-737a2b0ad469"),
+  classID: Components.ID("11342911-3135-45a8-8d71-737a2b0ad469"),
   contractID: "@mozilla.org/network/protocol/about;1?what=devtools-toolbox",
 
   QueryInterface: XPCOMUtils.generateQI([nsIAboutModule]),
 
-  newChannel: function(aURI, aLoadInfo) {
-    let chan = Services.io.newChannelFromURIWithLoadInfo(this.uri, aLoadInfo);
+  newChannel: function(uri, loadInfo) {
+    let chan = Services.io.newChannelFromURIWithLoadInfo(this.uri, loadInfo);
     chan.owner = Services.scriptSecurityManager.getSystemPrincipal();
     return chan;
   },
 
-  getURIFlags: function(aURI) {
-    return nsIAboutModule.ALLOW_SCRIPT || nsIAboutModule.ENABLE_INDEXED_DB;
+  getURIFlags: function(uri) {
+    return nsIAboutModule.ALLOW_SCRIPT |
+           nsIAboutModule.ENABLE_INDEXED_DB |
+           nsIAboutModule.URI_CAN_LOAD_IN_CHILD |
+           nsIAboutModule.URI_MUST_LOAD_IN_CHILD;
   }
 };
 
-AboutURL.createInstance = function(outer, iid) {
-  if (outer) {
-    throw Cr.NS_ERROR_NO_AGGREGATION;
-  }
-  return new AboutURL();
-};
-
-exports.register = function () {
-  if (Cm.isCIDRegistered(AboutURL.prototype.classID)) {
-    console.error("Trying to register " + AboutURL.prototype.classDescription +
-                  " more than once.");
-  } else {
-    Cm.registerFactory(AboutURL.prototype.classID,
-                       AboutURL.prototype.classDescription,
-                       AboutURL.prototype.contractID,
-                       AboutURL);
-  }
-}
-
-exports.unregister = function () {
-  if (Cm.isCIDRegistered(AboutURL.prototype.classID)) {
-    Cm.unregisterFactory(AboutURL.prototype.classID, AboutURL);
-  }
-}
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([AboutURL]);

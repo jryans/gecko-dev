@@ -15,7 +15,6 @@ const {defaultTools: DefaultTools, defaultThemes: DefaultThemes} =
   require("devtools/client/definitions");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {JsonView} = require("devtools/client/jsonview/main");
-const AboutDevTools = require("devtools/client/framework/about-devtools-toolbox");
 
 const FORBIDDEN_IDS = new Set(["toolbox", ""]);
 const MAX_ORDINAL = 99;
@@ -35,8 +34,6 @@ this.DevTools = function DevTools() {
 
   // JSON Viewer for 'application/json' documents.
   JsonView.initialize();
-
-  AboutDevTools.register();
 
   EventEmitter.decorate(this);
 
@@ -473,7 +470,6 @@ DevTools.prototype = {
     for (let [target, toolbox] of this._toolboxes) {
       toolbox.destroy();
     }
-    AboutDevTools.unregister();
   },
 
   /**
@@ -505,4 +501,3 @@ DevTools.prototype = {
 };
 
 exports.gDevTools = new DevTools();
-
