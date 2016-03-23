@@ -130,3 +130,12 @@ window.getViewportBrowser = () => {
   let { messageManager } = document.querySelector("iframe.browser").frameLoader;
   return { messageManager };
 };
+
+// XXX: Just for prototyping
+Object.defineProperty(window, "browserWindow", {
+  get: () => {
+    const { getToplevelWindow } = require("sdk/window/utils");
+    return getToplevelWindow(window);
+  },
+  enumerable: true,
+});
