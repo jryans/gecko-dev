@@ -1673,7 +1673,7 @@ nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner,
         return;
     }
 
-    rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, aOtherLoaderOwner);
+    rv = ourLoader->SwapWithOtherLoader(aOtherLoaderOwner);
 }
 
 NS_IMETHODIMP

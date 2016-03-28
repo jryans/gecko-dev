@@ -863,11 +863,19 @@ nsFrameLoader::Hide()
 }
 
 nsresult
-nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
-                                         nsIFrameLoaderOwner* aOtherLoaderOwner)
+nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  nsCOMPtr<nsIFrameLoaderOwner> ourLoaderOwner =
+    do_QueryInterface(mOwnerContent);
+  if (!ourLoaderOwner) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!aOtherLoaderOwner) {
+    return NS_ERROR_INVALID_ARG;
+  }
   RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
   if (!other) {
     return NS_ERROR_INVALID_ARG;
@@ -927,7 +935,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     return rv;
   }
 
-  rv = aOurLoaderOwner->SetFrameLoader(other);
+  rv = ourLoaderOwner->SetFrameLoader(other);
   if (NS_FAILED(rv)) {
     mInSwap = other->mInSwap = false;
     return rv;
@@ -935,7 +943,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
   rv = aOtherLoaderOwner->SetFrameLoader(this);
   if (NS_FAILED(rv)) {
     mInSwap = other->mInSwap = false;
-    aOurLoaderOwner->SetFrameLoader(this);
+    ourLoaderOwner->SetFrameLoader(this);
     return rv;
   }
 
@@ -1056,9 +1064,17 @@ private:
 };
 
 nsresult
-nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
-                                   nsIFrameLoaderOwner* aOtherLoaderOwner)
+nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
+  nsCOMPtr<nsIFrameLoaderOwner> ourLoaderOwner =
+    do_QueryInterface(mOwnerContent);
+  if (!ourLoaderOwner) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!aOtherLoaderOwner) {
+    return NS_ERROR_INVALID_ARG;
+  }
   RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
   if (!other) {
     return NS_ERROR_INVALID_ARG;
@@ -1067,7 +1083,7 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
   NS_ENSURE_STATE(!mInShow && !other->mInShow);
 
   if (IsRemoteFrame() && other->IsRemoteFrame()) {
-    return SwapWithOtherRemoteLoader(aOurLoaderOwner, aOtherLoaderOwner);
+    return SwapWithOtherRemoteLoader(aOtherLoaderOwner);
   }
 
   if (IsRemoteFrame() || other->IsRemoteFrame()) {
@@ -1244,13 +1260,13 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     return rv;
   }
 
-  rv = aOurLoaderOwner->SetFrameLoader(other);
+  rv = ourLoaderOwner->SetFrameLoader(other);
   if (NS_FAILED(rv)) {
     return rv;
   }
   rv = aOtherLoaderOwner->SetFrameLoader(this);
   if (NS_FAILED(rv)) {
-    aOurLoaderOwner->SetFrameLoader(this);
+    ourLoaderOwner->SetFrameLoader(this);
     return rv;
   }
 

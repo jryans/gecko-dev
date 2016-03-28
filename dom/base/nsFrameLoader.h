@@ -124,13 +124,11 @@ public:
   nsresult CloneForStatic(nsIFrameLoader* aOriginal);
 
   // The guts of an nsIFrameLoaderOwner::SwapFrameLoader implementation.  A
-  // frame loader owner needs to call this, and pass in the two references to
-  // nsRefPtrs for frame loaders that need to be swapped.
-  nsresult SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
-                               nsIFrameLoaderOwner* aOtherLoaderOwner);
+  // frame loader owner needs to call this, and pass in the other owner whose
+  // frame loader will be swapped with this one.
+  nsresult SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner);
 
-  nsresult SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
-                                     nsIFrameLoaderOwner* aOtherLoaderOwner);
+  nsresult SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner);
 
   /**
    * Return the primary frame for our owning content, or null if it

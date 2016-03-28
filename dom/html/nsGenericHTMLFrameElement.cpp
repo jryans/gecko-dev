@@ -242,7 +242,7 @@ nsGenericHTMLFrameElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwn
     return;
   }
 
-  rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, aOtherLoaderOwner);
+  rv = ourLoader->SwapWithOtherLoader(aOtherLoaderOwner);
 }
 
 NS_IMETHODIMP
