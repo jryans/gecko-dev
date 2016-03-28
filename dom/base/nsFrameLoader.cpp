@@ -917,6 +917,11 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  if (mRemoteBrowser->OriginAttributesRef().mUserContextId !=
+      other->mRemoteBrowser->OriginAttributesRef().mUserContextId) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1240,6 +1245,11 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
   if (ourDocshell->GetIsIsolatedMozBrowserElement() !=
       otherDocshell->GetIsIsolatedMozBrowserElement() ||
       ourDocshell->GetIsApp() != otherDocshell->GetIsApp()) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  if (ourDocshell->GetOriginAttributes().mUserContextId !=
+      otherDocshell->GetOriginAttributes().mUserContextId) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
