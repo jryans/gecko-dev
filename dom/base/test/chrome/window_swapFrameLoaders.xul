@@ -101,11 +101,8 @@ Test swapFrameLoaders with different frame types and remoteness
 
       // Load frame script into each frame
       {
-        let frameLoaderOwnerA = frameA.QueryInterface(Ci.nsIFrameLoaderOwner);
-        let frameLoaderOwnerB = frameB.QueryInterface(Ci.nsIFrameLoaderOwner);
-
-        let mmA = frameLoaderOwnerA.frameLoader.messageManager;
-        let mmB = frameLoaderOwnerB.frameLoader.messageManager;
+        let mmA = frameA.frameLoader.messageManager;
+        let mmB = frameB.frameLoader.messageManager;
 
         mmA.loadFrameScript("data:,(" + frameScriptFactory("A") + ")()", false);
         mmB.loadFrameScript("data:,(" + frameScriptFactory("B") + ")()", false);
@@ -113,11 +110,8 @@ Test swapFrameLoaders with different frame types and remoteness
 
       // Ping before swap
       {
-        let frameLoaderOwnerA = frameA.QueryInterface(Ci.nsIFrameLoaderOwner);
-        let frameLoaderOwnerB = frameB.QueryInterface(Ci.nsIFrameLoaderOwner);
-
-        let mmA = frameLoaderOwnerA.frameLoader.messageManager;
-        let mmB = frameLoaderOwnerB.frameLoader.messageManager;
+        let mmA = frameA.frameLoader.messageManager;
+        let mmB = frameB.frameLoader.messageManager;
 
         let inflightA = once(mmA, "pong");
         let inflightB = once(mmB, "pong");
@@ -135,14 +129,11 @@ Test swapFrameLoaders with different frame types and remoteness
 
       // Ping after swap using message managers acquired before
       {
-        let frameLoaderOwnerA = frameA.QueryInterface(Ci.nsIFrameLoaderOwner);
-        let frameLoaderOwnerB = frameB.QueryInterface(Ci.nsIFrameLoaderOwner);
-
-        let mmA = frameLoaderOwnerA.frameLoader.messageManager;
-        let mmB = frameLoaderOwnerB.frameLoader.messageManager;
+        let mmA = frameA.frameLoader.messageManager;
+        let mmB = frameB.frameLoader.messageManager;
 
         info("swapFrameLoaders");
-        frameLoaderOwnerA.swapFrameLoaders(frameLoaderOwnerB);
+        frameA.swapFrameLoaders(frameB);
 
         let inflightA = once(mmA, "pong");
         let inflightB = once(mmB, "pong");
@@ -160,11 +151,8 @@ Test swapFrameLoaders with different frame types and remoteness
 
       // Ping after swap using message managers acquired after
       {
-        let frameLoaderOwnerA = frameA.QueryInterface(Ci.nsIFrameLoaderOwner);
-        let frameLoaderOwnerB = frameB.QueryInterface(Ci.nsIFrameLoaderOwner);
-
-        let mmA = frameLoaderOwnerA.frameLoader.messageManager;
-        let mmB = frameLoaderOwnerB.frameLoader.messageManager;
+        let mmA = frameA.frameLoader.messageManager;
+        let mmB = frameB.frameLoader.messageManager;
 
         let inflightA = once(mmA, "pong");
         let inflightB = once(mmB, "pong");
