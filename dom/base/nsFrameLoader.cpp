@@ -924,6 +924,18 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     return rv;
   }
 
+  rv = aOurLoaderOwner->SetFrameLoader(other);
+  if (NS_FAILED(rv)) {
+    mInSwap = other->mInSwap = false;
+    return rv;
+  }
+  rv = aOtherLoaderOwner->SetFrameLoader(this);
+  if (NS_FAILED(rv)) {
+    mInSwap = other->mInSwap = false;
+    aOurLoaderOwner->SetFrameLoader(this);
+    return rv;
+  }
+
   mRemoteBrowser->SwapLayerTreeObservers(other->mRemoteBrowser);
 
   nsCOMPtr<nsIBrowserDOMWindow> otherBrowserDOMWindow =
@@ -970,9 +982,6 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     other->mMessageManager->SetCallback(this);
   }
   mMessageManager.swap(other->mMessageManager);
-
-  aOurLoaderOwner->SetFrameLoader(other);
-  aOtherLoaderOwner->SetFrameLoader(this);
 
   ourFrameFrame->EndSwapDocShells(otherFrame);
 
@@ -1229,6 +1238,16 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     return rv;
   }
 
+  rv = aOurLoaderOwner->SetFrameLoader(other);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  rv = aOtherLoaderOwner->SetFrameLoader(this);
+  if (NS_FAILED(rv)) {
+    aOurLoaderOwner->SetFrameLoader(this);
+    return rv;
+  }
+
   // Now move the docshells to the right docshell trees.  Note that this
   // resets their treeowners to null.
   ourParentItem->RemoveChild(ourDocshell);
@@ -1296,9 +1315,6 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
     other->mMessageManager->SetCallback(this);
   }
   mMessageManager.swap(other->mMessageManager);
-
-  aOurLoaderOwner->SetFrameLoader(other);
-  aOtherLoaderOwner->SetFrameLoader(this);
 
   // Drop any cached content viewers in the two session histories.
   nsCOMPtr<nsISHistoryInternal> ourInternalHistory =

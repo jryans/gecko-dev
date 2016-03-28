@@ -576,7 +576,7 @@ public:
                                mozilla::ErrorResult& rv);
     // Style() inherited from nsStyledElement
     already_AddRefed<nsFrameLoader> GetFrameLoader();
-    NS_IMETHOD_(void) SetFrameLoader(nsFrameLoader *aFrameLoader);
+    NS_IMETHOD SetFrameLoader(nsFrameLoader *aFrameLoader);
     void SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner,
                           mozilla::ErrorResult& rv);
 

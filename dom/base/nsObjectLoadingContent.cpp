@@ -1217,10 +1217,10 @@ nsObjectLoadingContent::GetFrameLoader()
   return loader.forget();
 }
 
-NS_IMETHODIMP_(void)
+NS_IMETHODIMP
 nsObjectLoadingContent::SetFrameLoader(nsFrameLoader *aFrameLoader)
 {
-  mFrameLoader = aFrameLoader;
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP

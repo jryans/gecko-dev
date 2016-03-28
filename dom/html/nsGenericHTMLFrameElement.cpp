@@ -182,10 +182,11 @@ nsGenericHTMLFrameElement::GetFrameLoader()
   return loader.forget();
 }
 
-NS_IMETHODIMP_(void)
+NS_IMETHODIMP
 nsGenericHTMLFrameElement::SetFrameLoader(nsFrameLoader *aFrameLoader)
 {
   mFrameLoader = aFrameLoader;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -1618,14 +1618,16 @@ nsXULElement::GetFrameLoader()
     return loader.forget();
 }
 
-NS_IMETHODIMP_(void)
+NS_IMETHODIMP
 nsXULElement::SetFrameLoader(nsFrameLoader *aFrameLoader)
 {
-  nsXULSlots* slots = static_cast<nsXULSlots*>(GetExistingSlots());
-  if (!slots)
-      return;
+    nsXULSlots* slots = static_cast<nsXULSlots*>(GetExistingSlots());
+    if (!slots) {
+        return NS_ERROR_FAILURE;
+    }
 
-  slots->mFrameLoader = aFrameLoader;
+    slots->mFrameLoader = aFrameLoader;
+    return NS_OK;
 }
 
 nsresult
