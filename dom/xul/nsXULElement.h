@@ -412,7 +412,7 @@ public:
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
     nsresult GetParentApplication(mozIApplication** aApplication);
     nsresult SetIsPrerendered();
-    nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
+    nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner);
 
     virtual void RecompileScriptEventListeners() override;
 
@@ -577,7 +577,7 @@ public:
     // Style() inherited from nsStyledElement
     already_AddRefed<nsFrameLoader> GetFrameLoader();
     NS_IMETHOD_(void) SetFrameLoader(nsFrameLoader *aFrameLoader);
-    void SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+    void SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner,
                           mozilla::ErrorResult& rv);
 
     nsINode* GetScopeChainParent() const override

@@ -221,7 +221,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       return !!mInstanceOwner;
     }
-    void SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+    void SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner,
                           mozilla::ErrorResult& aRv)
     {
       aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);

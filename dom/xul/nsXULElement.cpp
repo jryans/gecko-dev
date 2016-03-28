@@ -1647,32 +1647,31 @@ nsXULElement::SetIsPrerendered()
 }
 
 nsresult
-nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner)
+nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
-    if (!aOtherOwner) {
-      return NS_ERROR_NOT_IMPLEMENTED;
-    }
-
     ErrorResult rv;
-    SwapFrameLoaders(*aOtherOwner, rv);
+    SwapFrameLoaders(aOtherLoaderOwner, rv);
     return rv.StealNSResult();
 }
 
 void
-nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner& aOtherOwner,
+nsXULElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwner,
                                ErrorResult& rv)
 {
+    if (!aOtherLoaderOwner) {
+        rv.Throw(NS_ERROR_INVALID_ARG);
+        return;
+    }
+
     RefPtr<nsFrameLoader> ourLoader = GetFrameLoader();
     nsCOMPtr<nsIFrameLoaderOwner> ourLoaderOwner =
       do_QueryInterface(NS_ISUPPORTS_CAST(nsIDOMXULElement*, this));
-    nsCOMPtr<nsIFrameLoaderOwner> otherLoaderOwner = &aOtherOwner;
-
     if (!ourLoader) {
         rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
         return;
     }
 
-    rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, otherLoaderOwner);
+    rv = ourLoader->SwapWithOtherLoader(ourLoaderOwner, aOtherLoaderOwner);
 }
 
 NS_IMETHODIMP

@@ -9,6 +9,7 @@ interface MozFrameLoader;
 interface MozRDFCompositeDataSource;
 interface MozRDFResource;
 interface MozXULTemplateBuilder;
+interface nsIFrameLoaderOwner;
 
 [Func="IsChromeOrXBL"]
 interface XULElement : Element {
@@ -118,9 +119,7 @@ interface XULElement : Element {
 
 // And the things from nsIFrameLoaderOwner
 [NoInterfaceObject]
-interface MozFrameLoaderOwner {};
-
-partial interface MozFrameLoaderOwner {
+interface MozFrameLoaderOwner {
   [ChromeOnly]
   readonly attribute MozFrameLoader? frameLoader;
 
@@ -128,7 +127,7 @@ partial interface MozFrameLoaderOwner {
   void setIsPrerendered();
 
   [ChromeOnly, Throws]
-  void swapFrameLoaders(MozFrameLoaderOwner aOtherOwner);
+  void swapFrameLoaders(nsIFrameLoaderOwner aOtherOwner);
 };
 
 XULElement implements GlobalEventHandlers;
