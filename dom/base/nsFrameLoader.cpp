@@ -869,6 +869,9 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
+  if (!other) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   Element* ourContent = mOwnerContent;
   Element* otherContent = other->mOwnerContent;
@@ -1057,6 +1060,9 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOurLoaderOwner,
                                    nsIFrameLoaderOwner* aOtherLoaderOwner)
 {
   RefPtr<nsFrameLoader> other = aOtherLoaderOwner->GetFrameLoader();
+  if (!other) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   NS_ENSURE_STATE(!mInShow && !other->mInShow);
 
