@@ -945,6 +945,18 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  bool ourHasHistory =
+    mIsTopLevelContent &&
+    ourContent->IsXULElement(nsGkAtoms::browser) &&
+    !ourContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disablehistory);
+  bool otherHasHistory =
+    other->mIsTopLevelContent &&
+    otherContent->IsXULElement(nsGkAtoms::browser) &&
+    !otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disablehistory);
+  if (ourHasHistory != otherHasHistory) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
