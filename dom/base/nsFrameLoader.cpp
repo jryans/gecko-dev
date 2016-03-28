@@ -911,6 +911,12 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  if (mRemoteBrowser->IsIsolatedMozBrowserElement() !=
+      other->mRemoteBrowser->IsIsolatedMozBrowserElement() ||
+      mRemoteBrowser->HasOwnApp() != other->mRemoteBrowser->HasOwnApp()) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1234,7 +1240,7 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
   if (ourDocshell->GetIsIsolatedMozBrowserElement() !=
       otherDocshell->GetIsIsolatedMozBrowserElement() ||
       ourDocshell->GetIsApp() != otherDocshell->GetIsApp()) {
-      return NS_ERROR_NOT_IMPLEMENTED;
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   if (mInSwap || other->mInSwap) {
