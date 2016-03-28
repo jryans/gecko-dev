@@ -65,6 +65,7 @@ Test swapFrameLoaders with different frame types and remoteness
     if (type == "html") {
       frame.setAttribute("mozbrowser", "true");
       frame.setAttribute("noisolation", "true");
+      frame.setAttribute("allowfullscreen", "true");
     } else if (type == "xul") {
       frame.setAttribute("type", "content");
     }

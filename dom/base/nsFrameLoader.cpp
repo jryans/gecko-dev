@@ -922,6 +922,20 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  bool ourFullscreenAllowed =
+    ourContent->IsXULElement(nsGkAtoms::browser) ||
+    (OwnerIsMozBrowserOrAppFrame() &&
+      (ourContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowfullscreen) ||
+       ourContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)));
+  bool otherFullscreenAllowed =
+    otherContent->IsXULElement(nsGkAtoms::browser) ||
+    (other->OwnerIsMozBrowserOrAppFrame() &&
+      (otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowfullscreen) ||
+       otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)));
+  if (ourFullscreenAllowed != otherFullscreenAllowed) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1250,6 +1264,14 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
 
   if (ourDocshell->GetOriginAttributes().mUserContextId !=
       otherDocshell->GetOriginAttributes().mUserContextId) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  bool ourFullscreenAllowed;
+  bool otherFullscreenAllowed;
+  ourDocshell->GetFullscreenAllowed(&ourFullscreenAllowed);
+  otherDocshell->GetFullscreenAllowed(&otherFullscreenAllowed);
+  if (ourFullscreenAllowed != otherFullscreenAllowed) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
