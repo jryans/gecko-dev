@@ -957,6 +957,20 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  bool ourPassPointerEvents =
+    ourContent->AttrValueIs(kNameSpaceID_None,
+                            nsGkAtoms::mozpasspointerevents,
+                            nsGkAtoms::_true,
+                            eCaseMatters);
+  bool otherPassPointerEvents =
+    otherContent->AttrValueIs(kNameSpaceID_None,
+                              nsGkAtoms::mozpasspointerevents,
+                              nsGkAtoms::_true,
+                              eCaseMatters);
+  if (ourPassPointerEvents != otherPassPointerEvents) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   if (mInSwap || other->mInSwap) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -1302,6 +1316,20 @@ nsFrameLoader::SwapWithOtherLoader(nsIFrameLoaderOwner* aOtherLoaderOwner)
                         otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::srcdoc);
   if (ourHasSrcdoc || otherHasSrcdoc) {
     // Ignore this case entirely for now, since we support XUL <-> HTML swapping
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  bool ourPassPointerEvents =
+    ourContent->AttrValueIs(kNameSpaceID_None,
+                            nsGkAtoms::mozpasspointerevents,
+                            nsGkAtoms::_true,
+                            eCaseMatters);
+  bool otherPassPointerEvents =
+    otherContent->AttrValueIs(kNameSpaceID_None,
+                              nsGkAtoms::mozpasspointerevents,
+                              nsGkAtoms::_true,
+                              eCaseMatters);
+  if (ourPassPointerEvents != otherPassPointerEvents) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
