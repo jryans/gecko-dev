@@ -9,6 +9,10 @@ const promise = require("promise");
 const { Task } = require("resource://gre/modules/Task.jsm");
 const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 const EventEmitter = require("devtools/shared/event-emitter");
+const { getOwnerWindow } = require("sdk/tabs/utils");
+const { on, off } = require("sdk/event/core");
+const { startup } = require("sdk/window/helpers");
+const events = require("./events");
 
 const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
@@ -53,8 +57,13 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
    */
   openIfNeeded: Task.async(function* (window, tab) {
     if (!this.isActiveForTab(tab)) {
+      if (!this.activeTabs.size) {
+        on(events.activate, "data", onActivate);
+        on(events.close, "data", onClose);
+      }
       let ui = new ResponsiveUI(window, tab);
       this.activeTabs.set(tab, ui);
+      yield setMenuCheckFor(tab, window);
       yield ui.inited;
       this.emit("on", { tab });
     }
@@ -76,6 +85,13 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
       yield this.activeTabs.get(tab).destroy();
       this.activeTabs.delete(tab);
       this.emit("off", { tab });
+
+      if (!this.activeTabs.size) {
+        off(events.activate, "data", onActivate);
+        off(events.close, "data", onClose);
+      }
+
+      yield setMenuCheckFor(tab, window);
     }
     return promise.resolve();
   }),
@@ -140,6 +156,7 @@ const ResponsiveUIManager = exports.ResponsiveUIManager = {
 // GCLI commands in ../responsivedesign/resize-commands.js listen for events
 // from this object to know when the UI for a tab has opened or closed.
 EventEmitter.decorate(ResponsiveUIManager);
+
 /**
  * ResponsiveUI manages the responsive design tool for a specific tab.  The
  * actual tool itself lives in a separate chrome:// document that is loaded into
@@ -309,3 +326,20 @@ function waitForDocLoadComplete(gBrowser) {
   gBrowser.addProgressListener(progressListener);
   return deferred.promise;
 }
+
+const onActivate = (tab) => setMenuCheckFor(tab);
+
+const onClose = ({ window, tabs }) => {
+  for (let tab of tabs) {
+    ResponsiveUIManager.closeIfNeeded(window, tab.outerHTML);
+  }
+};
+
+const setMenuCheckFor = Task.async(
+  function* (tab, window = getOwnerWindow(tab)) {
+    yield startup(window);
+
+    let menu = window.document.getElementById("menu_responsiveUI");
+    menu.setAttribute("checked", ResponsiveUIManager.isActiveForTab(tab));
+  }
+);
