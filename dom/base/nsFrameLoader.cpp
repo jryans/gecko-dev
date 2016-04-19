@@ -874,6 +874,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
 
   if (!ourContent || !otherContent) {
     // Can't handle this
+    printf_stderr("No content\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -883,6 +884,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
     ourContent->NodePrincipal()->Equals(otherContent->NodePrincipal(), &equal);
   if (NS_FAILED(rv) || !equal) {
     // Security problems loom.  Just bail on it all
+    printf_stderr("Principal mismatch\n");
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -890,18 +892,21 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
   nsIDocument* otherDoc = otherContent->GetComposedDoc();
   if (!ourDoc || !otherDoc) {
     // Again, how odd, given that we had docshells
+    printf_stderr("No composed doc\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   nsIPresShell* ourShell = ourDoc->GetShell();
   nsIPresShell* otherShell = otherDoc->GetShell();
   if (!ourShell || !otherShell) {
+    printf_stderr("No pres shell\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   if (mRemoteBrowser->IsIsolatedMozBrowserElement() !=
       aOther->mRemoteBrowser->IsIsolatedMozBrowserElement() ||
       mRemoteBrowser->HasOwnApp() != aOther->mRemoteBrowser->HasOwnApp()) {
+    printf_stderr("mozbrowser / app mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -924,6 +929,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
   NS_ENSURE_SUCCESS(rv,rv);
 
   if (ourOriginAttributes != otherOriginAttributes) {
+    printf_stderr("OriginAttributesRef mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -936,10 +942,12 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
     otherContent->IsXULElement(nsGkAtoms::browser) &&
     !otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disablehistory);
   if (ourHasHistory != otherHasHistory) {
+    printf_stderr("History mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   if (mInSwap || aOther->mInSwap) {
+    printf_stderr("Already swapping\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   mInSwap = aOther->mInSwap = true;
@@ -948,18 +956,21 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
   nsIFrame* otherFrame = otherContent->GetPrimaryFrame();
   if (!ourFrame || !otherFrame) {
     mInSwap = aOther->mInSwap = false;
+    printf_stderr("No primary frame\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   nsSubDocumentFrame* ourFrameFrame = do_QueryFrame(ourFrame);
   if (!ourFrameFrame) {
     mInSwap = aOther->mInSwap = false;
+    printf_stderr("No subdocument frame\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   rv = ourFrameFrame->BeginSwapDocShells(otherFrame);
   if (NS_FAILED(rv)) {
     mInSwap = aOther->mInSwap = false;
+    printf_stderr("Begin swap failed\n");
     return rv;
   }
 
@@ -971,6 +982,7 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
     mRemoteBrowser->GetBrowserDOMWindow();
 
   if (!!otherBrowserDOMWindow != !!browserDOMWindow) {
+    printf_stderr("Browser DOM window mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1092,7 +1104,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   NS_ENSURE_STATE(!mInShow && !aOther->mInShow);
 
   if (IsRemoteFrame() != aOther->IsRemoteFrame()) {
-    NS_WARNING("Swapping remote and non-remote frames is not currently supported");
+    printf_stderr("Swapping remote and non-remote frames is not currently supported\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1101,6 +1113,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
 
   if (!ourContent || !otherContent) {
     // Can't handle this
+    printf_stderr("No content\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1110,6 +1123,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
                         otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::srcdoc);
   if (ourHasSrcdoc || otherHasSrcdoc) {
     // Ignore this case entirely for now, since we support XUL <-> HTML swapping
+    printf_stderr("srcdoc mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1124,6 +1138,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
                               nsGkAtoms::_true,
                               eCaseMatters);
   if (ourPassPointerEvents != otherPassPointerEvents) {
+    printf_stderr("Pass pointer events mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -1138,6 +1153,7 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
       (otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::allowfullscreen) ||
        otherContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)));
   if (ourFullscreenAllowed != otherFullscreenAllowed) {
+    printf_stderr("Fullscreen allowed mismatch\n");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
