@@ -212,15 +212,70 @@ ResponsiveUI.prototype = {
    * bug 1238160 about <iframe mozbrowser> for more details.
    */
   init: Task.async(function* () {
-    let tabBrowser = this.tab.linkedBrowser;
-    let contentURI = tabBrowser.documentURI.spec;
-    tabBrowser.loadURI(TOOL_URL);
-    yield tabLoaded(this.tab);
-    let toolWindow = this.toolWindow = tabBrowser.contentWindow;
+    // TODO: Assert e10s somewhere.  Flow only tested for remote content pages.
+    let gBrowser = this.browserWindow.gBrowser;
+
+    // 1. Create a temporary, hidden tab to load the tool UI.
+    let toolTab = gBrowser.addTab(TOOL_URL, {
+      skipAnimation: true,
+    });
+    gBrowser.hideTab(toolTab);
+    let toolBrowser = toolTab.linkedBrowser;
+
+    // 2. Mark the tool tab browser's docshell as active so the viewport frame
+    //    is created eagerly and will be ready to swap.
+    // This line is crucial when the tool UI is loaded into a background tab.
+    // Without it, the viewport browser's frame is created lazily, leading to
+    // a multi-second delay before it would be possible to `swapFrameLoaders`.
+    // Even worse than the delay, there appears to be no obvious event fired
+    // after the frame is set lazily, so it's unclear how to know that work has
+    // finished.
+    toolBrowser.docShellIsActive = true;
+
+    let toolWindow = this.toolWindow = toolBrowser.contentWindow;
+    console.log("WAIT FOR TOOL TAB LOAD");
+    yield tabLoaded(toolTab);
+    console.log("TOOL TAB LOADED");
+    console.log("WAIT FOR TOOL INIT");
     toolWindow.addEventListener("message", this);
     yield waitForMessage(toolWindow, "init");
-    toolWindow.addInitialViewport(contentURI);
+    console.log("TOOL INITED");
+
+    // 3. Create the initial viewport inside the tool UI.
+    toolWindow.addInitialViewport("about:blank");
+    console.log("WAIT FOR BROWSER MOUNTED");
     yield waitForMessage(toolWindow, "browser-mounted");
+    console.log("BROWSER MOUNTED");
+
+    // 4. Swap tab content from the regular browser tab to the browser within
+    //    the viewport in the tool UI, preserving all state via
+    //    `swapFrameLoaders`.
+    // XXX: This does succeed, but the browser is now very confused, since we've
+    // swapped in something that is not a XUL <browser>.  Also in this case,
+    // we're calling the low level platform API directly, so all of the state
+    // the browser window maintains for a tab is now invalid.  It puts the
+    // original tab in a kind of zombie state where it can't even be closed.
+    console.log("SWAP CONTENT");
+    let toolViewportContentBrowser =
+      toolWindow.document.querySelector("iframe.browser");
+    toolViewportContentBrowser.swapFrameLoaders(this.tab.linkedBrowser);
+    console.log("CONTENT SWAPPED");
+
+    // 5. Mark the viewport browser's docshell as active so the content is
+    //    rendered.
+    toolViewportContentBrowser.frameLoader.tabParent.docShellIsActive = true;
+
+    // 6. Force the original browser tab to be non-remote since the tool UI must
+    //    loaded in the parent process, and we're about to swap the tool UI into
+    //    this tab.
+    gBrowser.updateBrowserRemoteness(this.tab.linkedBrowser, false);
+
+    // 7. Swap the tool UI (with viewport showing the content) into the original
+    //    browser tab and close the temporary tab used to load the tool via
+    //    `swapBrowsersAndCloseOther`.
+    console.log("SWAP BROWSER TABS");
+    gBrowser.swapBrowsersAndCloseOther(this.tab, toolTab);
+    console.log("BROWSER TABS SWAPPED");
   }),
 
   destroy: Task.async(function* () {
