@@ -1551,9 +1551,12 @@
         <parameter name="aShouldBeRemote"/>
         <body>
           <![CDATA[
+            dump(`Enter updateBrowserRemoteness, should be ${aShouldBeRemote}\n`);
             let isRemote = aBrowser.getAttribute("remote") == "true";
-            if (isRemote == aShouldBeRemote)
+            if (isRemote == aShouldBeRemote) {
+              dump(`Abort, remoteness already set to ${aShouldBeRemote}\n`);
               return false;
+            }
 
             let wasActive = document.activeElement == aBrowser;
 
