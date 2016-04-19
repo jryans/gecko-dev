@@ -125,6 +125,7 @@ nsSubDocumentFrame::Init(nsIContent*       aContent,
   // Set the primary frame now so that nsDocumentViewer::FindContainerView
   // called from within EndSwapDocShellsForViews below can find it if needed.
   aContent->SetPrimaryFrame(this);
+  printf_stderr("SET FRAME\n");
 
   // If we have a detached subdoc's root view on our frame loader, re-insert
   // it into the view tree. This happens when we've been reframed, and
@@ -868,7 +869,7 @@ nsSubDocumentFrame::AttributeChanged(int32_t aNameSpaceID,
   if (aNameSpaceID != kNameSpaceID_None) {
     return NS_OK;
   }
-  
+
   // If the noResize attribute changes, dis/allow frame to be resized
   if (aAttribute == nsGkAtoms::noresize) {
     // Note that we're not doing content type checks, but that's ok -- if

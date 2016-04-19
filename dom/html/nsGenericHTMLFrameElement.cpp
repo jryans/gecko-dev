@@ -220,6 +220,7 @@ void
 nsGenericHTMLFrameElement::SwapFrameLoaders(HTMLIFrameElement& aOtherLoaderOwner,
                                             ErrorResult& rv)
 {
+  printf_stderr("Swap with HTML arg\n");
   if (&aOtherLoaderOwner == this) {
     // nothing to do
     return;
@@ -232,6 +233,7 @@ void
 nsGenericHTMLFrameElement::SwapFrameLoaders(nsXULElement& aOtherLoaderOwner,
                                             ErrorResult& rv)
 {
+  printf_stderr("Swap with XUL arg\n");
   aOtherLoaderOwner.SwapFrameLoaders(mFrameLoader, rv);
 }
 
