@@ -1673,8 +1673,10 @@ void
 nsXULElement::SwapFrameLoaders(RefPtr<nsFrameLoader>& aOtherLoader,
                                mozilla::ErrorResult& rv)
 {
+    printf_stderr("Enter XUL SFL\n");
     nsXULSlots *ourSlots = static_cast<nsXULSlots*>(GetExistingDOMSlots());
     if (!ourSlots || !ourSlots->mFrameLoader || !aOtherLoader) {
+        printf_stderr("No frame loader\n");
         rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
         return;
     }
