@@ -2581,18 +2581,24 @@
         <parameter name="aOtherTab"/>
         <body>
           <![CDATA[
+            dump("Enter swapBrowsersAndCloseOther\n");
+
             // Do not allow transfering a private tab to a non-private window
             // and vice versa.
             if (PrivateBrowsingUtils.isWindowPrivate(window) !=
-                PrivateBrowsingUtils.isWindowPrivate(aOtherTab.ownerDocument.defaultView))
+                PrivateBrowsingUtils.isWindowPrivate(aOtherTab.ownerDocument.defaultView)) {
+              dump("Private browsing mismatch\n");
               return;
+            }
 
             let ourBrowser = this.getBrowserForTab(aOurTab);
             let otherBrowser = aOtherTab.linkedBrowser;
 
             // Can't swap between chrome and content processes.
-            if (ourBrowser.isRemoteBrowser != otherBrowser.isRemoteBrowser)
+            if (ourBrowser.isRemoteBrowser != otherBrowser.isRemoteBrowser) {
+              dump("Remoteness mismatch\n");
               return;
+            }
 
             // Keep the userContextId if set on other browser
             if (otherBrowser.hasAttribute("usercontextid")) {
