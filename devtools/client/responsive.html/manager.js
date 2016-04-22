@@ -4,10 +4,8 @@
 
 "use strict";
 
-const { Ci, Cr } = require("chrome");
 const promise = require("promise");
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 const EventEmitter = require("devtools/shared/event-emitter");
 const { getOwnerWindow } = require("sdk/tabs/utils");
 const { on, off } = require("sdk/event/core");
@@ -279,15 +277,51 @@ ResponsiveUI.prototype = {
   }),
 
   destroy: Task.async(function* () {
-    let tabBrowser = this.tab.linkedBrowser;
-    let browserWindow = this.browserWindow;
+    // TODO: Assert e10s somewhere.  Flow only tested for remote content pages.
+    // Capture what we need to restore the original tab content
+    let tab = this.tab;
+    let gBrowser = this.browserWindow.gBrowser;
+    let toolWindow = this.toolWindow;
+
+    // Destroy local state
     this.browserWindow = null;
     this.tab = null;
     this.inited = null;
     this.toolWindow = null;
-    let loaded = waitForDocLoadComplete(browserWindow.gBrowser);
-    tabBrowser.goBack();
-    yield loaded;
+
+    // 1. Create a temporary, hidden tab to hold the content.
+    let contentTab = gBrowser.addTab("about:blank", {
+      skipAnimation: true,
+    });
+    gBrowser.hideTab(contentTab);
+    let contentBrowser = contentTab.linkedBrowser;
+
+    // 2. Mark the content tab browser's docshell as active so the frame
+    //    is created eagerly and will be ready to swap.
+    contentBrowser.docShellIsActive = true;
+
+    // 3. Swap tab content from the browser within the viewport in the tool UI
+    //    to the regular browser tab, preserving all state via
+    //    `swapFrameLoaders`.
+    console.log("SWAP CONTENT");
+    let toolViewportContentBrowser =
+      toolWindow.document.querySelector("iframe.browser");
+    toolViewportContentBrowser.swapFrameLoaders(contentTab.linkedBrowser);
+    console.log("CONTENT SWAPPED");
+
+    // 4. Force the original browser tab to be remote since web content is
+    //    loaded in the child process, and we're about to swap the content into
+    //    this tab.
+    gBrowser.updateBrowserRemoteness(tab.linkedBrowser, true);
+
+    // 5. Swap the content into the original browser tab and close the temporary
+    //    tab used to hold the content via `swapBrowsersAndCloseOther`.
+    console.log("SWAP BROWSER TABS");
+    gBrowser.swapBrowsersAndCloseOther(tab, contentTab);
+    console.log("BROWSER TABS SWAPPED");
+
+    // TODO: Session restore continues to store the tool UI as the page's URL.
+    // Most likely related to browser UI's inability to show correct location.
   }),
 
   handleEvent(event) {
@@ -358,30 +392,6 @@ function tabLoaded(tab) {
   }
 
   tab.linkedBrowser.addEventListener("load", handle, true);
-  return deferred.promise;
-}
-
-/**
- * Waits for the next load to complete in the current browser.
- */
-function waitForDocLoadComplete(gBrowser) {
-  let deferred = promise.defer();
-  let progressListener = {
-    onStateChange: function (webProgress, req, flags, status) {
-      let docStop = Ci.nsIWebProgressListener.STATE_IS_NETWORK |
-                    Ci.nsIWebProgressListener.STATE_STOP;
-
-      // When a load needs to be retargetted to a new process it is cancelled
-      // with NS_BINDING_ABORTED so ignore that case
-      if ((flags & docStop) == docStop && status != Cr.NS_BINDING_ABORTED) {
-        gBrowser.removeProgressListener(progressListener);
-        deferred.resolve();
-      }
-    },
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                           Ci.nsISupportsWeakReference])
-  };
-  gBrowser.addProgressListener(progressListener);
   return deferred.promise;
 }
 
