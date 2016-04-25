@@ -1848,6 +1848,8 @@
                          !aForceNotRemote &&
                          E10SUtils.canLoadURIInProcess(aURI, Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT);
 
+            dump(`_linkBrowserToTab: Will use remote: ${remote}\n`)
+
             let browser;
             let usingPreloadedContent = false;
 
