@@ -100,6 +100,9 @@ var SessionHistoryInternal = {
       }
     }
 
+    dump(`SH COLLECT:\n`);
+    dump(`${JSON.stringify(data, null, 2)}\n`);
+
     return data;
   },
 

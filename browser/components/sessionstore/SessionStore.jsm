@@ -691,6 +691,10 @@ var SessionStoreInternal = {
       throw new Error(`received message '${aMessage.name}' without an epoch`);
     }
 
+    if (hasEpoch) {
+      dump(`Epoch expected: ${this.getCurrentEpoch(browser)}, sent: ${data.epoch}\n`)
+    }
+
     // Ignore messages from previous epochs.
     if (hasEpoch && !this.isCurrentEpoch(browser, data.epoch)) {
       return;
@@ -912,6 +916,7 @@ var SessionStoreInternal = {
             target.localName == "browser" &&
             target.frameLoader &&
             target.permanentKey) {
+          dump(`XULFrameLoaderCreated for key ${target.permanentKey.id}\n`)
           this._lastKnownFrameLoader.set(target.permanentKey, target.frameLoader);
           this.resetEpoch(target);
         }
@@ -4124,6 +4129,7 @@ var SessionStoreInternal = {
    * the new epoch ID for the given |browser|.
    */
   startNextEpoch(browser) {
+    dump(`startNextEpoch for ${browser.permanentKey.id}\n`)
     let next = this.getCurrentEpoch(browser) + 1;
     this._browserEpochs.set(browser.permanentKey, next);
     return next;
