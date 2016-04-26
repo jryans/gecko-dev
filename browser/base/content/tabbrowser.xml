@@ -1763,8 +1763,12 @@
             let isPreloadBrowser = aParams && aParams.isPreloadBrowser;
             let userContextId = aParams && aParams.userContextId;
 
+            window.nextKey = (window.nextKey + 1) || 0;
+
             let b = document.createElementNS(NS_XUL, "browser");
-            b.permanentKey = {};
+            b.permanentKey = {
+              id: window.nextKey
+            };
             b.setAttribute("type", "content-targetable");
             b.setAttribute("message", "true");
             b.setAttribute("messagemanagergroup", "browsers");
@@ -4432,7 +4436,11 @@
         <![CDATA[
           let browserStack = document.getAnonymousElementByAttribute(this, "anonid", "browserStack");
           this.mCurrentBrowser = document.getAnonymousElementByAttribute(this, "anonid", "initialBrowser");
-          this.mCurrentBrowser.permanentKey = {};
+
+          window.nextKey = (window.nextKey + 1) || 0;
+          this.mCurrentBrowser.permanentKey = {
+            id: window.nextKey
+          };
 
           Services.obs.addObserver(this, "live-resize-start", false);
           Services.obs.addObserver(this, "live-resize-end", false);
