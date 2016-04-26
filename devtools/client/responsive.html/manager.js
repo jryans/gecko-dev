@@ -245,6 +245,22 @@ ResponsiveUI.prototype = {
     yield waitForMessage(toolWindow, "browser-mounted");
     console.log("BROWSER MOUNTED");
 
+    console.log("BACKUP BROWSER PROPERTIES");
+    // XXX: Backup browser properties that store state of the content.
+    // TODO: Just backup everything?
+    this.browserBackup = {};
+    let propertiesToBackup = [
+      "permanentKey",
+      "_remoteWebNavigation",
+      "_remoteWebNavigationImpl",
+      "_remoteWebProgressManager",
+      "_remoteWebProgress",
+      "_contentTitle",
+    ];
+    for (let property of propertiesToBackup) {
+      this.browserBackup[property] = this.tab.linkedBrowser[property];
+    }
+
     // 4. Swap tab content from the regular browser tab to the browser within
     //    the viewport in the tool UI, preserving all state via
     //    `swapFrameLoaders`.
@@ -258,6 +274,13 @@ ResponsiveUI.prototype = {
       toolWindow.document.querySelector("iframe.browser");
     toolViewportContentBrowser.swapFrameLoaders(this.tab.linkedBrowser);
     console.log("CONTENT SWAPPED");
+
+    // This tab's permanentKey property (used to access session history for the
+    // browser) is no longer correct.  Assign a fresh value here so that we'll
+    // be able to properly restore session history on close later.  Any fresh
+    // object can be used here (the object is used as the key in a WeakMap).
+    console.log("SET ZOMBIE KEY");
+    this.tab.linkedBrowser.permanentKey = { id: "zombie" };
 
     // 5. Mark the viewport browser's docshell as active so the content is
     //    rendered.
@@ -313,6 +336,13 @@ ResponsiveUI.prototype = {
     //    loaded in the child process, and we're about to swap the content into
     //    this tab.
     gBrowser.updateBrowserRemoteness(tab.linkedBrowser, true);
+
+    console.log("RESTORE BROWSER PROPERTIES");
+    // XXX: Restore browser properties that store state of the content.
+    for (let property in this.browserBackup) {
+      contentTab.linkedBrowser[property] = this.browserBackup[property];
+    }
+    this.browserBackup = null;
 
     // 5. Swap the content into the original browser tab and close the temporary
     //    tab used to hold the content via `swapBrowsersAndCloseOther`.
