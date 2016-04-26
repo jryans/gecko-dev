@@ -679,6 +679,9 @@ var SessionStoreInternal = {
     var browser = aMessage.target;
     let win = browser.ownerDocument.defaultView;
     let tab = win ? win.gBrowser.getTabForBrowser(browser) : null;
+    let key = browser.permanentKey ? browser.permanentKey.id : "<unk>";
+    dump(`SessionStore got message for browser ${key}: ` +
+         `${JSON.stringify(aMessage.data, null, 2)}\n`);
 
     // Ensure we receive only specific messages from <xul:browser>s that
     // have no tab or window assigned, e.g. the ones that preload
@@ -696,8 +699,13 @@ var SessionStoreInternal = {
       throw new Error(`received message '${aMessage.name}' without an epoch`);
     }
 
+    if (hasEpoch) {
+      dump(`Epoch expected: ${this.getCurrentEpoch(browser)}, sent: ${data.epoch}\n`)
+    }
+
     // Ignore messages from previous epochs.
     if (hasEpoch && !this.isCurrentEpoch(browser, data.epoch)) {
+      dump("Message ignored, invalid epoch\n");
       return;
     }
 
@@ -711,6 +719,7 @@ var SessionStoreInternal = {
 
         // If the message isn't targeting the latest frameLoader discard it.
         if (frameLoader != aMessage.targetFrameLoader) {
+          dump("Message ignored, incorrect frameLoader\n");
           return;
         }
 
@@ -736,6 +745,7 @@ var SessionStoreInternal = {
         // Record telemetry measurements done in the child and update the tab's
         // cached state. Mark the window as dirty and trigger a delayed write.
         this.recordTelemetry(aMessage.data.telemetry);
+        dump(`Record data in TabState from browser ${key}\n`);
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
 
@@ -925,6 +935,7 @@ var SessionStoreInternal = {
             target.localName == "browser" &&
             target.frameLoader &&
             target.permanentKey) {
+          dump(`XULFrameLoaderCreated for key ${target.permanentKey.id}\n`)
           this._lastKnownFrameLoader.set(target.permanentKey, target.frameLoader);
           this.resetEpoch(target);
         }
@@ -4163,6 +4174,7 @@ var SessionStoreInternal = {
    * the new epoch ID for the given |browser|.
    */
   startNextEpoch(browser) {
+    dump(`startNextEpoch for ${browser.permanentKey.id}\n`)
     let next = this.getCurrentEpoch(browser) + 1;
     this._browserEpochs.set(browser.permanentKey, next);
     return next;
