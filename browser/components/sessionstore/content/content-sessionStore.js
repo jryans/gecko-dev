@@ -717,6 +717,7 @@ var MessageQueue = {
     telemetry.FX_SESSION_RESTORE_CONTENT_COLLECT_DATA_LONGEST_OP_MS = durationMs;
 
     try {
+      dump(`Sending with epoch ${gCurrentEpoch}\n`)
       // Send all data to the parent process.
       sendAsyncMessage("SessionStore:update", {
         data, telemetry, flushID,
