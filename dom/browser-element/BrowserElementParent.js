@@ -350,6 +350,7 @@ BrowserElementParent.prototype = {
   },
 
   receiveMessage: function(aMsg) {
+    dump(`Recv ${aMsg.data.msg_name} from child\n`)
     if (!this._isAlive()) {
       return;
     }
@@ -493,6 +494,7 @@ BrowserElementParent.prototype = {
       }
 
       data.msg_name = msg;
+      dump(`Send ${msg} to child\n`)
       this._mm.sendAsyncMessage('browser-element-api:call', data);
     } catch (e) {
       return false;

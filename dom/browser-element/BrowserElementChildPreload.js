@@ -32,7 +32,7 @@ const Timer = Components.Constructor("@mozilla.org/timer;1",
                                      "initWithCallback");
 
 function debug(msg) {
-  //dump("BrowserElementChildPreload - " + msg + "\n");
+  dump("BrowserElementChildPreload - " + msg + "\n");
 }
 
 function sendAsyncMsg(msg, data) {
@@ -46,6 +46,7 @@ function sendAsyncMsg(msg, data) {
   }
 
   data.msg_name = msg;
+  dump(`Send ${msg} to parent\n`)
   sendAsyncMessage('browser-element-api:call', data);
 }
 
@@ -288,6 +289,7 @@ BrowserElementChild.prototype = {
     }
 
     addMessageListener("browser-element-api:call", function(aMessage) {
+      dump(`Recv ${aMessage.data.msg_name} from parent\n`)
       if (aMessage.data.msg_name in mmCalls) {
         return mmCalls[aMessage.data.msg_name].apply(self, arguments);
       }
