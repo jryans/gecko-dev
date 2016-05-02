@@ -11,6 +11,7 @@ const { getOwnerWindow } = require("sdk/tabs/utils");
 const { on, off } = require("sdk/event/core");
 const { startup } = require("sdk/window/helpers");
 const events = require("./events");
+const { makeNestedBrowser } = require("./browser");
 
 const TOOL_URL = "chrome://devtools/content/responsive.html/index.xhtml";
 
@@ -297,6 +298,31 @@ ResponsiveUI.prototype = {
     console.log("SWAP BROWSER TABS");
     gBrowser.swapBrowsersAndCloseOther(this.tab, toolTab);
     console.log("BROWSER TABS SWAPPED");
+
+    // XXX: Wrap the tool tab's browser so that some browser UI functions,
+    // like navigation, are connected to the content in the viewport, instead
+    // of the tool page itself.
+    console.log("CONNECT TO NESTED BROWSER");
+    this.nestedBrowser =
+      makeNestedBrowser(this.tab.linkedBrowser, toolViewportContentBrowser);
+    this.nestedBrowser.connect();
+    // XXX: Fix up earlier get of this browser
+    /*toolTab.linkedBrowser = makeNestedBrowser(toolTab.linkedBrowser);*/
+
+    gBrowser.setTabTitle(this.tab);
+
+    /*
+    XXX: Browser UI actions after removing other tab:
+    if (isBusy)
+      this.setTabTitleLoading(aOurTab);
+    else
+      this.setTabTitle(aOurTab);
+
+    // If the tab was already selected (this happpens in the scenario
+    // of replaceTabWithWindow), notify onLocationChange, etc.
+    if (aOurTab.selected)
+      this.updateCurrentBrowser(true);
+    */
   }),
 
   destroy: Task.async(function* () {
@@ -422,6 +448,32 @@ function tabLoaded(tab) {
   }
 
   tab.linkedBrowser.addEventListener("load", handle, true);
+  return deferred.promise;
+}
+
+function once(target, eventName, useCapture = false, cb) {
+  dump("Waiting for event: '" + eventName + "' on " + target + ".\n");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        dump("Got event: '" + eventName + "' on " + target + ".\n");
+        target[remove](eventName, onEvent, useCapture);
+        if (cb) {
+          cb(...aArgs);
+        }
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
   return deferred.promise;
 }
 
