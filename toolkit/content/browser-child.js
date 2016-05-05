@@ -278,6 +278,9 @@ var WebNavigation =  {
   },
 
   goBack: function() {
+    dump(`Trying to go back...\n`)
+    let history = this.webNavigation.sessionHistory.QueryInterface(Ci.nsISHistoryInternal);
+    dump(`History count: ${history.count}\n`)
     if (this.webNavigation.canGoBack) {
       this.webNavigation.goBack();
     }
