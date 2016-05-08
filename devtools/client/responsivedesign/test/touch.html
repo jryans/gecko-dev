@@ -58,19 +58,19 @@
   }, true);
 
   div.addEventListener("mouseout", function(evt) {
-    div.style.backgroundColor = "";
+    div.style.backgroundColor = "blue";
     updatePreviousEvent(evt);
   }, true);
 
   div.addEventListener("mouseleave", function(evt) {
-    div.style.backgroundColor = "";
+    div.style.backgroundColor = "blue";
     updatePreviousEvent(evt);
   }, true);
 
   div.addEventListener("mousedown", function(evt){
     if (previousEvent === "touchend" && touchendTime !== 0) {
       let now = new Date().getTime();
-      div.dataset.isDelay = ((now - touchendTime) >= 300) ? "true" : "false";
+      div.dataset.isDelay = ((now - touchendTime) >= 300) ? true : false;
     } else {
       div.dataset.isDelay = false;
     }
