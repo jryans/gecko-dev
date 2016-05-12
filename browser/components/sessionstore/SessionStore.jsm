@@ -1451,6 +1451,7 @@ var SessionStoreInternal = {
 
     if (!syncShutdown) {
       // We've got some time to shut down, so let's do this properly.
+      dump(`SessionStore shutdown blocker\n`)
       AsyncShutdown.quitApplicationGranted.addBlocker(
         "SessionStore: flushing all windows",
         this.flushAllWindowsAsync(progress),
