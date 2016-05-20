@@ -281,6 +281,7 @@ function pageShowEventHandlers(persisted) {
 }
 
 function UpdateBackForwardCommands(aWebNavigation) {
+  dump(`Update bf commands: ${aWebNavigation.canGoBack}, ${aWebNavigation.canGoForward}\n`);
   var backBroadcaster = document.getElementById("Browser:Back");
   var forwardBroadcaster = document.getElementById("Browser:Forward");
 
@@ -4383,6 +4384,7 @@ var XULBrowserWindow = {
   },
 
   onLocationChange: function (aWebProgress, aRequest, aLocationURI, aFlags) {
+    dump("XULBrowserWindow.onLocationChange\n");
     var location = aLocationURI ? aLocationURI.spec : "";
 
     // If displayed, hide the form validation popup.
@@ -4424,6 +4426,7 @@ var XULBrowserWindow = {
     // Update urlbar only if a new page was loaded on the primary content area
     // Do not update urlbar if there was a subframe navigation
 
+    dump(`top level: ${aWebProgress.isTopLevel}\n`);
     if (aWebProgress.isTopLevel) {
       if ((location == "about:blank" && checkEmptyPageOrigin()) ||
           location == "") {  // Second condition is for new tabs, otherwise
