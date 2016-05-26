@@ -368,6 +368,8 @@
            * the <browser> element may not be initialized yet.
            */
 
+          dump(`Enter remote-browser.xml constructor\n`);
+
           this._remoteWebNavigation = Components.classes["@mozilla.org/remote-web-navigation;1"]
                                                 .createInstance(Components.interfaces.nsIWebNavigation);
           this._remoteWebNavigationImpl = this._remoteWebNavigation.wrappedJSObject;
