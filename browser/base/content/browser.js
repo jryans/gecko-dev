@@ -826,6 +826,7 @@ function _loadURIWithFlags(browser, uri, params) {
                                         : Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
   let mustChangeProcess = gMultiProcessBrowser &&
                           !E10SUtils.canLoadURIInProcess(uri, process);
+  dump(`_loadURIWithFlags: remote ${wasRemote}, must change ${mustChangeProcess}\n`);
   if ((!wasRemote && !mustChangeProcess) ||
       (wasRemote && mustChangeProcess)) {
     browser.inLoadURI = true;
