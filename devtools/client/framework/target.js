@@ -425,7 +425,7 @@ TabTarget.prototype = {
           this._title = this._form.title;
 
           attachTab();
-        });
+        }, e => this._remote.reject(e));
     } else if (this.isTabActor) {
       // In the remote debugging case, the protocol connection will have been
       // already initialized in the connection screen code.
