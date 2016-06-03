@@ -11,7 +11,7 @@ const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { BrowserElementWebNavigation } = require("./web-navigation");
 
 function debug(msg) {
-  // console.log(msg);
+  console.log(msg);
 }
 
 /**
