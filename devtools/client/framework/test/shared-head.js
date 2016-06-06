@@ -474,3 +474,8 @@ function pushPref(preferenceName, value) {
     SpecialPowers.pushPrefEnv(options, resolve);
   });
 }
+
+var closeToolbox = Task.async(function* () {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+});
