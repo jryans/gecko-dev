@@ -294,6 +294,8 @@ MessageManagerTunnel.prototype = {
   OUTER_TO_INNER_MESSAGES: [
     // Messages sent from remote-browser.xml
     "Browser:PurgeSessionHistory",
+    "InPermitUnload",
+    "PermitUnload",
     // Messages sent from browser.js
     "Browser:Reload",
     // Messages sent from SelectParentHelper.jsm
@@ -318,6 +320,8 @@ MessageManagerTunnel.prototype = {
     "ImageDocumentLoaded",
     "Forms:ShowDropDown",
     "Forms:HideDropDown",
+    "InPermitUnload",
+    "PermitUnload",
     // Messages sent to SelectParentHelper.jsm
     "Forms:UpdateDropDown",
     // Messages sent to browser.js
