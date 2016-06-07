@@ -4385,8 +4385,8 @@ var XULBrowserWindow = {
   },
 
   onLocationChange: function (aWebProgress, aRequest, aLocationURI, aFlags) {
-    dump("XULBrowserWindow.onLocationChange\n");
     var location = aLocationURI ? aLocationURI.spec : "";
+    dump(`XULBrowserWindow.onLocationChange: ${location}\n`);
 
     // If displayed, hide the form validation popup.
     FormValidationHandler.hidePopup();
