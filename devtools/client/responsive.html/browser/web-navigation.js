@@ -14,17 +14,17 @@ function readInputStreamToString(stream) {
 }
 
 /**
- * This object aims to provide the nsIWebNavigation interface for mozbrowser
- * elements.  nsIWebNavigation is one of interfaces expected on <xul:browser>s,
- * so this wrapper helps mozbrowser elements support this.
+ * This object aims to provide the nsIWebNavigation interface for mozbrowser elements.
+ * nsIWebNavigation is one of the interfaces expected on <xul:browser>s, so this wrapper
+ * helps mozbrowser elements support this.
  *
- * It attempts to use the mozbrowser API wherever possible, however some methods
- * don't exist yet, so we fallback to messaging the WebNavigation frame script
- * in those cases.  Ideally the mozbrowser API would eventually be extended to
- * cover all properties and methods used here.
+ * It attempts to use the mozbrowser API wherever possible, however some methods don't
+ * exist yet, so we fallback to the WebNavigation frame script messages in those cases.
+ * Ideally the mozbrowser API would eventually be extended to cover all properties and
+ * methods used here.
  *
- * This is largely copied from RemoteWebNavigation.js, which uses the message
- * manager to perform all actions.
+ * This is largely copied from RemoteWebNavigation.js, which uses the message manager to
+ * perform all actions.
  */
 function BrowserElementWebNavigation(browser) {
   this._browser = browser;

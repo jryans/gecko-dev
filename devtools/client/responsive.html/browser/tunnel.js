@@ -113,9 +113,9 @@ function tunnelToInnerBrowser(outer, inner) {
         enumerable: true,
       });
 
-      // Clear out cached any cached state that references the current non-remote XBL
-      // binding, such as form fill controllers.  Otherwise they will remain in place and
-      // leak the outer docshell.
+      // Clear out any cached state that references the current non-remote XBL binding,
+      // such as form fill controllers.  Otherwise they will remain in place and leak the
+      // outer docshell.
       outer.destroy();
       // The XBL binding for remote browsers uses the message manager for many actions in
       // the UI and that works well here, since it gives us one main thing we need to
@@ -128,7 +128,7 @@ function tunnelToInnerBrowser(outer, inner) {
       // The constructor of the new XBL binding is run asynchronously and there is no
       // event to signal its completion.  Spin an event loop to watch for properties that
       // are set by the contructor.
-      while (outer.mDestroyed) {
+      while (!outer._remoteWebNavigation) {
         Services.tm.currentThread.processNextEvent(true);
       }
 
@@ -345,7 +345,7 @@ MessageManagerTunnel.prototype = {
   get outerChildMM() {
     // This is only possible because we require the outer browser to be
     // non-remote, so we're able to reach into its window and use the child
-    // side message mananger there.
+    // side message manager there.
     let docShell = this.outer.frameLoader.docShell;
     return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsIContentFrameMessageManager);
@@ -370,6 +370,7 @@ MessageManagerTunnel.prototype = {
 
   init() {
     for (let method of this.PASS_THROUGH_METHODS) {
+      // Workaround bug 449811 to ensure a fresh binding each time through the loop
       let _method = method;
       this[_method] = (...args) => {
         return this.outerParentMM[_method](...args);
