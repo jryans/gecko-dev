@@ -233,11 +233,11 @@ exports.tunnelToInnerBrowser = tunnelToInnerBrowser;
 
 function copyPermanentKey(outer, inner) {
   // When we're in the process of swapping content around, we end up receiving a
-  // SessionStore:update message which lists the special tool UI that is loaded
-  // into the outer browser as part of the history.  We want SessionStore's view
-  // of the history for our tab to only have the page content of the inner
-  // browser, so we wait until the one errant message has gone by, and then we
-  // copy the permanentKey after that.
+  // SessionStore:update message which lists the container page that is loaded into the
+  // outer browser (that we're hiding the inner browser within) as part of its history.
+  // We want SessionStore's view of the history for our tab to only have the page content
+  // of the inner browser, so we wait until the one errant message has gone by, and then
+  // we copy the permanentKey after that.
   let outerMM = outer.frameLoader.messageManager;
   let onHistoryEntry = message => {
     let history = message.data.data.history;
@@ -247,8 +247,18 @@ function copyPermanentKey(outer, inner) {
     }
     outerMM.removeMessageListener("SessionStore:update", onHistoryEntry);
     debug("Got session update for outer browser");
-    // Wait until the next tick so that SessionStore has received this same
-    // message as well.
+    // Wait until the next tick so that SessionStore has received this same message too.
+    // This message will be delivered to SessionStore's `receiveMessage` handler by the
+    // platform layer right after this one returns.  We are in fact _depending on_
+    // SessionStore to receive this one message first _before_ we copy the `permanentKey`
+    // below.  That's because this message contains the container page URL that we don't
+    // want SessionStore to record.  So, it will receive this session update, and try to
+    // record it in a map keyed by the outer browser's `permanentKey`.  Since the outer
+    // browser has a nonsense value as its `permanentKey` until the copy takes place
+    // below, this means SessionStore drops this session update as invalid data, which is
+    // great for us, since we don't want it to be known anyway.  We then copy the
+    // `permanentKey` across in the next tick so that all future session updates (which
+    // will be about actual content page navigation we _want_ to record) will be stored.
     DevToolsUtils.executeSoon(() => {
       debug("Copy inner permanentKey to outer browser");
       outer.permanentKey = inner.permanentKey;
