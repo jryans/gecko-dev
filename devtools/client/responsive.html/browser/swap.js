@@ -38,6 +38,9 @@ function swapToInnerBrowser({ tab, containerURL, getInnerBrowser }) {
   return {
 
     start: Task.async(function* () {
+      // Freeze navigation temporarily to avoid "blinking" in the location bar.
+      freezeNavigationState(tab);
+
       // 1. Create a temporary, hidden tab to load the tool UI.
       let containerTab = gBrowser.addTab(containerURL, {
         skipAnimation: true,
@@ -86,6 +89,11 @@ function swapToInnerBrowser({ tab, containerURL, getInnerBrowser }) {
       //    the content in the viewport, instead of the tool page.
       tunnel = tunnelToInnerBrowser(tab.linkedBrowser, innerBrowser);
       yield tunnel.start();
+
+      // Force the browser UI to match the new state of the tab and browser.
+      thawNavigationState(tab);
+      gBrowser.setTabTitle(tab);
+      gBrowser.updateCurrentBrowser(true);
     }),
 
     stop() {
@@ -123,6 +131,40 @@ function swapToInnerBrowser({ tab, containerURL, getInnerBrowser }) {
     },
 
   };
+}
+
+/**
+ * Browser navigation properties we'll freeze temporarily to avoid "blinking" in the
+ * location bar, etc. caused by the containerURL peeking through before the swap is
+ * complete.
+ */
+const NAVIGATION_PROPERTIES = [
+  "currentURI",
+  "contentTitle",
+  "securityUI",
+];
+
+function freezeNavigationState(tab) {
+  // Browser navigation properties we'll freeze temporarily to avoid "blinking" in the
+  // location bar, etc. caused by the containerURL peeking through before the swap is
+  // complete.
+  for (let property of NAVIGATION_PROPERTIES) {
+    let value = tab.linkedBrowser[property];
+    Object.defineProperty(tab.linkedBrowser, property, {
+      get() {
+        return value;
+      },
+      configurable: true,
+      enumerable: true,
+    });
+  }
+}
+
+function thawNavigationState(tab) {
+  // Thaw out the properties we froze at the beginning now that the swap is complete.
+  for (let property of NAVIGATION_PROPERTIES) {
+    delete tab.linkedBrowser[property];
+  }
 }
 
 /**

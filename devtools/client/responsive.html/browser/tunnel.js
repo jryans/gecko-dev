@@ -15,6 +15,25 @@ function debug(msg) {
 }
 
 /**
+ * Properties swapped between browsers by browser.xml's `swapDocShells`.  See also the
+ * list at /devtools/client/responsive.html/docs/browser-swap.md.
+ */
+const SWAPPED_BROWSER_STATE = [
+  "_securityUI",
+  "_documentURI",
+  "_documentContentType",
+  "_contentTitle",
+  "_characterSet",
+  "_contentPrincipal",
+  "_imageDocument",
+  "_fullZoom",
+  "_textZoom",
+  "_isSyntheticDocument",
+  "_innerWindowID",
+  "_manifestURI",
+];
+
+/**
  * This module takes an "outer" <xul:browser> from a browser tab as described by
  * Firefox's tabbrowser.xml and wires it up to an "inner" <iframe mozbrowser>
  * browser element containing arbitrary page content of interest.
@@ -133,25 +152,9 @@ function tunnelToInnerBrowser(outer, inner) {
       let filteredProgressListener = gBrowser._tabFilters.get(tab);
       outer.webProgress.addProgressListener(filteredProgressListener);
 
-      // All of the browser state from content was swapped onto the inner browser.  Copy
+      // All of the browser state from content was swapped onto the inner browser.  Pull
       // this state up to the outer browser.
-      // This list is taken from browser.xml's `swapDocShells`.  See also the list at
-      // /devtools/client/responsive.html/docs/browser-swap.md.
-      const browserState = [
-        "_securityUI",
-        "_documentURI",
-        "_documentContentType",
-        "_contentTitle",
-        "_characterSet",
-        "_contentPrincipal",
-        "_imageDocument",
-        "_fullZoom",
-        "_textZoom",
-        "_isSyntheticDocument",
-        "_innerWindowID",
-        "_manifestURI",
-      ];
-      for (let property of browserState) {
+      for (let property of SWAPPED_BROWSER_STATE) {
         outer[property] = inner[property];
       }
 
@@ -183,11 +186,6 @@ function tunnelToInnerBrowser(outer, inner) {
       outer.setDocShellIsActiveAndForeground = value => {
         inner.frameLoader.tabParent.setDocShellIsActiveAndForeground(value);
       };
-
-      // Force the browser UI to update by reading the state of the new
-      // properties we've set here.
-      gBrowser.setTabTitle(tab);
-      gBrowser.updateCurrentBrowser(true);
     }),
 
     stop() {
@@ -195,6 +193,13 @@ function tunnelToInnerBrowser(outer, inner) {
       let filteredProgressListener = gBrowser._tabFilters.get(tab);
       browserWindow = null;
       gBrowser = null;
+
+      // The browser's state has changed over time while the tunnel was active.  Push the
+      // the current state down to the inner browser, so that it follows the content in
+      // case that browser will be swapped elsewhere.
+      for (let property of SWAPPED_BROWSER_STATE) {
+        inner[property] = outer[property];
+      }
 
       // Remove the progress listener we added manually.
       outer.webProgress.removeProgressListener(filteredProgressListener);
