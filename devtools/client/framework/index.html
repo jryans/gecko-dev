@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="application/javascript;version=1.8">
+      window.onerror = (a, b, c, d, e) => console.error(e.toString());
+
+      const { utils: Cu, interfaces: Ci } = Components;
+      const { BrowserLoader } =
+        Cu.import("resource://devtools/client/shared/browser-loader.js", {});
+      const { require } = BrowserLoader({
+        baseURI: "resource://devtools/client/",
+        window,
+      });
+
+      let browser = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocShell)
+                          .chromeEventHandler;
+      /*let mm = browser.frameLoader.messageManager;
+      mm.loadFrameScript("resource://devtools/client/framework/bootstrap-frame.js", true);*/
+
+      browser.addEventListener("DOMWindowCreated", event => {
+        /*console.log("Window created");*/
+        let win = event.target.defaultView.wrappedJSObject;
+        /*console.log(event.target.defaultView);*/
+        const { require } = BrowserLoader({
+          baseURI: "resource://devtools/client/",
+          window: win,
+        });
+        win.require = require;
+      });
+
+      console.log(`${location}`);
+      console.log(`Chrome Priv? ${!!window.QueryInterface}`);
+      console.log(`require? ${!!require}`);
+      console.log(`require("devtools/client/framework/menu-item")`);
+      console.log(require("devtools/client/framework/menu-item"));
+      console.log(`require("devtools/client/shared/shim/Services")`);
+      console.log(require("devtools/client/shared/shim/Services"));
+    </script>
+  </head>
+  <body>
+    <iframe src="resource://devtools/client/framework/toolbox.html"></iframe>
+  </body>
+</html>

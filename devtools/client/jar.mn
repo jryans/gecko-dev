@@ -125,6 +125,7 @@ devtools.jar:
     content/framework/connect/connect.xhtml (framework/connect/connect.xhtml)
     content/framework/connect/connect.css (framework/connect/connect.css)
     content/framework/connect/connect.js (framework/connect/connect.js)
+    content/framework/index.html (framework/index.html)
     content/shared/widgets/graphs-frame.xhtml (shared/widgets/graphs-frame.xhtml)
     content/shared/widgets/spectrum-frame.xhtml (shared/widgets/spectrum-frame.xhtml)
     content/shared/widgets/cubic-bezier-frame.xhtml (shared/widgets/cubic-bezier-frame.xhtml)

@@ -23,9 +23,11 @@ DevToolsModules(
     'source-location.js',
     'target-from-url.js',
     'target.js',
+    'tool.html',
     'toolbox-highlighter-utils.js',
     'toolbox-hosts.js',
     'toolbox-options.js',
+    'toolbox.html',
     'toolbox.js',
     'ToolboxProcess.jsm',
 )

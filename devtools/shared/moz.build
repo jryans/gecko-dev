@@ -40,6 +40,7 @@ JAR_MANIFESTS += ['jar.mn']
 DevToolsModules(
     'async-storage.js',
     'async-utils.js',
+    'bootstrap.js',
     'builtin-modules.js',
     'content-observer.js',
     'css-lexer.js',
