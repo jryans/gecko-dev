@@ -7,6 +7,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1248830
 <title>Test for Bug 1248830 - Load module from content</title>
 <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
 <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+
+<!-- Setup require() for this environment -->
+<script type="application/javascript;version=1.8" src="resource://devtools/shared/bootstrap.js"></script>
+
+</head>
+<body>
 <script type="application/javascript;version=1.8">
 "use strict";
 
@@ -34,38 +40,6 @@ localStorage.setItem("devtools.branch2.someint", JSON.stringify({
   hasUserValue: false,
   userValue: null
 }));
-</script>
-</head>
-<body>
-
-<!-- XXX: Built version for web would have script bundle here that exposes require() -->
-
-<script type="application/javascript;version=1.8">
-"use strict";
-
-const { BrowserLoader } =
-  SpecialPowers.Cu.import("resource://devtools/client/shared/browser-loader.js", {});
-const { require } = BrowserLoader({
-  baseURI: "resource://devtools/client/",
-  window,
-});
-
-/* SpecialPowers.loadChromeScript(() => {
-  function bootstrap() {
-    dump(`FRAME: ${content.location}\n`);
-    const { utils: Cu } = Components;
-    const { BrowserLoader } =
-      Cu.import("resource://devtools/client/shared/browser-loader.js", {});
-    const { require } = BrowserLoader({
-      baseURI: "resource://devtools/client/",
-      window: content,
-    });
-    content.require = require;
-  }
-  dump(`INSTALL\n`);
-  let mm = browserElement.frameLoader.messageManager;
-  mm.loadFrameScript(`data:,(${bootstrap})();`, false);
-}); */
 
 const { Services, pref } = require("devtools/client/shared/shim/Services");
 
