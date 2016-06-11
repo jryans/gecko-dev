@@ -22,6 +22,10 @@ function clearCache() {
   Services.obs.notifyObservers(null, "startupcache-invalidate", null);
 }
 
+function isContentWindow(window) {
+  return !window.QueryInterface;
+}
+
 /*
  * Create a loader to be used in a browser environment. This evaluates
  * modules in their own environment, but sets window (the normal
@@ -83,6 +87,10 @@ function BrowserLoaderBuilder({ baseURI, window, useOnlyShared }) {
   if (AppConstants.DEBUG || AppConstants.DEBUG_JS_MODULES) {
     dynamicPaths["devtools/client/shared/vendor/react"] =
       "resource://devtools/client/shared/vendor/react-dev";
+  }
+
+  if (isContentWindow(window)) {
+    dynamicPaths.Services = "resource://devtools/client/shared/shim/Services";
   }
 
   const opts = {
