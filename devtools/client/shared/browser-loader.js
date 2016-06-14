@@ -112,6 +112,7 @@ function BrowserLoaderBuilder({ baseURI, window, useOnlyShared }) {
       return require(uri);
     },
     globals: {
+      isWorker: false,
       // Allow modules to use the window's console to ensure logs appear in a
       // tab toolbox, if one exists, instead of just the browser console.
       console: window.console,

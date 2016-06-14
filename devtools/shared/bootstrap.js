@@ -16,7 +16,7 @@
 
     // Install require() for the root document
     const rootLoader = BrowserLoader({
-      baseURI: "resource://devtools/client/",
+      baseURI: "resource://devtools/",
       window,
     });
     window.require = rootLoader.require;
@@ -29,7 +29,7 @@
     browser.addEventListener("DOMWindowCreated", event => {
       let win = event.target.defaultView.wrappedJSObject;
       const frameLoader = BrowserLoader({
-        baseURI: "resource://devtools/client/",
+        baseURI: "resource://devtools/",
         window: win,
       });
       win.require = frameLoader.require;
@@ -38,7 +38,7 @@
     const { BrowserLoader } =
       SpecialPowers.Cu.import("resource://devtools/client/shared/browser-loader.js", {});
     const { require } = BrowserLoader({
-      baseURI: "resource://devtools/client/",
+      baseURI: "resource://devtools/",
       window,
     });
     window.require = require;

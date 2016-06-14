@@ -8,13 +8,15 @@
       console.log(`${location}`);
       console.log(`Chrome Priv? ${!!window.QueryInterface}`);
       console.log(`require? ${!!require}`);
-      console.log(`require("devtools/client/framework/menu-item")`);
+      console.log(`require("devtools/client/framework/menu-item") (same module everywhere)`);
       console.log(require("devtools/client/framework/menu-item"));
-      console.log(`require("Services")`);
+      console.log(`require("Services") (different modules in content vs. chrome)`);
       console.log(require("Services"));
+      console.log(`require("devtools/server/main") (access denied in content)`);
+      console.log(require("devtools/server/main"));
     </script>
   </head>
   <body>
-    <iframe src="tool.html"></iframe>
+    <!-- <iframe src="tool.html"></iframe> -->
   </body>
 </html>
