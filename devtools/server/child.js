@@ -11,18 +11,24 @@ try {
 
   // Encapsulate in its own scope to allows loading this frame script more than once.
   (function () {
-    let Cu = Components.utils;
-    let { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+    const Cu = Components.utils;
+    const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+
     const DevToolsUtils = require("devtools/shared/DevToolsUtils");
     const { dumpn } = DevToolsUtils;
     const { DebuggerServer, ActorPool } = require("devtools/server/main");
 
-    // Note that this frame script may be evaluated in non-e10s build. In such case,
-    // DebuggerServer is already going to be initialized.
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
-      DebuggerServer.isInChildProcess = true;
+      // For non-e10s mode, there is only one server instance, so be sure the browser
+      // actors get loaded.
+      DebuggerServer.addBrowserActors();
     }
+
+    // XXX: This flag is pretty confusing and has different meanings in different places.
+    // We should strive to use the message manager directly instead of trying to check the
+    // process via this flag.
+    DebuggerServer.isInChildProcess = true;
 
     // In case of apps being loaded in parent process, DebuggerServer is already
     // initialized, but child specific actors are not registered. Otherwise, for apps in
