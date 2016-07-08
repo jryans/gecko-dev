@@ -44,14 +44,12 @@ AboutURL.createInstance = function (outer, iid) {
 
 exports.register = function () {
   if (registrar.isCIDRegistered(AboutURL.prototype.classID)) {
-    console.error("Trying to register " + AboutURL.prototype.classDescription +
-                  " more than once.");
-  } else {
-    registrar.registerFactory(AboutURL.prototype.classID,
-                       AboutURL.prototype.classDescription,
-                       AboutURL.prototype.contractID,
-                       AboutURL);
+    return;
   }
+  registrar.registerFactory(AboutURL.prototype.classID,
+                            AboutURL.prototype.classDescription,
+                            AboutURL.prototype.contractID,
+                            AboutURL);
 };
 
 exports.unregister = function () {
