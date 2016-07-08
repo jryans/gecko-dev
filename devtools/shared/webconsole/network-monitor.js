@@ -49,8 +49,19 @@ const RESPONSE_BODY_LIMIT = 1048576;
  *         True if the network request should be logged, false otherwise.
  */
 function matchRequest(channel, filters) {
+  dump(`Match in process ${Services.appinfo.processType} using: ` +
+       `outerWIP ${!!filters.outerWindowIdPredicate}, window ${!!filters.window}, ` +
+       `appId ${filters.appId}, outerWindowID ${filters.outerWindowID}\n`)
+  dump(`Match for ${channel.URI.spec}, fo: ${channel.loadInfo.frameOuterWindowID}, ` +
+       `o: ${channel.loadInfo.outerWindowID}, ` +
+       `po: ${channel.loadInfo.parentOuterWindowID}, ` +
+       `lC: ${!!NetworkHelper.getRequestLoadContext(channel)}, ` +
+       `tF: ${!!NetworkHelper.getTopFrameForRequest(channel)}\n`)
+  dump(`${new Error().stack}\n`)
+
   // Log everything if no filter is specified
   if (!filters.outerWindowID && !filters.window && !filters.appId) {
+    dump(`No filter, success\n`)
     return true;
   }
 
@@ -63,6 +74,7 @@ function matchRequest(channel, filters) {
       channel.loadInfo.loadingDocument === null &&
       channel.loadInfo.loadingPrincipal ===
       Services.scriptSecurityManager.getSystemPrincipal()) {
+    dump(`Principal mismatch, fail\n`)
     return false;
   }
 
@@ -72,6 +84,7 @@ function matchRequest(channel, filters) {
     let win = NetworkHelper.getWindowForRequest(channel);
     while (win) {
       if (win == filters.window) {
+        dump(`Window match, success\n`)
         return true;
       }
       if (win.parent == win) {
@@ -83,8 +96,12 @@ function matchRequest(channel, filters) {
 
   if (filters.outerWindowID) {
     let topFrame = NetworkHelper.getTopFrameForRequest(channel);
+    if (topFrame && topFrame.outerWindowID) {
+      dump(`tf.o ${topFrame.outerWindowID}\n`)
+    }
     if (topFrame && topFrame.outerWindowID &&
         topFrame.outerWindowID == filters.outerWindowID) {
+      dump(`outerWindowID match, success\n`)
       return true;
     }
   }
@@ -92,10 +109,12 @@ function matchRequest(channel, filters) {
   if (filters.appId) {
     let appId = NetworkHelper.getAppIdForRequest(channel);
     if (appId && appId == filters.appId) {
+      dump(`appId match, success\n`)
       return true;
     }
   }
 
+  dump(`No match, fail\n`)
   return false;
 }
 
