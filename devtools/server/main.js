@@ -176,6 +176,7 @@ var DebuggerServer = {
     if (this.initialized) {
       return;
     }
+    dump(`SERVER INIT: ${new Error().stack}\n`)
 
     this._connections = {};
     this._nextConnID = 0;
@@ -373,6 +374,7 @@ var DebuggerServer = {
    * root actor.
    */
   addBrowserActors(windowType = "navigator:browser", restrictPrivileges = false) {
+    dump(`ADD BROWSER ACTORS ${new Error().stack}\n`)
     this.chromeWindowType = windowType;
     this.registerModule("devtools/server/actors/webbrowser");
 
@@ -1274,6 +1276,7 @@ var DebuggerServer = {
     if (DebuggerServer.globalActorFactories.hasOwnProperty(name)) {
       throw Error(name + " already exists");
     }
+    dump(`ADDED GLOBAL: ${name}\n`)
     DebuggerServer.globalActorFactories[name] = new RegisteredActorFactory(actor, name);
   },
 
