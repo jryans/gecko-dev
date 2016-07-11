@@ -739,11 +739,13 @@
     },
 
     receiveMessage: function ({data}) {
+      dump(`Recv ${data.type}\n`)
       this.emit("onPacket", data);
       this.hooks.onPacket(data);
     },
 
     send: function (packet) {
+      dump(`Send ${packet.type}\n`)
       this.emit("send", packet);
       this._sender.sendAsyncMessage(this._messageName, packet);
     },

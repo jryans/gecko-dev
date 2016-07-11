@@ -14,6 +14,7 @@ try {
     const Cu = Components.utils;
     const { require } = Cu.import("resource://devtools/shared/Loader.jsm", {});
 
+    dump("Create child server\n")
     const DevToolsUtils = require("devtools/shared/DevToolsUtils");
     const { dumpn } = DevToolsUtils;
     const { DebuggerServer, ActorPool } = require("devtools/server/main");

@@ -1869,6 +1869,7 @@ TabActor.prototype = {
       this._updateChildDocShells();
     }
 
+    dump(`EMIT WIN READY: ${loader.id}\n`)
     events.emit(this, "window-ready", {
       window: window,
       isTopLevel: isTopLevel,

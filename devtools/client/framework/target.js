@@ -477,6 +477,7 @@ TabTarget.prototype = {
     this.client.addListener("tabDetached", this._onTabDetached);
 
     this._onTabNavigated = (aType, aPacket) => {
+      dump(`Got tabNav\n`)
       let event = Object.create(null);
       event.url = aPacket.url;
       event.title = aPacket.title;
