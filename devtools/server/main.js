@@ -920,7 +920,7 @@ var DebuggerServer = {
    *        is evaluated
    */
   setupInChild({ module, setupChild, args, waitForEval }) {
-    if (this.isInChildProcess || this._childMessageManagers.size == 0) {
+    if (this._childMessageManagers.size == 0) {
       return Promise.resolve();
     }
     let deferred = Promise.defer();
@@ -1303,7 +1303,22 @@ var DebuggerServer = {
         }
       }
     }
-  }
+  },
+
+  /**
+   * ⚠ TESTING ONLY! ⚠ Searches all active connections for an actor matching an ID.
+   * This is helpful for some tests which depend on reaching into the server to check some
+   * properties of an actor.
+   */
+  _searchAllConnectionsForActor(actorID) {
+    for (let connID of Object.getOwnPropertyNames(this._connections)) {
+      let actor = this._connections[connID].getActor(actorID);
+      if (actor) {
+        return actor;
+      }
+    }
+    return null;
+  },
 };
 
 // Expose these to save callers the trouble of importing DebuggerSocket
