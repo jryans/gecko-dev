@@ -80,7 +80,7 @@ function testAttachRemovedTab() {
     });
 
     gClient.request({ to: gTab2Actor, type: "attach" }, aResponse => {
-      is(aResponse.type, "exited", "Tab should consider itself exited.");
+      is(aResponse.error, "noSuchActor", "Actor is gone since the tab was removed.");
       deferred.resolve();
     });
 
