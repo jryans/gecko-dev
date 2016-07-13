@@ -1621,6 +1621,13 @@ DebuggerServerConnection.prototype = {
    */
   cancelForwarding(prefix) {
     this._forwardingPrefixes.delete(prefix);
+
+    // Notify the client that forwarding in now cancelled for this prefix.
+    // There could be requests in progress that the client should abort rather leaving
+    // handing indefinitely.
+    if (this.rootActor) {
+      this.send(this.rootActor.forwardingCancelled(prefix));
+    }
   },
 
   sendActorEvent(actorID, eventName, event = {}) {
