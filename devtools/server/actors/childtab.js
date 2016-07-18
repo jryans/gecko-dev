@@ -67,7 +67,10 @@ ContentActor.prototype.exit = function () {
     }
     this._sendForm = null;
   }
-  return TabActor.prototype.exit.call(this);
+
+  TabActor.prototype.exit.call(this);
+
+  this._chromeGlobal = null;
 };
 
 /**

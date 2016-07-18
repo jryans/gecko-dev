@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* global addMessageListener, removeMessageListener, sendAsyncMessage */
+/* global addEventListener, addMessageListener, removeMessageListener, sendAsyncMessage */
 
 try {
   var chromeGlobal = this;
@@ -103,6 +103,16 @@ try {
       }
     });
     addMessageListener("debug:disconnect", onDisconnect);
+
+    // In non-e10s mode, the "debug:disconnect" message isn't always received before the
+    // messageManager connection goes away.  Watching for "unload" here ensures we close
+    // any connections when the frame is unloaded.
+    addEventListener("unload", () => {
+      for (let conn of connections.values()) {
+        conn.close();
+      }
+      connections.clear();
+    });
 
     let onInspect = DevToolsUtils.makeInfallible(function (msg) {
       // Store the node to be inspected in a global variable (gInspectingNode). Later
