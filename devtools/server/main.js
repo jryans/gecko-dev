@@ -1417,7 +1417,9 @@ DebuggerServerConnection.prototype = {
   parentMessageManager: null,
 
   close() {
-    this._transport.close();
+    if (this._transport) {
+      this._transport.close();
+    }
   },
 
   send(packet) {
