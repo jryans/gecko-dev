@@ -392,7 +392,7 @@ StorageActors.createActor({
     // We need to remove the cookie listeners early in E10S mode so we need to
     // use a conditional here to ensure that we only attempt to remove them in
     // single process mode.
-    if (DebuggerServer.isInParentProcess) {
+    if (!DebuggerServer.isInChildProcess) {
       this.removeCookieObservers();
     }
 
@@ -594,7 +594,7 @@ StorageActors.createActor({
   maybeSetupChildProcess() {
     cookieHelpers.onCookieChanged = this.onCookieChanged.bind(this);
 
-    if (DebuggerServer.isInParentProcess) {
+    if (!DebuggerServer.isInChildProcess) {
       this.getCookiesFromHost =
         cookieHelpers.getCookiesFromHost.bind(cookieHelpers);
       this.addCookieObservers =
@@ -1591,7 +1591,7 @@ StorageActors.createActor({
   },
 
   maybeSetupChildProcess() {
-    if (DebuggerServer.isInParentProcess) {
+    if (!DebuggerServer.isInChildProcess) {
       this.backToChild = (func, rv) => rv;
       this.getDBMetaData = indexedDBHelpers.getDBMetaData;
       this.openWithPrincipal = indexedDBHelpers.openWithPrincipal;

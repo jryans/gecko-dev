@@ -898,22 +898,10 @@ var DebuggerServer = {
   },
 
   /**
-   * Check if the server is running in a content child process.
-   * Set by the child.js frame script when starting a server for content.
-   *
-   * Note that the frame script path is now used even when e10s is disabled, so both
-   * `isInChildProcess` and `isInParentProcess` would be true for that case.
+   * Check if the server is running in the child process.
    */
-  isInChildProcess: false,
-
-  /**
-   * Check if the server is running in the parent process.
-   *
-   * Note that the frame script path is now used even when e10s is disabled, so both
-   * `isInChildProcess` and `isInParentProcess` would be true for that case.
-   */
-  get isInParentProcess() {
-    return Services.appinfo.processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+  get isInChildProcess() {
+    return Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
   },
 
   /**
