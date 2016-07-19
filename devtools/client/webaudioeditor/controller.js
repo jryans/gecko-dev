@@ -139,11 +139,6 @@ var WebAudioEditorController = {
   _onTabNavigated: Task.async(function* (event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
-        // Make sure the backend is prepared to handle audio contexts.
-        if (!isFrameSwitching) {
-          yield gFront.setup({ reload: false });
-        }
-
         // Clear out current UI.
         this.reset();
 
