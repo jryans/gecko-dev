@@ -172,7 +172,7 @@ const DirectorRegistryActor = exports.DirectorRegistryActor = protocol.ActorClas
 
   maybeSetupChildProcess(conn) {
     // skip child setup if this actor module is not running in a child process
-    if (DebuggerServer.isInParentProcess) {
+    if (!DebuggerServer.isInChildProcess) {
       return;
     }
 

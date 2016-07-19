@@ -25,11 +25,6 @@ try {
       DebuggerServer.addBrowserActors();
     }
 
-    // XXX: This flag is pretty confusing and has different meanings in different places.
-    // We should strive to use the message manager directly instead of trying to check the
-    // process via this flag.
-    DebuggerServer.isInChildProcess = true;
-
     // In case of apps being loaded in parent process, DebuggerServer is already
     // initialized, but child specific actors are not registered. Otherwise, for apps in
     // child process, we need to load actors the first time we load child.js.
