@@ -154,8 +154,6 @@ var EventsHandler = {
     if (event != "will-navigate") {
       return;
     }
-    // Make sure the backend is prepared to handle <canvas> contexts.
-    gFront.setup({ reload: false });
 
     // Reset UI.
     SnapshotsListView.empty();
