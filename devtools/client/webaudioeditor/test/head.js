@@ -42,7 +42,6 @@ waitForExplicitFinish();
 
 var gToolEnabled = Services.prefs.getBoolPref("devtools.webaudioeditor.enabled");
 
-SimpleTest.testInChaosMode();
 DevToolsUtils.testing = true;
 
 registerCleanupFunction(() => {
