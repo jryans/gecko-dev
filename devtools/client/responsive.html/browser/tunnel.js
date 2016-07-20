@@ -411,6 +411,9 @@ MessageManagerTunnel.prototype = {
     this.destroyed = true;
     debug("Destroy tunnel");
 
+    // Watch for the messageManager to close.  In most cases, the caller will stop the
+    // tunnel gracefully before this, but when the browser window closes or application
+    // exits, we may not see the high-level close events.
     Services.obs.removeObserver(this, "message-manager-close");
 
     // Reset the messageManager.  Deleting the override means it will fallback to the
@@ -442,6 +445,10 @@ MessageManagerTunnel.prototype = {
     }
     if (subject == this.innerParentMM) {
       debug("Inner messageManager has closed");
+      this.destroy();
+    }
+    if (subject == this.outerParentMM) {
+      debug("Outer messageManager has closed");
       this.destroy();
     }
   },

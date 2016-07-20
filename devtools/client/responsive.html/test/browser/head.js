@@ -32,6 +32,11 @@ Services.scriptloader.loadSubScript(
   this);
 
 const TEST_URI_ROOT = "http://example.com/browser/devtools/client/responsive.html/test/browser/";
+const OPEN_DEVICE_MODAL_VALUE = "OPEN_DEVICE_MODAL";
+
+const { _loadPreferredDevices } = require("devtools/client/responsive.html/actions/devices");
+const { getOwnerWindow } = require("sdk/tabs/utils");
+const asyncStorage = require("devtools/shared/async-storage");
 
 SimpleTest.requestCompleteLog();
 SimpleTest.waitForExplicitFinish();
@@ -47,12 +52,11 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.devices.url");
   Services.prefs.clearUserPref("devtools.responsive.html.enabled");
   Services.prefs.clearUserPref("devtools.responsive.html.displayedDeviceList");
+  asyncStorage.removeItem("devtools.devices.url_cache");
 });
-const { ResponsiveUIManager } = require("resource://devtools/client/responsivedesign/responsivedesign.jsm");
-const { _loadPreferredDevices } = require("devtools/client/responsive.html/actions/devices");
-const { getOwnerWindow } = require("sdk/tabs/utils");
 
-const OPEN_DEVICE_MODAL_VALUE = "OPEN_DEVICE_MODAL";
+// This depends on the "devtools.responsive.html.enabled" pref
+const { ResponsiveUIManager } = require("resource://devtools/client/responsivedesign/responsivedesign.jsm");
 
 /**
  * Open responsive design mode for the given tab.
