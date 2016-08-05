@@ -981,6 +981,8 @@ var DebuggerServer = {
   connectToChild(connection, frame, onDestroy) {
     let deferred = SyncPromise.defer();
 
+    dump(`TRACKING FRAME NODE: ${frame.nodeName}, ID: ${frame.outerWindowID || frame._outerWindowID}\n`)
+
     // Get messageManager from XUL browser (which might be a specialized tunnel for RDM)
     // or else fallback to asking the frameLoader itself.
     let mm = frame.messageManager || frame.frameLoader.messageManager;
@@ -1073,6 +1075,10 @@ var DebuggerServer = {
       // Remove listeners from old frame and mm
       untrackMessageManager();
       // Update frame and mm to point to the new browser frame
+      dump(`FRAME CHANGED FROM NODE: ${frame.nodeName}, ` +
+           `ID: ${frame.outerWindowID || frame._outerWindowID} ` +
+           `TO NODE: ${newFrame.nodeName}, ` +
+           `ID: ${newFrame.outerWindowID || newFrame._outerWindowID}\n`)
       frame = newFrame;
       // Get messageManager from XUL browser (which might be a specialized tunnel for RDM)
       // or else fallback to asking the frameLoader itself.
