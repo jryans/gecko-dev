@@ -1195,6 +1195,9 @@ DebuggerClient.prototype = {
     // fronts, forming a tree.  Descend through all the pools to locate all child fronts.
     while (poolsToVisit.length) {
       let pool = poolsToVisit.shift();
+      // if (fronts.has(pool)) {
+      //   dump(`ERROR: Front ${pool} has multiple parents!\n`)
+      // }
       fronts.add(pool);
       for (let child of pool.poolChildren()) {
         poolsToVisit.push(child);
@@ -1203,6 +1206,7 @@ DebuggerClient.prototype = {
 
     // For each front, wait for its requests to settle
     for (let front of fronts) {
+      // dump(`${front}\n`)
       if (front.hasRequests()) {
         requests.push(front.waitForRequestsToSettle());
       }
@@ -1212,6 +1216,14 @@ DebuggerClient.prototype = {
     if (!requests.length) {
       return Promise.resolve();
     }
+
+    // for (let request of requests) {
+    //   request.then(() => dump(`REQUEST DONE\n`))
+    // }
+
+    // TODO: Are there even more requests after these?
+
+    // dump(`WAITING FOR ${requests.length} REQUESTS\n`)
 
     return Promise.all(requests).then(() => {
       // Repeat, more requests may have started in response to those we just waited for

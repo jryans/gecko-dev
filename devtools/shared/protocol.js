@@ -1180,6 +1180,9 @@ var Front = Class({
   destroy: function () {
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
+    // if (this._requests.length > 0) {
+    //   dump(`DESTROY OUTSTANDING\n${new Error().stack}\n`)
+    // }
     while (this._requests && this._requests.length > 0) {
       let { deferred, to, type, stack, id } = this._requests.shift();
       let msg = "Connection closed, pending request " + id + " to " + to +
@@ -1315,6 +1318,10 @@ var Front = Class({
    *         Resolved when all requests have settled.
    */
   waitForRequestsToSettle() {
+    // this._requests.forEach(({ deferred, type, to, id }) => {
+    //   dump(`REQUEST ${id} ${to} ${type} WAITING\n`)
+    //   deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE\n`))
+    // })
     return promise.all(this._requests.map(({ deferred }) => deferred.promise));
   },
 });

@@ -63,7 +63,7 @@ if (isWorker) {
   const LOG_PREF = "devtools.debugger.log";
   const VERBOSE_PREF = "devtools.debugger.log.verbose";
 
-  flags.wantLogging = Services.prefs.getBoolPref(LOG_PREF);
+  flags.wantLogging = false; // Services.prefs.getBoolPref(LOG_PREF);
   flags.wantVerbose =
     Services.prefs.getPrefType(VERBOSE_PREF) !== Services.prefs.PREF_INVALID &&
     Services.prefs.getBoolPref(VERBOSE_PREF);

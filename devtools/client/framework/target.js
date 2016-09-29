@@ -504,10 +504,12 @@ TabTarget.prototype = {
       // compatibility with non-remotable tools.
       if (aPacket.state == "start") {
         event._navPayload = this._navRequest;
+        // dump(`EMIT will-navigate\n`)
         this.emit("will-navigate", event);
         this._navRequest = null;
       } else {
         event._navPayload = this._navWindow;
+        // dump(`EMIT navigate\n`)
         this.emit("navigate", event);
         this._navWindow = null;
       }
