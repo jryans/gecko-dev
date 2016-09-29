@@ -252,17 +252,20 @@ Damp.prototype = {
   _getToolLoadingTests: function(url, label) {
 
     let openToolboxAndLog = Task.async(function*(name, tool) {
+      dump(`OPEN TOOLBOX FOR ${name}\n`)
       let {time, toolbox} = yield this.openToolbox(tool);
       this._results.push({name: name + ".open.DAMP", value: time });
       return toolbox;
     }.bind(this));
 
     let closeToolboxAndLog = Task.async(function*(name) {
+      dump(`CLOSE TOOLBOX FOR ${name}\n`)
       let {time} = yield this.closeToolbox();
       this._results.push({name: name + ".close.DAMP", value: time });
     }.bind(this));
 
     let reloadPageAndLog = Task.async(function*(name) {
+      dump(`RELOAD PAGE FOR ${name}\n`)
       let {time} = yield this.reloadPage();
       this._results.push({name: name + ".reload.DAMP", value: time });
     }.bind(this));
