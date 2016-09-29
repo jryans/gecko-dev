@@ -1141,6 +1141,8 @@ var ActorClassWithSpec = function (actorSpec, actorProto) {
 };
 exports.ActorClassWithSpec = ActorClassWithSpec;
 
+var gRequestID = 0;
+
 /**
  * Base class for client-side actor fronts.
  */
@@ -1179,8 +1181,8 @@ var Front = Class({
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
     while (this._requests && this._requests.length > 0) {
-      let { deferred, to, type, stack } = this._requests.shift();
-      let msg = "Connection closed, pending request to " + to +
+      let { deferred, to, type, stack, id } = this._requests.shift();
+      let msg = "Connection closed, pending request " + id + " to " + to +
                 ", type " + type + " failed" +
                 "\n\nRequest stack:\n" + stack.formattedStack;
       deferred.reject(new Error(msg));
@@ -1237,6 +1239,7 @@ var Front = Class({
       to: to || this.actorID,
       type,
       stack: getStack(),
+      id: gRequestID++,
     });
     this.send(packet);
     return deferred.promise;
