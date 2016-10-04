@@ -5,10 +5,5 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
-    'devices.js',
-    'location.js',
-    'network-throttling.js',
-    'screenshot.js',
-    'touch-simulation.js',
-    'viewports.js',
+    'network-throttling-profiles.js',
 )
