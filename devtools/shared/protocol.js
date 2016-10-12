@@ -1318,10 +1318,14 @@ var Front = Class({
    *         Resolved when all requests have settled.
    */
   waitForRequestsToSettle() {
-    // this._requests.forEach(({ deferred, type, to, id }) => {
-    //   dump(`REQUEST ${id} ${to} ${type} WAITING\n`)
-    //   deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE\n`))
-    // })
+    this._requests.forEach(({ deferred, type, to, id, stack }) => {
+      dump(`REQUEST ${id} ${to} ${type} WAITING\n`)
+      while (stack) {
+        dump(`${stack}\n`);
+        stack = stack.asyncCaller || stack.caller;
+      }
+      deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE\n`))
+    })
     return promise.all(this._requests.map(({ deferred }) => deferred.promise));
   },
 });

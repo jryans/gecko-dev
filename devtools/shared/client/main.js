@@ -1206,7 +1206,7 @@ DebuggerClient.prototype = {
 
     // For each front, wait for its requests to settle
     for (let front of fronts) {
-      // dump(`${front}\n`)
+      dump(`${front}\n`)
       if (front.hasRequests()) {
         requests.push(front.waitForRequestsToSettle());
       }
@@ -1217,13 +1217,13 @@ DebuggerClient.prototype = {
       return Promise.resolve();
     }
 
-    // for (let request of requests) {
-    //   request.then(() => dump(`REQUEST DONE\n`))
-    // }
+    for (let request of requests) {
+      request.then(() => dump(`REQUEST DONE\n`))
+    }
 
     // TODO: Are there even more requests after these?
 
-    // dump(`WAITING FOR ${requests.length} REQUESTS\n`)
+    dump(`WAITING FOR ${requests.length} REQUESTS\n`)
 
     return Promise.all(requests).then(() => {
       // Repeat, more requests may have started in response to those we just waited for
