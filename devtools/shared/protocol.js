@@ -11,6 +11,7 @@ var {EventTarget} = require("sdk/event/target");
 var events = require("sdk/event/core");
 var object = require("sdk/util/object");
 var {getStack, callFunctionWithAsyncStack} = require("devtools/shared/platform/stack");
+var {settleAll} = require("devtools/shared/DevToolsUtils");
 
 exports.emit = events.emit;
 
@@ -1326,7 +1327,7 @@ var Front = Class({
       }
       deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE\n`))
     })
-    return promise.all(this._requests.map(({ deferred }) => deferred.promise));
+    return settleAll(this._requests.map(({ deferred }) => deferred.promise));
   },
 });
 exports.Front = Front;

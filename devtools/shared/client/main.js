@@ -1233,7 +1233,7 @@ DebuggerClient.prototype = {
       dump(`  ${front}\n`)
     }
 
-    return Promise.all(requests).then(() => {
+    return DevToolsUtils.settleAll(requests).then(() => {
       // Repeat, more requests may have started in response to those we just waited for
       return this.waitForRequestsToSettle();
     });
