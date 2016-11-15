@@ -1180,9 +1180,9 @@ var Front = Class({
   destroy: function () {
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
-    // if (this._requests.length > 0) {
-    //   dump(`DESTROY OUTSTANDING\n${new Error().stack}\n`)
-    // }
+    if (this._requests.length > 0) {
+      dump(`DESTROY OUTSTANDING REQUESTS for ${this}\n${new Error().stack}\n`)
+    }
     while (this._requests && this._requests.length > 0) {
       let { deferred, to, type, stack, id } = this._requests.shift();
       let msg = "Connection closed, pending request " + id + " to " + to +

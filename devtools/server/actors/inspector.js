@@ -623,7 +623,14 @@ var NodeActor = exports.NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
       return "";
     }
     dump(`RECEIVED getUniqueSelector\n`)
-    return CssLogic.findCssSelector(this.rawNode);
+    let ret;
+    try {
+      ret = CssLogic.findCssSelector(this.rawNode);
+    } catch (e) {
+      dump(`SELECTOR ERROR: ${e}\n`)
+    }
+    dump(`SELECTOR RETURN: ${ret}\n`)
+    return ret;
   },
 
   /**
