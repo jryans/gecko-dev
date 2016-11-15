@@ -1204,11 +1204,16 @@ DebuggerClient.prototype = {
       }
     }
 
+    let waitingFronts = [];
+
     // For each front, wait for its requests to settle
     for (let front of fronts) {
-      dump(`${front}\n`)
+      dump(`Checking ${front} for requests...\n`)
       if (front.hasRequests()) {
-        requests.push(front.waitForRequestsToSettle());
+        let groupPromise = front.waitForRequestsToSettle()
+        waitingFronts.push(front);
+        groupPromise.then(() => dump(`REQUEST GROUP FOR ${front} DONE\n`))
+        requests.push(groupPromise);
       }
     }
 
@@ -1217,13 +1222,16 @@ DebuggerClient.prototype = {
       return Promise.resolve();
     }
 
-    for (let request of requests) {
-      request.then(() => dump(`REQUEST DONE\n`))
-    }
+    // for (let request of requests) {
+    //   request.then(() => dump(`REQUEST GROUP DONE\n`))
+    // }
 
     // TODO: Are there even more requests after these?
 
-    dump(`WAITING FOR ${requests.length} REQUESTS\n`)
+    dump(`WAITING FOR ${requests.length} REQUEST GROUPS, INCLUDING:\n`)
+    for (let front of waitingFronts) {
+      dump(`  ${front}\n`)
+    }
 
     return Promise.all(requests).then(() => {
       // Repeat, more requests may have started in response to those we just waited for
