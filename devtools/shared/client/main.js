@@ -1234,7 +1234,11 @@ DebuggerClient.prototype = {
       dump(`  ${front}\n`)
     }
 
-    return DevToolsUtils.settleAll(requests).then(() => {
+    return DevToolsUtils.settleAll(requests).catch(() => {
+      // One of the requests might have failed, but ignore that situation here and pipe
+      // both success and failure through the same path.  The important part is just that
+      // we waited.
+    }).then(() => {
       // Repeat, more requests may have started in response to those we just waited for
       return this.waitForRequestsToSettle();
     });
