@@ -1181,6 +1181,7 @@ var Front = Class({
   destroy: function () {
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
+    dump(`Enter destroy for ${this}\n`)
     if (this._requests.length > 0) {
       dump(`DESTROY OUTSTANDING REQUESTS for ${this}\n${new Error().stack}\n`)
     }
@@ -1288,7 +1289,13 @@ var Front = Class({
       throw err;
     }
 
-    let { deferred, stack } = this._requests.shift();
+    let before = this._requests.length;
+    let { deferred, stack, type: _type } = this._requests.shift();
+    let after = this._requests.length;
+    dump(`Processing ${_type}, decrement request stack ${before} -> ${after} for ${this}\n`)
+    if (_type == "getUniqueSelector") {
+      dump(`${JSON.stringify(packet, null, 2)}\n`)
+    }
     callFunctionWithAsyncStack(() => {
       if (packet.error) {
         // "Protocol error" is here to avoid TBPL heuristics. See also
@@ -1299,8 +1306,10 @@ var Front = Class({
         } else {
           message = packet.error;
         }
+        dump(`Processing ${_type}, reject for ${this}\n`)
         deferred.reject(message);
       } else {
+        dump(`Processing ${_type}, resolve for ${this}\n`)
         deferred.resolve(packet);
       }
     }, stack, "DevTools RDP");
@@ -1321,11 +1330,12 @@ var Front = Class({
   waitForRequestsToSettle() {
     this._requests.forEach(({ deferred, type, to, id, stack }) => {
       dump(`REQUEST ${id} ${to} ${type} WAITING\n`)
-      while (stack) {
-        dump(`${stack}\n`);
-        stack = stack.asyncCaller || stack.caller;
-      }
-      deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE\n`))
+      // while (stack) {
+      //   dump(`${stack}\n`);
+      //   stack = stack.asyncCaller || stack.caller;
+      // }
+      deferred.promise.then(() => dump(`REQUEST ${id} ${to} ${type} DONE, SUCCESS\n`),
+                            () => dump(`REQUEST ${id} ${to} ${type} DONE, FAILED\n`))
     })
     return settleAll(this._requests.map(({ deferred }) => deferred.promise));
   },

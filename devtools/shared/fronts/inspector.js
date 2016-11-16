@@ -106,6 +106,7 @@ const NodeFront = FrontClassWithSpec(nodeSpec, {
    * is being destroyed.
    */
   destroy: function () {
+    dump(`Destroying domnode front: ${this}\n`)
     Front.prototype.destroy.call(this);
   },
 

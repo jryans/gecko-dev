@@ -1212,7 +1212,8 @@ DebuggerClient.prototype = {
       if (front.hasRequests()) {
         let groupPromise = front.waitForRequestsToSettle()
         waitingFronts.push(front);
-        groupPromise.then(() => dump(`REQUEST GROUP FOR ${front} DONE\n`))
+        groupPromise.then(() => dump(`REQUEST GROUP FOR ${front} DONE, SUCCESS\n`),
+                          () => dump(`REQUEST GROUP FOR ${front} DONE, FAILED\n`))
         requests.push(groupPromise);
       }
     }
