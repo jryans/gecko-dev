@@ -39,18 +39,6 @@ module.exports = createClass({
       {
         className: "viewport-toolbar container",
       },
-      DeviceSelector({
-        devices,
-        selectedDevice,
-        onChangeViewportDevice,
-        onResizeViewport,
-        onUpdateDeviceModalOpen,
-      }),
-      dom.button({
-        className: "viewport-rotate-button toolbar-button devtools-button",
-        onClick: onRotateViewport,
-        title: getStr("responsive.rotate"),
-      })
     );
   },
 

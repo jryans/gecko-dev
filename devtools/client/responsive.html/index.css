@@ -134,12 +134,15 @@ select > option.divider {
  */
 
 #global-toolbar {
+  display: inline-flex;
+  position: fixed;
+  right: 15px;
+  top: 15px;
   color: var(--theme-body-color-alt);
   border-radius: 2px;
   box-shadow: var(--rdm-box-shadow);
   margin: 0 0 15px 0;
   padding: 4px 5px;
-  display: inline-flex;
   -moz-user-select: none;
 }
 
@@ -185,17 +188,28 @@ select > option.divider {
 
 #global-network-throttling-selector {
   height: 15px;
-  padding-left: 0;
-  width: 103px;
 }
 
+#global-network-throttling-selector > select {
+  width: 40px;
+}
+
+.viewport-network-throttling-button::before {
+  background-image: url("chrome://devtools/skin/images/tool-network.svg");
+  margin: -12px 0 0 -4px;
+}
+
+.viewport-network-throttling-button.selected::before {
+  filter: url("chrome://devtools/skin/images/filters.svg#checked-icon-state");
+}
+
+/* TODO: Fix these after moving DOM around */
 #global-dpr-selector > select {
   padding: 0 8px 0 0;
   margin-left: 2px;
 }
 
 #global-dpr-selector {
-  margin: 0 8px;
   -moz-user-select: none;
   color: var(--viewport-color);
   font-size: 11px;
@@ -226,6 +240,15 @@ select > option.divider {
   padding: 5px;
 }
 
+.viewport-dpr-button::before {
+  background-image: url("chrome://devtools/skin/images/command-rulers.svg");
+  margin: -12px 0 0 -4px;
+}
+
+.viewport-dpr-button.selected::before {
+  filter: url("chrome://devtools/skin/images/filters.svg#checked-icon-state");
+}
+
 #viewports {
   /* Make sure left-most viewport is visible when there's horizontal overflow.
      That is, when the horizontal space become smaller than the viewports and a
@@ -242,7 +265,9 @@ select > option.divider {
  */
 
 .viewport {
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   /* Align all viewports to the top */
   vertical-align: top;
 }
@@ -251,6 +276,14 @@ select > option.divider {
   border: 1px solid var(--theme-splitter-color);
   box-shadow: var(--rdm-box-shadow);
   position: relative;
+}
+
+/**
+ * Viewport Header Controls
+ */
+.viewport-device-selector {
+  background-color: initial;
+  width: -moz-fit-content;
 }
 
 /**
@@ -266,9 +299,25 @@ select > option.divider {
   height: 18px;
 }
 
-.viewport-rotate-button {
+.viewport-side-toolbar {
+  display: flex;
   position: absolute;
-  right: 0;
+  left: -85px;
+  flex-direction: column;
+  align-items: center;
+  color: var(--theme-body-color-alt);
+  border-radius: 2px;
+  box-shadow: var(--rdm-box-shadow);
+  margin: 0 0 15px 0;
+  padding: 4px 5px;
+  -moz-user-select: none;
+}
+
+.viewport-side-toolbar > * {
+  margin-bottom: 5px;
+}
+
+.viewport-rotate-button {
 }
 
 .viewport-rotate-button::before {

@@ -13,6 +13,7 @@ DevToolsModules(
     'network-throttling-selector.js',
     'resizable-viewport.js',
     'viewport-dimension.js',
+    'viewport-side-toolbar.js',
     'viewport-toolbar.js',
     'viewport.js',
     'viewports.js',

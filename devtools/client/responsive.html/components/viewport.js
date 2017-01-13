@@ -8,8 +8,10 @@ const { DOM: dom, createClass, createFactory, PropTypes } =
   require("devtools/client/shared/vendor/react");
 
 const Types = require("../types");
+const DeviceSelector = createFactory(require("./device-selector"));
 const ResizableViewport = createFactory(require("./resizable-viewport"));
 const ViewportDimension = createFactory(require("./viewport-dimension"));
+const ViewportSideToolbar = createFactory(require("./viewport-side-toolbar"));
 
 module.exports = createClass({
 
@@ -17,16 +19,25 @@ module.exports = createClass({
 
   propTypes: {
     devices: PropTypes.shape(Types.devices).isRequired,
+    displayPixelRatio: PropTypes.number.isRequired,
     location: Types.location.isRequired,
+    networkThrottling: PropTypes.shape(Types.networkThrottling).isRequired,
     screenshot: PropTypes.shape(Types.screenshot).isRequired,
+    selectedDevice: PropTypes.string.isRequired,
+    selectedPixelRatio: PropTypes.number.isRequired,
     swapAfterMount: PropTypes.bool.isRequired,
+    touchSimulation: PropTypes.shape(Types.touchSimulation).isRequired,
     viewport: PropTypes.shape(Types.viewport).isRequired,
     onBrowserMounted: PropTypes.func.isRequired,
+    onChangeNetworkThrottling: PropTypes.func.isRequired,
     onChangeViewportDevice: PropTypes.func.isRequired,
+    onChangeViewportPixelRatio: PropTypes.func.isRequired,
     onContentResize: PropTypes.func.isRequired,
     onResizeViewport: PropTypes.func.isRequired,
     onRotateViewport: PropTypes.func.isRequired,
+    onScreenshot: PropTypes.func.isRequired,
     onUpdateDeviceModalOpen: PropTypes.func.isRequired,
+    onUpdateTouchSimulation: PropTypes.func.isRequired,
   },
 
   onChangeViewportDevice(device) {
@@ -59,13 +70,22 @@ module.exports = createClass({
   render() {
     let {
       devices,
+      displayPixelRatio,
       location,
+      networkThrottling,
       screenshot,
+      selectedDevice,
+      selectedPixelRatio,
       swapAfterMount,
+      touchSimulation,
       viewport,
       onBrowserMounted,
+      onChangeNetworkThrottling,
+      onChangeViewportPixelRatio,
       onContentResize,
+      onScreenshot,
       onUpdateDeviceModalOpen,
+      onUpdateTouchSimulation,
     } = this.props;
 
     let {
@@ -78,24 +98,50 @@ module.exports = createClass({
       {
         className: "viewport",
       },
+      DeviceSelector({
+        devices,
+        selectedDevice,
+        onChangeViewportDevice,
+        onResizeViewport,
+        onUpdateDeviceModalOpen,
+      }),
       ViewportDimension({
         viewport,
         onChangeViewportDevice,
         onResizeViewport,
       }),
-      ResizableViewport({
-        devices,
-        location,
-        screenshot,
-        swapAfterMount,
-        viewport,
-        onBrowserMounted,
-        onChangeViewportDevice,
-        onContentResize,
-        onResizeViewport,
-        onRotateViewport,
-        onUpdateDeviceModalOpen,
-      })
+      dom.div(
+        {
+          className: "viewport-body",
+        },
+        ViewportSideToolbar({
+          devices,
+          displayPixelRatio,
+          networkThrottling,
+          screenshot,
+          selectedDevice,
+          selectedPixelRatio,
+          touchSimulation,
+          onChangeNetworkThrottling,
+          onChangeViewportPixelRatio,
+          onRotateViewport,
+          onScreenshot,
+          onUpdateTouchSimulation,
+        }),
+        ResizableViewport({
+          devices,
+          location,
+          screenshot,
+          swapAfterMount,
+          viewport,
+          onBrowserMounted,
+          onChangeViewportDevice,
+          onContentResize,
+          onResizeViewport,
+          onRotateViewport,
+          onUpdateDeviceModalOpen,
+        }),
+      ),
     );
   },
 

@@ -146,14 +146,6 @@ module.exports = createClass({
       {
         className: "resizable-viewport",
       },
-      ViewportToolbar({
-        devices,
-        selectedDevice: viewport.device,
-        onChangeViewportDevice,
-        onResizeViewport,
-        onRotateViewport,
-        onUpdateDeviceModalOpen,
-      }),
       dom.div(
         {
           className: contentClass,

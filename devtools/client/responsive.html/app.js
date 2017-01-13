@@ -10,6 +10,9 @@ const { createClass, createFactory, PropTypes, DOM: dom } =
   require("devtools/client/shared/vendor/react");
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
+const Types = require("./types");
+const { getStr } = require("./utils/l10n");
+
 const {
   updateDeviceDisplayed,
   updateDeviceModalOpen,
@@ -27,7 +30,6 @@ const {
 const DeviceModal = createFactory(require("./components/device-modal"));
 const GlobalToolbar = createFactory(require("./components/global-toolbar"));
 const Viewports = createFactory(require("./components/viewports"));
-const Types = require("./types");
 
 let App = createClass({
   displayName: "App",
@@ -159,30 +161,28 @@ let App = createClass({
         id: "app",
       },
       GlobalToolbar({
+        onExit,
+      }),
+      Viewports({
         devices,
         displayPixelRatio,
+        location,
         networkThrottling,
         screenshot,
         selectedDevice,
         selectedPixelRatio,
         touchSimulation,
-        onChangeNetworkThrottling,
-        onChangeViewportPixelRatio,
-        onExit,
-        onScreenshot,
-        onUpdateTouchSimulation,
-      }),
-      Viewports({
-        devices,
-        location,
-        screenshot,
         viewports,
         onBrowserMounted,
-        onChangeViewportDevice,
+        onChangeNetworkThrottling,
         onContentResize,
-        onRotateViewport,
+        onChangeViewportDevice,
+        onChangeViewportPixelRatio,
         onResizeViewport,
+        onRotateViewport,
+        onScreenshot,
         onUpdateDeviceModalOpen,
+        onUpdateTouchSimulation,
       }),
       DeviceModal({
         devices,

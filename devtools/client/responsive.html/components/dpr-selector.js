@@ -9,6 +9,7 @@
 const { DOM: dom, createClass, PropTypes, addons } =
   require("devtools/client/shared/vendor/react");
 
+const { Ci } = require("chrome");
 const Types = require("../types");
 const { getStr, getFormatStr } = require("../utils/l10n");
 
@@ -48,6 +49,14 @@ module.exports = createClass({
     };
   },
 
+  onButtonClick() {
+    let utils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils);
+    let rect = this.selectElem.getBoundingClientRect();
+    utils.sendMouseEvent("mousedown", rect.left + 2, rect.top + 2, 0, 1, 0);
+    utils.sendMouseEvent("mouseup", rect.left + 2, rect.top + 2, 0, 1, 0);
+  },
+
   onFocusChange({type}) {
     this.setState({
       isFocused: type === "focus"
@@ -84,7 +93,7 @@ module.exports = createClass({
 
     let state = devices.listState;
     let isDisabled = (state !== Types.deviceListState.LOADED) || (selectedDevice !== "");
-    let selectorClass = "";
+    let selectorClass = "viewport-dpr-button toolbar-button devtools-button";
     let title;
 
     if (isDisabled) {
@@ -108,15 +117,22 @@ module.exports = createClass({
       listContent = listContent.concat(hiddenOptions.map(createHiddenOption));
     }
 
-    return dom.label(
+    return dom.span(
       {
         id: "global-dpr-selector",
-        className: selectorClass,
-        title,
       },
-      "DPR",
+      dom.button(
+        {
+          className: selectorClass,
+          title,
+          onClick: this.onButtonClick,
+        }
+      ),
       dom.select(
         {
+          ref: elem => {
+            this.selectElem = elem;
+          },
           value: selectedPixelRatio || displayPixelRatio,
           disabled: isDisabled,
           onChange: this.onSelectChange,
