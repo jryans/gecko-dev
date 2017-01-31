@@ -18,6 +18,7 @@ let nextViewportId = 0;
 const INITIAL_VIEWPORTS = [];
 const INITIAL_VIEWPORT = {
   id: nextViewportId++,
+  deviceType: "",
   device: "",
   width: 320,
   height: 480,
@@ -36,13 +37,14 @@ let reducers = {
     return [...viewports, Object.assign({}, INITIAL_VIEWPORT)];
   },
 
-  [CHANGE_DEVICE](viewports, { id, device }) {
+  [CHANGE_DEVICE](viewports, { id, deviceType, device }) {
     return viewports.map(viewport => {
       if (viewport.id !== id) {
         return viewport;
       }
 
       return Object.assign({}, viewport, {
+        deviceType,
         device,
       });
     });

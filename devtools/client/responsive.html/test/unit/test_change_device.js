@@ -34,7 +34,7 @@ add_task(function* () {
   let viewport = getState().viewports[0];
   equal(viewport.device, "", "Default device is unselected");
 
-  dispatch(changeDevice(0, "Firefox OS Flame"));
+  dispatch(changeDevice(0, "phones", "Firefox OS Flame"));
 
   viewport = getState().viewports[0];
   equal(viewport.device, "Firefox OS Flame",
