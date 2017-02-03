@@ -19,7 +19,9 @@ module.exports = createClass({
   propTypes: {
     devices: PropTypes.shape(Types.devices).isRequired,
     viewportTemplate: PropTypes.shape(Types.viewport).isRequired,
+    onAddCustomDevice: PropTypes.func.isRequired,
     onDeviceListUpdate: PropTypes.func.isRequired,
+    onRemoveCustomDevice: PropTypes.func.isRequired,
     onUpdateDeviceDisplayed: PropTypes.func.isRequired,
     onUpdateDeviceModal: PropTypes.func.isRequired,
   },
@@ -111,6 +113,8 @@ module.exports = createClass({
     let {
       devices,
       viewportTemplate,
+      onAddCustomDevice,
+      onRemoveCustomDevice,
       onUpdateDeviceModal,
     } = this.props;
 
@@ -155,6 +159,15 @@ module.exports = createClass({
                   "responsive.deviceDetails", device.width, device.height,
                   device.pixelRatio, device.userAgent, device.touch
                 );
+
+                let removeDeviceButton;
+                if (type == "custom") {
+                  removeDeviceButton = dom.button({
+                    className: "device-remove-button toolbar-button devtools-button",
+                    onClick: () => onRemoveCustomDevice(device),
+                  });
+                }
+
                 return dom.label(
                   {
                     className: "device-label",
@@ -168,7 +181,13 @@ module.exports = createClass({
                     checked: this.state[device.name],
                     onChange: this.onDeviceCheckboxChange,
                   }),
-                  device.name
+                  dom.span(
+                    {
+                      className: "device-name",
+                    },
+                    device.name
+                  ),
+                  removeDeviceButton
                 );
               })
             );
@@ -176,6 +195,7 @@ module.exports = createClass({
           DeviceAdder({
             devices,
             viewportTemplate,
+            onAddCustomDevice,
           })
         ),
         dom.button(

@@ -10,11 +10,12 @@ const {
   LOAD_DEVICE_LIST_START,
   LOAD_DEVICE_LIST_ERROR,
   LOAD_DEVICE_LIST_END,
+  REMOVE_DEVICE,
   UPDATE_DEVICE_DISPLAYED,
   UPDATE_DEVICE_MODAL,
 } = require("./index");
 
-const { getDevices } = require("devtools/client/shared/devices");
+const { addDevice, getDevices, removeDevice } = require("devtools/client/shared/devices");
 
 const Services = require("Services");
 const DISPLAYED_DEVICES_PREF = "devtools.responsive.html.displayedDeviceList";
@@ -71,6 +72,18 @@ module.exports = {
 
   updatePreferredDevices: updatePreferredDevices,
 
+  addCustomDevice(device) {
+    return function* (dispatch) {
+      // Add custom device to device storage
+      yield addDevice(device, "custom");
+      dispatch({
+        type: ADD_DEVICE,
+        device,
+        deviceType: "custom",
+      });
+    };
+  },
+
   addDevice(device, deviceType) {
     return {
       type: ADD_DEVICE,
@@ -83,6 +96,18 @@ module.exports = {
     return {
       type: ADD_DEVICE_TYPE,
       deviceType,
+    };
+  },
+
+  removeCustomDevice(device) {
+    return function* (dispatch) {
+      // Remove custom device from device storage
+      yield removeDevice(device, "custom");
+      dispatch({
+        type: REMOVE_DEVICE,
+        device,
+        deviceType: "custom",
+      });
     };
   },
 
@@ -125,7 +150,10 @@ module.exports = {
         }
       }
 
-      dispatch(module.exports.addDeviceType("custom"));
+      // Add an empty "custom" type if it doesn't exist in device storage
+      if (!devices.TYPES.find(type => type == "custom")) {
+        dispatch(module.exports.addDeviceType("custom"));
+      }
 
       dispatch({ type: LOAD_DEVICE_LIST_END });
     };
