@@ -1315,7 +1315,7 @@ impl SelectorMap<Rule> {
                                            flags_setter: &mut F,
                                            cascade_level: CascadeLevel)
         where E: TElement,
-              V: VecLike<ApplicableDeclarationBlock>,
+              V: VecLike<ApplicableDeclarationBlock> + ::std::fmt::Debug,
               F: FnMut(&E, ElementSelectorFlags),
     {
         if self.is_empty() {
@@ -1358,6 +1358,8 @@ impl SelectorMap<Rule> {
                                         context,
                                         flags_setter,
                                         cascade_level);
+
+        debug!("Matching rules: {:?} {:?}", element.as_node(), matching_rules_list);
 
         // Sort only the rules we just added.
         sort_by_key(&mut matching_rules_list[init_len..],
