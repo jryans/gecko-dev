@@ -1361,6 +1361,13 @@ impl SelectorMap<Rule> {
 
         debug!("Matching rules: {:?} {:?}", element.as_node(), matching_rules_list);
 
+        #[cfg(feature = "gecko")]
+        {
+            if element.get_local_name().as_ptr() == atom!("a").as_ptr() {
+                debug!("Matching for <a>");
+            }
+        }
+
         // Sort only the rules we just added.
         sort_by_key(&mut matching_rules_list[init_len..],
                     |block| (block.specificity, block.source_order));
