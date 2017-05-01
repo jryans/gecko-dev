@@ -475,7 +475,7 @@ class TreeMetadataEmitter(LoggingMixin):
                         'rpath': False,
                         'lto': False,
                         'debug-assertions': True,
-                        'codegen-units': 4,
+                        'codegen-units': 1,
                         'panic': 'abort',
                     }
                 else:
