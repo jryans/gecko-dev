@@ -891,6 +891,10 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
                    aPseudoType),
                   "Pseudo mismatch");
 
+  if (aElementForAnimation && aElementForAnimation->IsHTMLElement(nsGkAtoms::a)) {
+    printf("GetContext for <a>\n");
+  }
+
   if (aVisitedRuleNode == aRuleNode) {
     // No need to force creation of a visited style in this case.
     aVisitedRuleNode = nullptr;
