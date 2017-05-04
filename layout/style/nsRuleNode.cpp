@@ -10361,7 +10361,7 @@ nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
 {
 #ifdef MOZ_STYLO
   if (aStyleContext->StyleSource().IsServoComputedValues()) {
-    NS_WARNING("stylo: nsRuleNode::HasAuthorSpecifiedRules not implemented");
+    // NS_WARNING("stylo: nsRuleNode::HasAuthorSpecifiedRules not implemented");
     return true;
   }
 #endif
