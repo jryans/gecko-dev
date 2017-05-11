@@ -14,7 +14,8 @@ use data::{ComputedStyle, ElementData, RestyleData};
 use dom::{AnimationRules, TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
-use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
+use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
@@ -188,6 +189,12 @@ impl CascadeVisitedMode {
     fn visited_values_for_insertion(&self) -> bool {
         *self == CascadeVisitedMode::Unvisited
     }
+
+    /// Returns whether the cascade should filter to only visited dependent
+    /// properties based on the cascade mode.
+    fn visited_dependent_only(&self) -> bool {
+        *self == CascadeVisitedMode::Visited
+    }
 }
 
 trait PrivateMatchMethods: TElement {
@@ -231,6 +238,9 @@ trait PrivateMatchMethods: TElement {
         let mut cascade_flags = CascadeFlags::empty();
         if self.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        if cascade_visited.visited_dependent_only() {
+            cascade_flags.insert(VISITED_DEPENDENT_ONLY);
         }
 
         // Grab the inherited values.
