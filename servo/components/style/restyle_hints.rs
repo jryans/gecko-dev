@@ -19,7 +19,7 @@ use heapsize::HeapSizeOf;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, RelevantLinkStatus};
 use selectors::matching::matches_selector;
 use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
@@ -536,6 +536,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     context: &mut MatchingContext,
+                                    relevant_link: &RelevantLinkStatus,
                                     _setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
@@ -581,6 +582,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
                                                           context,
+                                                          relevant_link,
                                                           &mut |_, _| {})
         }
         match self.snapshot().and_then(|s| s.state()) {
@@ -588,6 +590,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             None => {
                 self.element.match_non_ts_pseudo_class(pseudo_class,
                                                        context,
+                                                       relevant_link,
                                                        &mut |_, _| {})
             }
         }
@@ -599,6 +602,14 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                             -> bool
     {
         self.element.match_pseudo_element(pseudo_element, context)
+    }
+
+    fn is_link(&self) -> bool {
+        let mut context = MatchingContext::new(MatchingMode::Normal, None);
+        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
+                                       &mut context,
+                                       &RelevantLinkStatus::default(),
+                                       &mut |_, _| {})
     }
 
     fn parent_element(&self) -> Option<Self> {
