@@ -992,6 +992,13 @@ impl DependencySet {
             return RestyleHint::empty();
         }
 
+        let current_state = el.get_state();
+        let old_state = snapshot.state();
+        debug!("State changes? {:?} (old {:?}, current {:?}) for {:?}",
+               state_changes, old_state, current_state, el);
+        debug!("Attr changes? {} for {:?}",
+               attrs_changed, el);
+
         let mut hint = RestyleHint::empty();
 
         // If we are sensitive to visitedness and the visited state changed, we
@@ -1079,6 +1086,16 @@ impl DependencySet {
                                  &mut now_context,
                                  &mut |_, _| {});
 
+            if matched_then != matches_now {
+                debug!("Selector {:?} match changed (then {}, now {}) for {:?}, insert hint {:?}, max {}",
+                       &dep.selector, matched_then, matches_now, el, dep.hint, hint.is_maximum());
+            }
+            if then_context.relevant_link_found != now_context.relevant_link_found {
+                debug!("Selector {:?} relevant link changed (then {}, now {}) for {:?}, insert hint {:?}, max {}",
+                       &dep.selector, then_context.relevant_link_found,
+                       now_context.relevant_link_found, el, dep.hint, hint.is_maximum());
+            }
+
             // Check for mismatches in both the match result and also the status
             // of whether a relevant link was found.
             if matched_then != matches_now ||
@@ -1108,6 +1125,12 @@ impl DependencySet {
                     matches_selector(&dep.selector, el,
                                      &mut now_context,
                                      &mut |_, _| {});
+
+                if matched_then != matches_now {
+                    debug!("Selector {:?} visited match changed (then {}, now {}) for {:?}, insert hint {:?}, max {}",
+                           &dep.selector, matched_then, matches_now, el, dep.hint, hint.is_maximum());
+                }
+
                 if matched_then != matches_now {
                     hint.insert_from(&dep.hint);
                     return !hint.is_maximum()
