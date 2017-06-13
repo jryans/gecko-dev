@@ -199,7 +199,7 @@ fn traverse_subtree(element: GeckoElement,
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.traversal_parent() {
-        if parent.borrow_data().map_or(true, |d| d.styles().is_display_none()) {
+        if parent.borrow_data().map_or(true, |d| d.styles.is_display_none()) {
             debug!("{:?} has unstyled parent {:?} - ignoring call to traverse_subtree", element, parent);
             return;
         }
@@ -672,7 +672,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
                                                unsafe { &*snapshots });
     let element = GeckoElement(element);
     let element_data = element.borrow_data().unwrap();
-    let styles = element_data.styles();
+    let styles = &element_data.styles;
 
     let pseudo = PseudoElement::from_pseudo_type(pseudo_type);
     let pseudos = &styles.pseudos;
@@ -688,7 +688,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
     let provider = get_metrics_provider_for_product();
     element.get_base_style(&shared_context,
                            &provider,
-                           &styles.primary,
+                           styles.primary(),
                            pseudo_style)
            .into_strong()
 }
@@ -1428,7 +1428,6 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let metrics = get_metrics_provider_for_product();
     data.stylist.precomputed_values_for_pseudo(&guards, &pseudo, maybe_parent,
                                                cascade_flags, &metrics)
-        .values.unwrap()
         .into_strong()
 }
 
@@ -1443,8 +1442,11 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
     let data = unsafe { element.ensure_data() }.borrow_mut();
     let doc_data = PerDocumentStyleData::from_ffi(raw_data);
 
+    debug!("Servo_ResolvePseudoStyle: {:?} {:?}", element,
+           PseudoElement::from_pseudo_type(pseudo_type));
+
     // FIXME(bholley): Assert against this.
-    if data.get_styles().is_none() {
+    if !data.has_styles() {
         warn!("Calling Servo_ResolvePseudoStyle on unstyled element");
         return if is_probe {
             Strong::null()
@@ -1459,11 +1461,11 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     match get_pseudo_style(&guard, element, &pseudo, RuleInclusion::All,
-                           data.styles(), &*doc_data.borrow()) {
+                           &data.styles, &*doc_data.borrow()) {
         Some(values) => values.into_strong(),
         // FIXME(emilio): This looks pretty wrong! Shouldn't it be at least an
         // empty style inheriting from the element?
-        None if !is_probe => data.styles().primary.values().clone().into_strong(),
+        None if !is_probe => data.styles.primary().clone().into_strong(),
         None => Strong::null(),
     }
 }
@@ -1477,15 +1479,15 @@ pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed
     let element = GeckoElement(element);
 
     let data = element.borrow_data().unwrap();
-    let primary_style = &data.styles().primary;
+    let primary_style = data.styles.primary();
 
     let guard = (*GLOBAL_STYLE_DATA).shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
 
-    primary_style.rules.has_author_specified_rules(element,
-                                                   &guards,
-                                                   rule_type_mask,
-                                                   author_colors_allowed)
+    primary_style.rules().has_author_specified_rules(element,
+                                                     &guards,
+                                                     rule_type_mask,
+                                                     author_colors_allowed)
 }
 
 fn get_pseudo_style(guard: &SharedRwLockReadGuard,
@@ -1497,13 +1499,13 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     -> Option<Arc<ComputedValues>>
 {
     match pseudo.cascade_type() {
-        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values().clone()),
+        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             let base = if pseudo.inherits_from_default_values() {
                 doc_data.default_computed_values()
             } else {
-                styles.primary.values()
+                styles.primary()
             };
             let guards = StylesheetGuards::same(guard);
             let metrics = get_metrics_provider_for_product();
@@ -1515,7 +1517,7 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     rule_inclusion,
                     base,
                     &metrics)
-                .map(|s| s.values().clone())
+                .map(|s| s.clone())
         },
     }
 }
@@ -1687,7 +1689,7 @@ pub extern "C" fn Servo_GetProperties_Overriding_Animation(element: RawGeckoElem
     let guard = global_style_data.shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
     let (overridden, custom) =
-        element_data.styles().primary.rules.get_properties_overriding_animations(&guards);
+        element_data.styles.primary().rules().get_properties_overriding_animations(&guards);
     for p in list.iter() {
         match PropertyId::from_nscsspropertyid(*p) {
             Ok(property) => {
@@ -2486,12 +2488,12 @@ pub extern "C" fn Servo_Element_GetStyleRuleList(element: RawGeckoElementBorrowe
         Some(element_data) => element_data,
         None => return,
     };
-    let computed = match data.get_styles() {
-        Some(styles) => &styles.primary,
+    let computed = match data.styles.get_primary() {
+        Some(values) => values,
         None => return,
     };
     let mut result = vec![];
-    for rule_node in computed.rules.self_and_ancestors() {
+    for rule_node in computed.rules().self_and_ancestors() {
         if let &StyleSource::Style(ref rule) = rule_node.style_source() {
             result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
         }
@@ -2571,7 +2573,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
         return per_doc_data.default_computed_values().clone().into_strong();
     }
 
-    data.styles().primary.values().clone().into_strong()
+    data.styles.primary().clone().into_strong()
 }
 
 #[no_mangle]
@@ -2592,15 +2594,20 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
         PseudoElement::from_pseudo_type(pseudo_type).and_then(|ref pseudo| {
             get_pseudo_style(&guard, element, pseudo, rule_inclusion, styles, &*data)
-        }).unwrap_or_else(|| styles.primary.values().clone())
+        }).unwrap_or_else(|| styles.primary().clone())
     };
 
     // In the common case we already have the style. Check that before setting
     // up all the computation machinery. (Don't use it when we're getting
     // default styles, though.)
     if rule_inclusion == RuleInclusion::All {
-        if let Some(result) = element.mutate_data()
-                                     .and_then(|d| d.get_styles().map(&finish)) {
+        let styles = element.mutate_data().and_then(|d| {
+            match d.has_styles() {
+                true => Some(finish(&d.styles)),
+                false => None,
+            }
+        });
+        if let Some(result) = styles {
             return result.into_strong();
         }
     }
@@ -2628,12 +2635,12 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         RuleInclusion::All => {
             let clear = |el: GeckoElement| el.clear_data();
             resolve_style(&mut context, element, &ensure, &clear,
-                          |styles| result = Some(finish(styles)));
+                          |values| result = Some(finish(values)));
         }
         RuleInclusion::DefaultOnly => {
             let set_data = |el: GeckoElement, data| { unsafe { el.set_data(data) } };
             resolve_default_style(&mut context, element, &ensure, &set_data,
-                                  |styles| result = Some(finish(styles)));
+                                  |values| result = Some(finish(values)));
         }
     }
 
@@ -2689,7 +2696,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let element = GeckoElement(element);
     let parent_element = element.inheritance_parent();
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+    let parent_style = parent_data.as_ref().map(|d| d.styles.primary());
 
     let mut context = create_context(&data, &metrics, style, &parent_style);
 
@@ -2746,7 +2753,7 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
     let element = GeckoElement(element);
     let parent_element = element.inheritance_parent();
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+    let parent_style = parent_data.as_ref().map(|d| d.styles.primary());
 
     let mut context = create_context(&data, &metrics, style, &parent_style);
 
@@ -2775,7 +2782,7 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     let element = GeckoElement(element);
     let parent_element = element.inheritance_parent();
     let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+    let parent_style = parent_data.as_ref().map(|d| d.styles.primary());
 
     let mut context = create_context(&data, &metrics, style, &parent_style);
 
