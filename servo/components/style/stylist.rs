@@ -617,7 +617,7 @@ impl Stylist {
         // blockification.
         let computed =
             properties::cascade(&self.device,
-                                &rule_node,
+                                rule_node.clone(),
                                 guards,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
@@ -697,7 +697,7 @@ impl Stylist {
         // Bug 1364242: We need to add visited support for lazy pseudos
         let computed =
             properties::cascade(&self.device,
-                                &rule_node,
+                                rule_node.clone(),
                                 guards,
                                 Some(parent_style),
                                 Some(parent_style),
@@ -1261,7 +1261,7 @@ impl Stylist {
         // It is unclear if visited styles are meaningful for this case.
         let metrics = get_metrics_provider_for_product();
         Arc::new(properties::cascade(&self.device,
-                                     &rule_node,
+                                     rule_node.clone(),
                                      guards,
                                      Some(parent_style),
                                      Some(parent_style),

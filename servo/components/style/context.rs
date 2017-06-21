@@ -209,6 +209,11 @@ impl CascadeInputs {
         self.rules.as_ref().unwrap()
     }
 
+    /// Takes the rule node.
+    pub fn take_rules(&mut self) -> Option<StrongRuleNode> {
+        self.rules.take()
+    }
+
     /// Sets the rule node depending on visited mode.
     /// Returns whether the rules changed.
     pub fn set_rules(&mut self,

@@ -161,6 +161,14 @@ impl CascadeVisitedMode {
         }
     }
 
+    /// Takes the rule node based on the cascade mode.
+    fn take_rules(&self, inputs: &mut CascadeInputs) -> Option<StrongRuleNode> {
+        match *self {
+            CascadeVisitedMode::Unvisited => inputs.take_rules(),
+            CascadeVisitedMode::Visited => inputs.take_visited_rules(),
+        }
+    }
+
     /// Returns a mutable rules node based on the cascade mode, if any.
     fn get_rules_mut<'a>(&self, inputs: &'a mut CascadeInputs) -> Option<&'a mut StrongRuleNode> {
         match *self {
@@ -297,7 +305,7 @@ trait PrivateMatchMethods: TElement {
     fn cascade_with_rules(&self,
                           shared_context: &SharedStyleContext,
                           font_metrics_provider: &FontMetricsProvider,
-                          rule_node: &StrongRuleNode,
+                          rule_node: StrongRuleNode,
                           primary_style: Option<&Arc<ComputedValues>>,
                           cascade_target: CascadeTarget,
                           cascade_visited: CascadeVisitedMode,
@@ -389,10 +397,11 @@ trait PrivateMatchMethods: TElement {
     }
 
     fn cascade_internal(&self,
-                        context: &StyleContext<Self>,
+                        shared_context: &SharedStyleContext,
+                        font_metrics_provider: &FontMetricsProvider,
                         primary_style: Option<&Arc<ComputedValues>>,
-                        primary_inputs: &CascadeInputs,
-                        eager_pseudo_inputs: Option<&CascadeInputs>,
+                        primary_inputs: &mut CascadeInputs,
+                        eager_pseudo_inputs: Option<&mut CascadeInputs>,
                         cascade_visited: CascadeVisitedMode)
                         -> Arc<ComputedValues> {
         if let Some(pseudo) = self.implemented_pseudo_element() {
@@ -412,7 +421,7 @@ trait PrivateMatchMethods: TElement {
             // computing default styles, we aren't guaranteed the parent
             // will have eagerly computed our styles, so we just handled it
             // below like a lazy pseudo.
-            let only_default_rules = context.shared.traversal_flags.for_default_styles();
+            let only_default_rules = shared_context.traversal_flags.for_default_styles();
             if pseudo.is_eager() && !only_default_rules {
                 debug_assert!(pseudo.is_before_or_after());
                 let parent = self.parent_element().unwrap();
@@ -440,15 +449,15 @@ trait PrivateMatchMethods: TElement {
 
         // Grab the rule node.
         let inputs = eager_pseudo_inputs.unwrap_or(primary_inputs);
-        let rule_node = cascade_visited.rules(inputs);
+        let rule_node = cascade_visited.take_rules(inputs).unwrap();
         let cascade_target = if eager_pseudo_inputs.is_some() {
             CascadeTarget::EagerPseudo
         } else {
             CascadeTarget::Normal
         };
 
-        self.cascade_with_rules(context.shared,
-                                &context.thread_local.font_metrics_provider,
+        self.cascade_with_rules(shared_context,
+                                font_metrics_provider,
                                 rule_node,
                                 primary_style,
                                 cascade_target,
@@ -475,8 +484,8 @@ trait PrivateMatchMethods: TElement {
 
         let mut new_values = {
             let primary_inputs = context.thread_local.current_element_info
-                                        .as_ref().unwrap()
-                                        .cascade_inputs.primary();
+                                        .as_mut().unwrap()
+                                        .cascade_inputs.primary_mut();
 
             // If there was no relevant link, we won't have any visited rules, so
             // there may not be anything do for the visited case.  This early return
@@ -487,7 +496,8 @@ trait PrivateMatchMethods: TElement {
             }
 
             // Compute the new values.
-            self.cascade_internal(context,
+            self.cascade_internal(context.shared,
+                                  &context.thread_local.font_metrics_provider,
                                   None,
                                   primary_inputs,
                                   None,
@@ -563,8 +573,8 @@ trait PrivateMatchMethods: TElement {
 
         let new_values = {
             let info = context.thread_local.current_element_info
-                              .as_ref().unwrap();
-            let pseudo_inputs = info.cascade_inputs.pseudos.get(pseudo).unwrap();
+                              .as_mut().unwrap();
+            let pseudo_inputs = info.cascade_inputs.pseudos.get_mut(pseudo).unwrap();
 
             // If there was no relevant link, we won't have any visited rules, so
             // there may not be anything do for the visited case.  This early return
@@ -577,9 +587,10 @@ trait PrivateMatchMethods: TElement {
             // Primary inputs should already have rules populated since it's
             // always processed before eager pseudos.
             debug_assert!(cascade_visited.has_rules(info.cascade_inputs.primary()));
-            let primary_inputs = info.cascade_inputs.primary();
+            let primary_inputs = info.cascade_inputs.primary_mut();
 
-            self.cascade_internal(context,
+            self.cascade_internal(context.shared,
+                                  &context.thread_local.font_metrics_provider,
                                   data.styles.get_primary(),
                                   primary_inputs,
                                   Some(pseudo_inputs),
@@ -623,7 +634,7 @@ trait PrivateMatchMethods: TElement {
         // as existing browsers don't appear to transition visited styles.
         Some(self.cascade_with_rules(context.shared,
                                      &context.thread_local.font_metrics_provider,
-                                     &without_transition_rules,
+                                     without_transition_rules,
                                      Some(primary_style),
                                      CascadeTarget::Normal,
                                      CascadeVisitedMode::Unvisited,
@@ -1550,7 +1561,7 @@ pub trait MatchMethods : TElement {
         // as existing browsers don't appear to animate visited styles.
         self.cascade_with_rules(shared_context,
                                 font_metrics_provider,
-                                &without_animation_rules,
+                                without_animation_rules,
                                 Some(primary_style),
                                 CascadeTarget::Normal,
                                 CascadeVisitedMode::Unvisited,

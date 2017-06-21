@@ -16,7 +16,7 @@ use properties::animated_properties::{AnimatableLonghand, AnimatedProperty, Tran
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
-use rule_tree::CascadeLevel;
+use rule_tree::{CascadeLevel, StrongRuleNode};
 use std::sync::mpsc::Sender;
 use stylearc::Arc;
 use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
@@ -493,7 +493,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             debug_assert!(guard.declarations().iter()
                             .all(|&(_, importance)| importance == Importance::Normal));
 
-            let iter = || {
+            let iter = |rules: &StrongRuleNode| {
                 guard.declarations().iter().rev()
                      .map(|&(ref decl, _importance)| (decl, CascadeLevel::Animations))
             };
@@ -502,7 +502,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             // as existing browsers don't appear to animate visited styles.
             let computed =
                 properties::apply_declarations(context.stylist.device(),
-                                               previous_style.rules(),
+                                               previous_style.rules().clone(),
                                                /* is_root = */ false,
                                                iter,
                                                previous_style,

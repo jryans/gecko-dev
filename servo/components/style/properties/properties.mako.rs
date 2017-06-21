@@ -2535,7 +2535,7 @@ bitflags! {
 ///   * `flags`: Various flags.
 ///
 pub fn cascade(device: &Device,
-               rule_node: &StrongRuleNode,
+               rule_node: StrongRuleNode,
                guards: &StylesheetGuards,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
@@ -2560,8 +2560,8 @@ pub fn cascade(device: &Device,
         }
     };
 
-    let iter_declarations = || {
-        rule_node.self_and_ancestors().flat_map(|node| {
+    let iter_declarations = |rules: &StrongRuleNode| {
+        rules.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
             let source = node.style_source();
             let declarations = if source.is_some() {
@@ -2602,7 +2602,7 @@ pub fn cascade(device: &Device,
 /// first.
 #[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
-                                    rules: &StrongRuleNode,
+                                    rules: StrongRuleNode,
                                     is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
@@ -2614,14 +2614,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     flags: CascadeFlags,
                                     quirks_mode: QuirksMode)
                                     -> ComputedValues
-    where F: Fn() -> I,
+    where F: Fn(&'a StrongRuleNode) -> I,
           I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
     let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
-    for (declaration, _cascade_level) in iter_declarations() {
+    for (declaration, _cascade_level) in iter_declarations(&rules) {
         if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
             ::custom_properties::cascade(
                 &mut custom_properties, &inherited_custom_properties,
@@ -2634,7 +2634,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             custom_properties, &inherited_custom_properties);
 
     let builder = if !flags.contains(INHERIT_ALL) {
-        StyleBuilder::new(Some(rules.clone()),
+        StyleBuilder::new(Some(rules),
                           custom_properties,
                           WritingMode::empty(),
                           inherited_style.font_computation_data.font_size_keyword,
@@ -2648,7 +2648,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                           % endfor
                           )
     } else {
-        StyleBuilder::new(Some(rules.clone()),
+        StyleBuilder::new(Some(rules),
                           custom_properties,
                           WritingMode::empty(),
                           inherited_style.font_computation_data.font_size_keyword,
@@ -2703,7 +2703,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             let mut font_size = None;
             let mut font_family = None;
         % endif
-        for (declaration, cascade_level) in iter_declarations() {
+        for (declaration, cascade_level) in iter_declarations(&rules) {
             let mut declaration = declaration;
             let longhand_id = match declaration.id() {
                 PropertyDeclarationId::Longhand(id) => id,
