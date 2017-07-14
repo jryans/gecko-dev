@@ -316,6 +316,7 @@ nsComputedDOMStyle::GetPropertyValue(const nsCSSPropertyID aPropID,
   // This is mostly to avoid code duplication with GetPropertyCSSValue(); if
   // perf ever becomes an issue here (doubtful), we can look into changing
   // this.
+  printf("%p nsComputedDOMStyle::GetPropertyValue by ID %u\n", this, aPropID);
   return GetPropertyValue(
     NS_ConvertASCIItoUTF16(nsCSSProps::GetStringValue(aPropID)),
     aValue);
@@ -389,6 +390,10 @@ nsComputedDOMStyle::GetPropertyValue(const nsAString& aPropertyName,
     nsString text;
     val->GetCssText(text, error);
     aReturn.Assign(text);
+    if (!aReturn.IsEmpty()) {
+      printf("%p nsComputedDOMStyle::GetPropertyValue with name %s, got %s\n",
+            this, NS_ConvertUTF16toUTF8(aPropertyName).get(), NS_ConvertUTF16toUTF8(aReturn).get());
+    }
     return error.StealNSResult();
   }
 

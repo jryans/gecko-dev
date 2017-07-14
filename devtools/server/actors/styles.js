@@ -202,12 +202,16 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     this.cssLogic.highlight(node.rawNode);
     let computed = this.cssLogic.computedStyle || [];
 
+    dump(`getComputed top: ${computed.top}\n`)
+
     Array.prototype.forEach.call(computed, name => {
       ret[name] = {
         value: computed.getPropertyValue(name),
         priority: computed.getPropertyPriority(name) || undefined
       };
     });
+
+    dump(`getComputed top value: ${JSON.stringify(ret.top)}\n`)
 
     if (options.markMatched || options.onlyMatched) {
       let matched = this.cssLogic.hasMatchedSelectors(Object.keys(ret));
@@ -219,6 +223,8 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
         }
       }
     }
+
+    dump(`getComputed top result: ${JSON.stringify(ret.top)}\n`)
 
     return ret;
   },

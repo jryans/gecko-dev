@@ -463,6 +463,8 @@ CssComputedView.prototype = {
         return promise.resolve();
       }
 
+      dump(`refreshPanel top: ${JSON.stringify(computed.top)}\n`)
+
       this._matchedProperties = new Set();
       for (let name in computed) {
         if (computed[name].matched) {
