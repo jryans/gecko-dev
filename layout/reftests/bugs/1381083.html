@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<style>
+div {
+  width: 64px;
+  height: 64px;
+  background: red;
+}
+div:after {
+  content: " ";
+  position: relative;
+  display: block;
+  height: 32px;
+  width: 32px;
+  top: 50%;
+  left: 50%;
+}
+.green {
+  background: green;
+}
+</style>
+<div></div>
+<div></div>
+<script>
+    let [ div1, div2 ] = document.querySelectorAll("div");
+
+    let computed = getComputedStyle(div1, ":after") || [];
+    let top1 = computed.top;
+    let top2 = computed.top;
+
+    if (top1 == "32px") {
+      div1.classList.add("green");
+    }
+    if (top2 == "32px") {
+      div2.classList.add("green");
+    }
+</script>
