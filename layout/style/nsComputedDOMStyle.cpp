@@ -817,6 +817,8 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
     return;
   }
 
+  printf("UpdateCurrentStyleSources: Flush layout\n");
+
   // Flush _before_ getting the presshell, since that could create a new
   // presshell.  Also note that we want to flush the style on the document
   // we're computing style in, not on the document mContent is in -- the two
@@ -844,6 +846,7 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
   // process restyles.
   uint64_t currentGeneration =
     mPresShell->GetPresContext()->GetUndisplayedRestyleGeneration();
+  printf("UpdateCurrentStyleSources: Current gen %llu\n", currentGeneration);
 
   if (mStyleContext) {
     // We can't rely on the undisplayed restyle generation if
@@ -854,6 +857,7 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
     if (mStyleContextGeneration == currentGeneration
         && mContent->IsInComposedDoc()) {
       // Our cached style context is still valid.
+      printf("UpdateCurrentStyleSources: Cached style context valid, done\n");
       return;
     }
     // We've processed some restyles, so the cached style context might
@@ -865,6 +869,7 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
   // check is needed due to bug 135040 (to avoid using
   // mPrimaryFrame). Remove it once that's fixed.
   if (mStyleType == eAll && !mContent->IsHTMLElement(nsGkAtoms::area)) {
+    printf("UpdateCurrentStyleSources: Try to get a frame\n");
     mOuterFrame = nullptr;
 
     if (!mPseudo) {
@@ -892,12 +897,15 @@ nsComputedDOMStyle::UpdateCurrentStyleSources(bool aNeedsLayoutFlush)
                      "the inner table");
       }
 
+      printf("UpdateCurrentStyleSources: Store context from frame\n");
       SetFrameStyleContext(mInnerFrame->StyleContext(), currentGeneration);
       NS_ASSERTION(mStyleContext, "Frame without style context?");
     }
   }
 
+  // if (true) {
   if (!mStyleContext || MustReresolveStyle(mStyleContext)) {
+    printf("UpdateCurrentStyleSources: Resolve style\n");
 #ifdef DEBUG
     if (mStyleContext && mStyleContext->IsGecko()) {
       // We want to check that going through this path because of
