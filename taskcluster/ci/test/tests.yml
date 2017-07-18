@@ -666,6 +666,8 @@ mochitest-chrome-style:
         no-read-buildbot-config: true
         config:
             by-test-platform:
+                windows.*:
+                    - unittests/win_taskcluster_unittest.py
                 macosx.*:
                     - unittests/mac_unittest.py
                 default:
@@ -941,6 +943,8 @@ mochitest-style:
         no-read-buildbot-config: true
         config:
             by-test-platform:
+                windows.*:
+                    - unittests/win_taskcluster_unittest.py
                 macosx.*:
                     - unittests/mac_unittest.py
                 default:
@@ -1202,22 +1206,20 @@ reftest-stylo:
     chunks: 16
     run-on-projects:
         by-test-platform:
-            linux64-stylo/opt: [ 'autoland', 'mozilla-central', 'try' ] # not on mozilla-inbound
+            .*-stylo/opt: [ 'autoland', 'mozilla-central', 'try' ] # not on mozilla-inbound
             linux64-stylo-sequential/opt: [ 'mozilla-central']
             default: built-projects
     e10s:
         # run only e10s tests for this platform see bug 1343301
         by-test-platform:
-            linux64-stylo/opt:
+            .*-stylo/opt:
                 # no opt on inbound see bug 1339604
                 by-project:
-                    stylo: true
                     autoland: true
                     mozilla-central: true
                     default: true
-            linux64-stylo/debug:
+            .*-stylo/debug:
                 by-project:
-                    stylo: true
                     autoland: true
                     mozilla-central: true
                     mozilla-inbound: true
@@ -1235,6 +1237,8 @@ reftest-stylo:
         no-read-buildbot-config: true
         config:
             by-test-platform:
+                windows.*:
+                    - unittests/win_taskcluster_unittest.py
                 macosx.*:
                     - unittests/mac_unittest.py
                 default:
