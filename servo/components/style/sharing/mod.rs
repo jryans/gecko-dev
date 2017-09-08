@@ -74,6 +74,7 @@ use dom::{TElement, SendElement};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
+use rule_tree::StrongRuleNode;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::{Arc, NonZeroPtrMut};
 use smallbitvec::SmallBitVec;
@@ -115,6 +116,7 @@ impl OpaqueComputedValues {
         let p = NonZeroPtrMut::new(cv as *const ComputedValues as *const () as *mut ());
         OpaqueComputedValues(p)
     }
+    fn eq(&self, cv: &ComputedValues) -> bool { Self::from(cv) == *self }
 }
 
 /// Some data we want to avoid recomputing all the time while trying to share
@@ -245,7 +247,7 @@ impl ValidationData {
 #[derive(Debug)]
 pub struct StyleSharingCandidate<E: TElement> {
     /// The element.
-    element: E,
+    pub element: E,
     validation_data: ValidationData,
 }
 
@@ -729,5 +731,36 @@ impl<E: TElement> StyleSharingCache<E> {
         debug!("Sharing allowed between {:?} and {:?}", target.element, candidate.element);
 
         true
+    }
+
+    /// Attempts to find styles in the cache for the given rule node and parent.
+    pub fn find_style_for_rules(
+        &mut self,
+        inherited: &ComputedValues,
+        rules: &StrongRuleNode,
+        visited_rules: Option<&StrongRuleNode>,
+        is_link: bool,
+    ) -> Option<Arc<ComputedValues>> {
+        self.cache_mut().lookup(|candidate| {
+            if !candidate.parent_style_identity().eq(inherited) {
+                return false;
+            }
+            let data = candidate.element.borrow_data().unwrap();
+            let style = data.styles.primary();
+            if style.rules.as_ref() != Some(&rules) {
+                return false;
+            }
+            if style.visited_style.as_ref().and_then(|s| s.rules.as_ref()) != visited_rules {
+                return false;
+            }
+
+            // FIXME(bholley): Even with this check, the visited tests still fail.
+            // What's the right fix, and is this check necessary?
+            if is_link != candidate.element.is_link() {
+                return false;
+            }
+
+            true
+        }).map(|e| e.borrow_data().unwrap().styles.primary().clone())
     }
 }

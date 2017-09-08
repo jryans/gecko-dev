@@ -41,6 +41,7 @@ where
     context: &'a mut StyleContext<'ctx, E>,
     rule_inclusion: RuleInclusion,
     pseudo_resolution: PseudoElementResolution,
+    primary_style_reused_via_rule_node: bool,
     _marker: ::std::marker::PhantomData<&'le E>,
 }
 
@@ -117,6 +118,7 @@ where
             context,
             rule_inclusion,
             pseudo_resolution,
+            primary_style_reused_via_rule_node: false,
             _marker: ::std::marker::PhantomData,
         }
     }
@@ -139,6 +141,21 @@ where
         } else {
             None
         };
+
+        // Before doing the cascade, check the sharing cache and see if we can
+        // reuse the style via rule node identity.
+        if !self.element.is_native_anonymous() && parent_style.is_some() {
+            let shared = self.context.thread_local.sharing_cache.find_style_for_rules(
+                parent_style.unwrap(),
+                &primary_results.rule_node,
+                visited_rules.as_ref(),
+                self.element.is_link(),
+            );
+            if let Some(s) = shared {
+                self.primary_style_reused_via_rule_node = true;
+                return PrimaryStyle { style: s };
+            }
+        }
 
         let mut visited_style = None;
         let should_compute_visited_style =
@@ -534,5 +551,10 @@ where
             );
 
         values
+    }
+
+    /// Returns true if the primary style was reused via the rule node identity.
+    pub fn primary_style_reused_via_rule_node(&self) -> bool {
+        self.primary_style_reused_via_rule_node
     }
 }

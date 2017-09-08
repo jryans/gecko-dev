@@ -20,8 +20,9 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 bitflags! {
+    /// Various flags stored on ElementData.
     #[derive(Default)]
-    flags ElementDataFlags: u8 {
+    pub flags ElementDataFlags: u8 {
         /// Whether the styles changed for this restyle.
         const WAS_RESTYLED = 1 << 0,
         /// Whether the last traversal of this element did not do
@@ -35,6 +36,13 @@ bitflags! {
         const TRAVERSED_WITHOUT_STYLING = 1 << 1,
         /// Whether we reframed/reconstructed any ancestor or self.
         const ANCESTOR_WAS_RECONSTRUCTED = 1 << 2,
+        /// Whether the primary style of this element data was reused from another
+        /// element via a rule node comparison. This allows us to differentiate
+        /// between elements that shared styles because they met all the criteria
+        /// of the style sharing cache, compared to elements that reused style
+        /// structs via rule node identity. The former gives us stronger transitive
+        /// guarantees that allows us to apply the style sharing cache to cousins.
+        const PRIMARY_STYLE_REUSED_VIA_RULE_NODE = 1 << 3,
     }
 }
 
@@ -200,7 +208,7 @@ pub struct ElementData {
     pub hint: RestyleHint,
 
     /// Flags.
-    flags: ElementDataFlags,
+    pub flags: ElementDataFlags,
 }
 
 /// The kind of restyle that a single element should do.
@@ -421,6 +429,28 @@ impl ElementData {
     /// N/A in Servo.
     #[cfg(feature = "servo")]
     pub fn skip_applying_damage(&self) -> bool { false }
+
+    /// Returns whether it is safe to perform cousin sharing based on the ComputedValues
+    /// identity of the primary style in this ElementData. There are a few subtle things
+    /// to check.
+    ///
+    /// First, if a parent element was already styled and we traversed past it without
+    /// restyling it, that may be because our clever invalidation logic was able to prove
+    /// that the styles of that element would remain unchanged despite changes to the id
+    /// or class attributes. However, style sharing relies on the strong guarantee that all
+    /// the classes and ids up the respective parent chains are identical. As such, if we
+    /// skipped styling for one (or both) of the parents on this traversal, we can't share
+    /// styles across cousins. Note that this is a somewhat conservative check. We could
+    /// tighten it by having the invalidation logic explicitly flag elements for which it
+    /// ellided styling.
+    ///
+    /// Second, we want to only consider elements whose ComputedValues match due to a hit
+    /// in the style sharing cache, rather than due to the rule-node-based reuse that
+    /// happens later in the styling pipeline. The former gives us the stronger guarantees
+    /// we need for style sharing, the latter does not.
+    pub fn safe_for_cousin_sharing(&self) -> bool {
+        !self.flags.intersects(TRAVERSED_WITHOUT_STYLING | PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
+    }
 
     /// Measures memory usage.
     #[cfg(feature = "gecko")]

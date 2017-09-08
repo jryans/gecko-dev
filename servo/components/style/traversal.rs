@@ -5,7 +5,7 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use context::{ElementCascadeInputs, StyleContext, SharedStyleContext};
-use data::{ElementData, ElementStyles};
+use data::{ElementData, ElementStyles, self};
 use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
@@ -635,6 +635,7 @@ where
     }
 
     let mut important_rules_changed = false;
+    let primary_style_reused_via_rule_node: bool;
     let new_styles = match kind {
         MatchAndCascade => {
             debug_assert!(!context.shared.traversal_flags.for_animation_only(),
@@ -658,6 +659,8 @@ where
                 Some(shareable_element) => {
                     context.thread_local.statistics.styles_shared += 1;
                     let shareable_data = shareable_element.borrow_data().unwrap();
+                    primary_style_reused_via_rule_node =
+                        shareable_data.flags.contains(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
                     shareable_data.styles.clone()
                 }
                 None => {
@@ -672,7 +675,9 @@ where
                                 PseudoElementResolution::IfApplicable
                             );
 
-                        resolver.resolve_style_with_default_parents()
+                        let s = resolver.resolve_style_with_default_parents();
+                        primary_style_reused_via_rule_node = resolver.primary_style_reused_via_rule_node();
+                        s
                     };
 
                     context.thread_local
@@ -703,7 +708,9 @@ where
                     PseudoElementResolution::IfApplicable
                 );
 
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
+            let s = resolver.cascade_styles_with_default_parents(cascade_inputs);
+            primary_style_reused_via_rule_node = resolver.primary_style_reused_via_rule_node();
+            s
         }
         CascadeOnly => {
             // Skipping full matching, load cascade inputs from previous values.
@@ -718,9 +725,17 @@ where
                     PseudoElementResolution::IfApplicable
                 );
 
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
+            let s = resolver.cascade_styles_with_default_parents(cascade_inputs);
+            primary_style_reused_via_rule_node = resolver.primary_style_reused_via_rule_node();
+            s
         }
     };
+
+    if primary_style_reused_via_rule_node {
+        data.flags.insert(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+    } else {
+        data.flags.remove(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+    }
 
     element.finish_restyle(
         context,
