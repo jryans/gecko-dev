@@ -739,7 +739,7 @@ impl<E: TElement> StyleSharingCache<E> {
         inherited: &ComputedValues,
         rules: &StrongRuleNode,
         visited_rules: Option<&StrongRuleNode>,
-        is_link: bool,
+        is_visited_link: bool,
     ) -> Option<Arc<ComputedValues>> {
         self.cache_mut().lookup(|candidate| {
             if !candidate.parent_style_identity().eq(inherited) {
@@ -754,9 +754,18 @@ impl<E: TElement> StyleSharingCache<E> {
                 return false;
             }
 
-            // FIXME(bholley): Even with this check, the visited tests still fail.
-            // What's the right fix, and is this check necessary?
-            if is_link != candidate.element.is_link() {
+            // Rule nodes and styles are computed independent of the element's
+            // actual visitedness, but at the end of the cascade (in
+            // `adjust_for_visited`) we do store the visitedness as a flag in
+            // style.  (This is a subtle change from initial visited work that
+            // landed when computed values were fused, see
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1381635.)
+            // So at the moment, we need to additionally compare visitedness,
+            // since that is not accounted for by rule nodes alone.
+            // FIXME(jryans): This seems like it breaks the constant time
+            // requirements of visited, assuming we get a cache hit on only one
+            // of unvisited vs. visited.
+            if is_visited_link != candidate.element.is_visited_link() {
                 return false;
             }
 

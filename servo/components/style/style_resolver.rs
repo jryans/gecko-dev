@@ -149,7 +149,7 @@ where
                 parent_style.unwrap(),
                 &primary_results.rule_node,
                 visited_rules.as_ref(),
-                self.element.is_link(),
+                self.element.is_visited_link(),
             );
             if let Some(s) = shared {
                 self.primary_style_reused_via_rule_node = true;
