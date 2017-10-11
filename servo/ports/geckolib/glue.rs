@@ -1970,10 +1970,22 @@ fn get_pseudo_style(
     }
 
     Some(style.unwrap_or_else(|| {
+        let style = styles.primary();
+
+        let visited_style = style.visited_style().map(|style| {
+            StyleBuilder::for_inheritance(
+                doc_data.stylist.device(),
+                style,
+                Some(pseudo),
+                /* visited_style = */ None,
+            ).build()
+        });
+
         StyleBuilder::for_inheritance(
             doc_data.stylist.device(),
-            styles.primary(),
+            style,
             Some(pseudo),
+            visited_style,
         ).build()
     }))
 }
@@ -1992,10 +2004,27 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon-box? Gah!");
     let style = if let Some(reference) = parent_style_context {
+        let visited_style = reference.visited_style().map(|style| {
+            let mut style = StyleBuilder::for_inheritance(
+                data.stylist.device(),
+                style,
+                Some(&pseudo),
+                /* visited_style = */ None,
+            );
+
+            if for_text {
+                StyleAdjuster::new(&mut style)
+                    .adjust_for_text();
+            }
+
+            style.build()
+        });
+
         let mut style = StyleBuilder::for_inheritance(
             data.stylist.device(),
             reference,
-            Some(&pseudo)
+            Some(&pseudo),
+            visited_style
         );
 
         if for_text {

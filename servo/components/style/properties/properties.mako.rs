@@ -2215,7 +2215,7 @@ impl ComputedValuesInner {
     pub fn has_moz_binding(&self) -> bool { false }
 
     /// Clone the visited style.  Used for inheriting parent styles in
-    /// StyleBuilder::for_inheritance.
+    /// StyleBuilder::for_derived_style.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
         self.visited_style.clone()
     }
@@ -2845,6 +2845,7 @@ impl<'a> StyleBuilder<'a> {
         device: &'a Device,
         parent: &'a ComputedValues,
         pseudo: Option<<&'a PseudoElement>,
+        visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         // FIXME(emilio): This Some(parent) here is inconsistent with what we
         // usually do if `parent` is the default computed values, but that's
@@ -2859,7 +2860,7 @@ impl<'a> StyleBuilder<'a> {
             parent.custom_properties().cloned(),
             parent.writing_mode,
             parent.flags,
-            parent.clone_visited_style()
+            visited_style,
         )
     }
 
