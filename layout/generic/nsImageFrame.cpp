@@ -2185,7 +2185,7 @@ nsImageFrame::GetFrameName(nsAString& aResult) const
 }
 
 void
-nsImageFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
+nsImageFrame::List(nsACString& aTo, const char* aPrefix, uint32_t aFlags) const
 {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
@@ -2204,7 +2204,7 @@ nsImageFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
       str += nsPrintfCString(" [src=%s]", uristr.get());
     }
   }
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 }
 #endif
 

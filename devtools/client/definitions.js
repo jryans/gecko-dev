@@ -23,12 +23,14 @@ loader.lazyGetter(this, "NetMonitorPanel", () => require("devtools/client/netmon
 loader.lazyGetter(this, "StoragePanel", () => require("devtools/client/storage/panel").StoragePanel);
 loader.lazyGetter(this, "ScratchpadPanel", () => require("devtools/client/scratchpad/scratchpad-panel").ScratchpadPanel);
 loader.lazyGetter(this, "DomPanel", () => require("devtools/client/dom/dom-panel").DomPanel);
+loader.lazyGetter(this, "LayoutFrameInspectorPanel", () => require("devtools/client/layoutframeinspector/panel").LayoutFrameInspectorPanel);
 
 // Other dependencies
 loader.lazyRequireGetter(this, "CommandUtils", "devtools/client/shared/developer-toolbar", true);
 loader.lazyRequireGetter(this, "CommandState", "devtools/shared/gcli/command-state", true);
 loader.lazyRequireGetter(this, "ResponsiveUIManager", "devtools/client/responsive.html/manager", true);
 loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
+loader.lazyRequireGetter(this, "system", "devtools/shared/system");
 
 const {MultiLocalizationHelper} = require("devtools/shared/l10n");
 const L10N = new MultiLocalizationHelper(
@@ -411,6 +413,26 @@ Tools.dom = {
   }
 };
 
+// TODO: Is this the right term?  Move to l10n.
+Tools.layoutFrameInspector = {
+  id: "layoutframeinspector",
+  ordinal: 14,
+  visibilityswitch: "devtools.layoutframeinspector.enabled",
+  icon: "chrome://devtools/skin/images/tool-inspector.svg",
+  url: "chrome://devtools/content/layoutframeinspector/index.html",
+  label: "Layout Frames",
+  panelLabel: "Layout Frames Panel",
+  tooltip: "Layout Frames",
+
+  isTargetSupported: function (target) {
+    return system.constants.DEBUG;
+  },
+
+  build: function (iframeWindow, toolbox) {
+    return new LayoutFrameInspectorPanel(iframeWindow, toolbox);
+  }
+};
+
 var defaultTools = [
   Tools.options,
   Tools.webConsole,
@@ -426,6 +448,7 @@ var defaultTools = [
   Tools.scratchpad,
   Tools.memory,
   Tools.dom,
+  Tools.layoutFrameInspector,
 ];
 
 exports.defaultTools = defaultTools;

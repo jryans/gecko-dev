@@ -389,12 +389,12 @@ nsBlockFrame::GetSplittableType() const
 
 #ifdef DEBUG_FRAME_DUMP
 void
-nsBlockFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
+nsBlockFrame::List(nsACString& aTo, const char* aPrefix, uint32_t aFlags) const
 {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
 
-  fprintf_stderr(out, "%s<\n", str.get());
+  aTo += nsPrintfCString("%s<\n", str.get());
 
   nsCString pfx(aPrefix);
   pfx += "  ";
@@ -403,22 +403,22 @@ nsBlockFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
   if (!mLines.empty()) {
     ConstLineIterator line = LinesBegin(), line_end = LinesEnd();
     for ( ; line != line_end; ++line) {
-      line->List(out, pfx.get(), aFlags);
+      line->List(aTo, pfx.get(), aFlags);
     }
   }
 
   // Output the overflow lines.
   const FrameLines* overflowLines = GetOverflowLines();
   if (overflowLines && !overflowLines->mLines.empty()) {
-    fprintf_stderr(out, "%sOverflow-lines %p/%p <\n", pfx.get(), overflowLines, &overflowLines->mFrames);
+    aTo += nsPrintfCString("%sOverflow-lines %p/%p <\n", pfx.get(), overflowLines, &overflowLines->mFrames);
     nsCString nestedPfx(pfx);
     nestedPfx += "  ";
     ConstLineIterator line = overflowLines->mLines.begin(),
                       line_end = overflowLines->mLines.end();
     for ( ; line != line_end; ++line) {
-      line->List(out, nestedPfx.get(), aFlags);
+      line->List(aTo, nestedPfx.get(), aFlags);
     }
-    fprintf_stderr(out, "%s>\n", pfx.get());
+    aTo += nsPrintfCString("%s>\n", pfx.get());
   }
 
   // skip the principal list - we printed the lines above
@@ -429,7 +429,7 @@ nsBlockFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
     if (skip.Contains(lists.CurrentID())) {
       continue;
     }
-    fprintf_stderr(out, "%s%s %p <\n", pfx.get(),
+    aTo += nsPrintfCString("%s%s %p <\n", pfx.get(),
       mozilla::layout::ChildListName(lists.CurrentID()),
       &GetChildList(lists.CurrentID()));
     nsCString nestedPfx(pfx);
@@ -437,12 +437,12 @@ nsBlockFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* kid = childFrames.get();
-      kid->List(out, nestedPfx.get(), aFlags);
+      kid->List(aTo, nestedPfx.get(), aFlags);
     }
-    fprintf_stderr(out, "%s>\n", pfx.get());
+    aTo += nsPrintfCString("%s>\n", pfx.get());
   }
 
-  fprintf_stderr(out, "%s>\n", aPrefix);
+  aTo += nsPrintfCString("%s>\n", aPrefix);
 }
 
 nsresult

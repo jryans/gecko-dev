@@ -655,11 +655,11 @@ nsSubDocumentFrame::GetIntrinsicBSize()
 
 #ifdef DEBUG_FRAME_DUMP
 void
-nsSubDocumentFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
+nsSubDocumentFrame::List(nsACString& aTo, const char* aPrefix, uint32_t aFlags) const
 {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 
   if (aFlags & TRAVERSE_SUBDOCUMENT_FRAMES) {
     nsSubDocumentFrame* f = const_cast<nsSubDocumentFrame*>(this);
@@ -667,7 +667,7 @@ nsSubDocumentFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
     if (subdocRootFrame) {
       nsCString pfx(aPrefix);
       pfx += "  ";
-      subdocRootFrame->List(out, pfx.get(), aFlags);
+      subdocRootFrame->List(aTo, pfx.get(), aFlags);
     }
   }
 }

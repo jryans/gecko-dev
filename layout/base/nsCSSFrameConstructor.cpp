@@ -7871,7 +7871,9 @@ nsCSSFrameConstructor::ContentAppended(nsIContent* aContainer,
 #ifdef DEBUG
   if (gReallyNoisyContentUpdates) {
     printf("nsCSSFrameConstructor::ContentAppended: resulting frame model:\n");
-    parentFrame->List(stdout, 0);
+    nsAutoCString str;
+    parentFrame->List(str, 0);
+    printf("%s", str.get());
   }
 #endif
 
@@ -7982,7 +7984,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aContainer,
            aInsertionKind == InsertionKind::Async);
     if (gReallyNoisyContentUpdates) {
       if (aContainer) {
-        aContainer->List(stdout,0);
+        aContainer->List(stdout, 0);
       } else {
         aStartChild->List(stdout, 0);
       }
@@ -8062,7 +8064,9 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aContainer,
       if (gReallyNoisyContentUpdates) {
         printf("nsCSSFrameConstructor::ContentRangeInserted: resulting frame "
                "model:\n");
-        mRootElementFrame->List(stdout, 0);
+        nsAutoCString str;
+        mRootElementFrame->List(str, 0);
+        printf("%s", str.get());
       }
 #endif
     }
@@ -8497,7 +8501,9 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aContainer,
 #ifdef DEBUG
   if (gReallyNoisyContentUpdates && insertion.mParentFrame) {
     printf("nsCSSFrameConstructor::ContentRangeInserted: resulting frame model:\n");
-    insertion.mParentFrame->List(stdout, 0);
+    nsAutoCString str;
+    insertion.mParentFrame->List(str, 0);
+    printf("%s", str.get());
   }
 #endif
 
@@ -8761,7 +8767,9 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       printf("nsCSSFrameConstructor::ContentRemoved: childFrame=");
       nsFrame::ListTag(stdout, childFrame);
       putchar('\n');
-      parentFrame->List(stdout, 0);
+      nsAutoCString str;
+      parentFrame->List(str, 0);
+      printf("%s", str.get());
     }
 #endif
 
@@ -8829,7 +8837,9 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 #ifdef DEBUG
     if (gReallyNoisyContentUpdates && parentFrame) {
       printf("nsCSSFrameConstructor::ContentRemoved: resulting frame model:\n");
-      parentFrame->List(stdout, 0);
+      nsAutoCString str;
+      parentFrame->List(str, 0);
+      printf("%s", str.get());
     }
 #endif
   }

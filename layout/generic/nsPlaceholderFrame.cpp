@@ -289,7 +289,7 @@ nsPlaceholderFrame::GetFrameName(nsAString& aResult) const
 }
 
 void
-nsPlaceholderFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
+nsPlaceholderFrame::List(nsACString& aTo, const char* aPrefix, uint32_t aFlags) const
 {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
@@ -298,6 +298,6 @@ nsPlaceholderFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
     str += " outOfFlowFrame=";
     nsFrame::ListTag(str, mOutOfFlowFrame);
   }
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 }
 #endif

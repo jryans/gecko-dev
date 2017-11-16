@@ -11,6 +11,7 @@ const { getStringifiableFragments } =
   require("devtools/server/actors/utils/css-grid-utils");
 
 loader.lazyRequireGetter(this, "CssLogic", "devtools/server/css-logic", true);
+loader.lazyRequireGetter(this, "getFrameTree", "devtools/shared/layout/utils", true);
 
 /**
  * Set of actors the expose the CSS layout information to the devtools protocol clients.
@@ -251,6 +252,10 @@ const LayoutActor = ActorClassWithSpec(layoutSpec, {
     }
 
     return grids;
+  },
+
+  getFrameTree() {
+    return getFrameTree(this.tabActor.window);
   },
 });
 

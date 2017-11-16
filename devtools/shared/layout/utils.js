@@ -770,3 +770,8 @@ function removeSheet(window, url, type = "agent") {
   }
 }
 exports.removeSheet = removeSheet;
+
+function getFrameTree(win) {
+  return utilsFor(win).getFrameTree();
+}
+exports.getFrameTree = getFrameTree;

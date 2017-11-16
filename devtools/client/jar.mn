@@ -113,6 +113,8 @@ devtools.jar:
     content/responsive.html/index.js (responsive.html/index.js)
     content/dom/dom.html (dom/dom.html)
     content/dom/main.js (dom/main.js)
+    content/layoutframeinspector/index.html (layoutframeinspector/index.html)
+    content/layoutframeinspector/index.js (layoutframeinspector/index.js)
 %   skin devtools classic/1.0 %skin/
     skin/devtools-browser.css (themes/devtools-browser.css)
     skin/dark-theme.css (themes/dark-theme.css)

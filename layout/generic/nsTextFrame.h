@@ -165,7 +165,7 @@ public:
                                uint32_t aDisplayItemKey = 0) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr,
+  void List(nsACString& aTo,
             const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
   nsresult GetFrameName(nsAString& aResult) const override;

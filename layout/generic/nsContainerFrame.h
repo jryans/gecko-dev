@@ -74,7 +74,7 @@ public:
                                     int32_t         aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "", uint32_t aFlags = 0) const override;
+  void List(nsACString& aTo, const char* aPrefix = "", uint32_t aFlags = 0) const override;
 #endif
 
   // nsContainerFrame methods

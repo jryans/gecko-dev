@@ -391,7 +391,9 @@ DumpFramesRecur(nsIDocShell* aDocShell, FILE* out)
     if (shell) {
         nsIFrame* root = shell->GetRootFrame();
         if (root) {
-            root->List(out);
+            nsAutoCString str;
+            root->List(str);
+            fprintf_stderr(out, "%s", str.get());
         }
     }
     else {

@@ -485,7 +485,9 @@ DumpFrameArray(const nsTArray<nsIFrame*>& aFrames)
     if (frame == NS_BIDI_CONTROL_FRAME) {
       fprintf_stderr(stderr, "(Bidi control frame)\n");
     } else {
-      frame->List();
+      nsAutoCString str;
+      frame->List(str);
+      printf_stderr("%s", str.get());
     }
   }
 }

@@ -4524,13 +4524,13 @@ public:
   enum {
     TRAVERSE_SUBDOCUMENT_FRAMES = 0x01
   };
-  virtual void List(FILE* out = stderr, const char* aPrefix = "", uint32_t aFlags = 0) const;
+  virtual void List(nsACString& aTo, const char* aPrefix = "", uint32_t aFlags = 0) const;
   /**
    * lists the frames beginning from the root frame
    * - calls root frame's List(...)
    */
   static void RootFrameList(nsPresContext* aPresContext,
-                            FILE* out = stderr, const char* aPrefix = "");
+                            nsACString& aTo, const char* aPrefix = "");
   virtual void DumpFrameTree() const;
   void DumpFrameTreeLimited() const;
 
