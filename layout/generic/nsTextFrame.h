@@ -155,9 +155,9 @@ class nsTextFrame : public nsFrame {
                                bool aRebuildDisplayItems = true) final;
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "",
-            uint32_t aFlags = 0) const final;
-  nsresult GetFrameName(nsAString& aResult) const final;
+  void List(nsACString& aTo, const char* aPrefix = "",
+            uint32_t aFlags = 0) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
   void ToCString(nsCString& aBuf, int32_t* aTotalContentLength) const;
 #endif
 

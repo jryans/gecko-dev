@@ -27,11 +27,13 @@ loader.lazyGetter(this, "AccessibilityPanel", () => require("devtools/client/acc
 loader.lazyGetter(this, "ApplicationPanel", () => require("devtools/client/application/panel").ApplicationPanel);
 loader.lazyGetter(this, "reloadAndRecordTab", () => require("devtools/client/webreplay/menu.js").reloadAndRecordTab);
 loader.lazyGetter(this, "reloadAndStopRecordingTab", () => require("devtools/client/webreplay/menu.js").reloadAndStopRecordingTab);
+loader.lazyGetter(this, "LayoutFrameInspectorPanel", () => require("devtools/client/layoutframeinspector/panel").LayoutFrameInspectorPanel);
 
 // Other dependencies
 loader.lazyRequireGetter(this, "AccessibilityStartup", "devtools/client/accessibility/accessibility-startup", true);
 loader.lazyRequireGetter(this, "ResponsiveUIManager", "devtools/client/responsive.html/manager", true);
 loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
+loader.lazyRequireGetter(this, "AppConstants", "resource://gre/modules/AppConstants.jsm", true);
 
 const {MultiLocalizationHelper} = require("devtools/shared/l10n");
 const L10N = new MultiLocalizationHelper(
@@ -450,6 +452,26 @@ Tools.application = {
   },
 };
 
+// TODO: Is this the right term?  Move to l10n.
+Tools.layoutFrameInspector = {
+  id: "layoutframeinspector",
+  ordinal: 14,
+  visibilityswitch: "devtools.layoutframeinspector.enabled",
+  icon: "chrome://devtools/skin/images/tool-inspector.svg",
+  url: "chrome://devtools/content/layoutframeinspector/index.html",
+  label: "Layout Frames",
+  panelLabel: "Layout Frames Panel",
+  tooltip: "Layout Frames",
+
+  isTargetSupported: function(target) {
+    return AppConstants.DEBUG;
+  },
+
+  build: function(iframeWindow, toolbox) {
+    return new LayoutFrameInspectorPanel(iframeWindow, toolbox);
+  },
+};
+
 var defaultTools = [
   Tools.options,
   Tools.webConsole,
@@ -467,6 +489,7 @@ var defaultTools = [
   Tools.dom,
   Tools.accessibility,
   Tools.application,
+  Tools.layoutFrameInspector,
 ];
 
 exports.defaultTools = defaultTools;

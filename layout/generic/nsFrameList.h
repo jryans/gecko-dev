@@ -319,7 +319,7 @@ class nsFrameList {
   nsIFrame* GetNextVisualFor(nsIFrame* aFrame) const;
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out) const;
+  void List(nsACString& aTo) const;
 #endif
 
   static inline const nsFrameList& EmptyList();

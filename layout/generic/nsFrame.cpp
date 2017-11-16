@@ -7207,7 +7207,11 @@ int32_t nsFrame::ContentIndexInContainer(const nsIFrame* aFrame) {
 /**
  * List a frame tree to stderr. Meant to be called from gdb.
  */
-void DebugListFrameTree(nsIFrame* aFrame) { ((nsFrame*)aFrame)->List(stderr); }
+void DebugListFrameTree(nsIFrame* aFrame) {
+  nsCString str;
+  ((nsFrame*)aFrame)->List(str);
+  printf_stderr("%s", str.get());
+}
 
 void nsIFrame::ListTag(nsACString& aTo) const { ListTag(aTo, this); }
 
@@ -7322,10 +7326,10 @@ void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
   aTo += "]";
 }
 
-void nsIFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
-  nsCString str;
-  ListGeneric(str, aPrefix, aFlags);
-  fprintf_stderr(out, "%s\n", str.get());
+void nsIFrame::List(nsACString& aTo, const char* aPrefix,
+                    uint32_t aFlags) const {
+  ListGeneric(aTo, aPrefix, aFlags);
+  aTo += NS_LITERAL_CSTRING("\n");
 }
 
 nsresult nsFrame::GetFrameName(nsAString& aResult) const {
@@ -7354,19 +7358,27 @@ nsresult nsFrame::MakeFrameName(const nsAString& aType,
   return NS_OK;
 }
 
-void nsIFrame::DumpFrameTree() const { RootFrameList(PresContext(), stderr); }
+void nsIFrame::DumpFrameTree() const {
+  nsCString str;
+  RootFrameList(PresContext(), str);
+  printf_stderr("%s", str.get());
+}
 
-void nsIFrame::DumpFrameTreeLimited() const { List(stderr); }
+void nsIFrame::DumpFrameTreeLimited() const {
+  nsCString str;
+  List(str);
+  printf_stderr("%s", str.get());
+}
 
-void nsIFrame::RootFrameList(nsPresContext* aPresContext, FILE* out,
+void nsIFrame::RootFrameList(nsPresContext* aPresContext, nsACString& aTo,
                              const char* aPrefix) {
-  if (!aPresContext || !out) return;
+  if (!aPresContext) return;
 
   nsIPresShell* shell = aPresContext->GetPresShell();
   if (shell) {
     nsIFrame* frame = shell->GetRootFrame();
     if (frame) {
-      frame->List(out, aPrefix);
+      frame->List(aTo, aPrefix);
     }
   }
 }

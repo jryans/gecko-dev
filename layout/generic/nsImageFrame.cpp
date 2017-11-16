@@ -2353,7 +2353,8 @@ nsresult nsImageFrame::GetFrameName(nsAString& aResult) const {
   return MakeFrameName(NS_LITERAL_STRING("ImageFrame"), aResult);
 }
 
-void nsImageFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
+void nsImageFrame::List(nsACString& aTo, const char* aPrefix,
+                        uint32_t aFlags) const {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
 
@@ -2365,7 +2366,7 @@ void nsImageFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
     uri->GetAsciiSpec(uristr);
     str += nsPrintfCString(" [src=%s]", uristr.get());
   }
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 }
 #endif
 

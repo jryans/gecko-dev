@@ -4018,6 +4018,54 @@ nsDOMWindowUtils::IsAutoplayTemporarilyAllowed(bool* aResult) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDOMWindowUtils::GetFrameTree(char** aFrameTree) {
+#ifdef DEBUG_FRAME_DUMP
+  nsIPresShell* presShell = GetPresShell();
+  if (!presShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIFrame* rootFrame = presShell->GetRootFrame();
+  if (!rootFrame) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
+  if (!window) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIDocShell* docShell = window->GetDocShell();
+  if (!docShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCString frameTree;
+
+  rootFrame->List(frameTree);
+
+  // // dump the frames of the sub documents
+  // int32_t i, n;
+  // aDocShell->GetChildCount(&n);
+  // for (i = 0; i < n; ++i) {
+  //     nsCOMPtr<nsIDocShellTreeItem> child;
+  //     aDocShell->GetChildAt(i, getter_AddRefs(child));
+  //     nsCOMPtr<nsIDocShell> childAsShell(do_QueryInterface(child));
+  //     if (childAsShell) {
+  //         DumpFramesRecur(childAsShell, out);
+  //     }
+  // }
+
+  fputs(frameTree.get(), stdout);
+
+  *aFrameTree = ToNewCString(frameTree);
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
 NS_INTERFACE_MAP_BEGIN(nsTranslationNodeList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
   NS_INTERFACE_MAP_ENTRY(nsITranslationNodeList)

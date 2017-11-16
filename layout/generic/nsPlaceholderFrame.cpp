@@ -260,7 +260,7 @@ nsresult nsPlaceholderFrame::GetFrameName(nsAString& aResult) const {
   return MakeFrameName(NS_LITERAL_STRING("Placeholder"), aResult);
 }
 
-void nsPlaceholderFrame::List(FILE* out, const char* aPrefix,
+void nsPlaceholderFrame::List(nsACString& aTo, const char* aPrefix,
                               uint32_t aFlags) const {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
@@ -269,6 +269,6 @@ void nsPlaceholderFrame::List(FILE* out, const char* aPrefix,
     str += " outOfFlowFrame=";
     nsFrame::ListTag(str, mOutOfFlowFrame);
   }
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 }
 #endif

@@ -9325,9 +9325,13 @@ bool PresShell::VerifyIncrementalReflow() {
   bool ok = CompareTrees(mPresContext, root1, cx, root2);
   if (!ok && (VERIFY_REFLOW_NOISY & gVerifyReflowFlags)) {
     printf("Verify reflow failed, primary tree:\n");
-    root1->List(stdout, 0);
+    nsAutoCString str;
+    root1->List(str, 0);
+    printf("%s", str.get());
+    str = "";
     printf("Verification tree:\n");
-    root2->List(stdout, 0);
+    root2->List(str, 0);
+    printf("%s", str.get());
   }
 
 #if 0

@@ -906,3 +906,8 @@ function getUntransformedQuad(node, region = "border") {
   return quad;
 }
 exports.getUntransformedQuad = getUntransformedQuad;
+
+function getFrameTree(win) {
+  return utilsFor(win).getFrameTree();
+}
+exports.getFrameTree = getFrameTree;

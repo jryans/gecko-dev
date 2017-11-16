@@ -37,6 +37,9 @@ DIRS += [
     'webreplay',
 ]
 
+if CONFIG['MOZ_DEBUG']:
+    DIRS += ['layoutframeinspector']
+
 JAR_MANIFESTS += ['jar.mn']
 
 DevToolsModules(

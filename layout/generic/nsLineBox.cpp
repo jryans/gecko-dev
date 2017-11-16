@@ -174,7 +174,7 @@ void nsLineBox::Cleanup() {
 }
 
 #ifdef DEBUG_FRAME_DUMP
-static void ListFloats(FILE* out, const char* aPrefix,
+static void ListFloats(nsACString& aTo, const char* aPrefix,
                        const nsFloatCacheList& aFloats) {
   nsFloatCache* fc = aFloats.Head();
   while (fc) {
@@ -188,7 +188,7 @@ static void ListFloats(FILE* out, const char* aPrefix,
     } else {
       str += "\n###!!! NULL out-of-flow frame";
     }
-    fprintf_stderr(out, "%s\n", str.get());
+    aTo += nsPrintfCString("%s\n", str.get());
     fc = fc->Next();
   }
 }
@@ -223,14 +223,17 @@ char* nsLineBox::StateToString(char* aBuf, int32_t aBufSize) const {
 }
 
 void nsLineBox::List(FILE* out, int32_t aIndent, uint32_t aFlags) const {
-  nsCString str;
+  nsCString prefix;
   while (aIndent-- > 0) {
-    str += "  ";
+    prefix += "  ";
   }
-  List(out, str.get(), aFlags);
+  nsCString str;
+  List(str, str.get(), aFlags);
+  fprintf_stderr(out, "%s", str.get());
 }
 
-void nsLineBox::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
+void nsLineBox::List(nsACString& aTo, const char* aPrefix,
+                     uint32_t aFlags) const {
   nsCString str(aPrefix);
   char cbuf[100];
   str += nsPrintfCString("line %p: count=%d state=%s ",
@@ -261,22 +264,22 @@ void nsLineBox::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
                            mData->mOverflowAreas.ScrollableOverflow().width,
                            mData->mOverflowAreas.ScrollableOverflow().height);
   }
-  fprintf_stderr(out, "%s<\n", str.get());
+  aTo += nsPrintfCString("%s<\n", str.get());
 
   nsIFrame* frame = mFirstChild;
   int32_t n = GetChildCount();
   nsCString pfx(aPrefix);
   pfx += "  ";
   while (--n >= 0) {
-    frame->List(out, pfx.get(), aFlags);
+    frame->List(aTo, pfx.get(), aFlags);
     frame = frame->GetNextSibling();
   }
 
   if (HasFloats()) {
-    fprintf_stderr(out, "%s> floats <\n", aPrefix);
-    ListFloats(out, pfx.get(), mInlineData->mFloats);
+    aTo += nsPrintfCString("%s> floats <\n", aPrefix);
+    ListFloats(aTo, pfx.get(), mInlineData->mFloats);
   }
-  fprintf_stderr(out, "%s>\n", aPrefix);
+  aTo += nsPrintfCString("%s>\n", aPrefix);
 }
 
 nsIFrame* nsLineBox::LastChild() const {

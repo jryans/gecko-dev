@@ -9982,7 +9982,8 @@ nsresult nsTextFrame::GetFrameName(nsAString& aResult) const {
   return NS_OK;
 }
 
-void nsTextFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
+void nsTextFrame::List(nsACString& aTo, const char* aPrefix,
+                       uint32_t aFlags) const {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
 
@@ -9996,7 +9997,7 @@ void nsTextFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const {
   if (IsSelected()) {
     str += " SELECTED";
   }
-  fprintf_stderr(out, "%s\n", str.get());
+  aTo += nsPrintfCString("%s\n", str.get());
 }
 #endif
 

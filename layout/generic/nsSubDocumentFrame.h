@@ -30,7 +30,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   explicit nsSubDocumentFrame(ComputedStyle* aStyle);
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "",
+  void List(nsACString& aTo, const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif

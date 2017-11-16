@@ -112,7 +112,7 @@ class nsPlaceholderFrame final : public nsFrame {
 #endif  // DEBUG || (MOZ_REFLOW_PERF_DSP && MOZ_REFLOW_PERF)
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "",
+  void List(nsACString& aTo, const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif  // DEBUG

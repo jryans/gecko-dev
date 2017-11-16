@@ -118,7 +118,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
-  void List(FILE* out = stderr, const char* aPrefix = "",
+  void List(nsACString& aTo, const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
 #endif
 

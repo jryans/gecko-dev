@@ -2144,7 +2144,7 @@ void nsOverflowContinuationTracker::EndFinish(nsIFrame* aChild) {
 // Debugging
 
 #ifdef DEBUG_FRAME_DUMP
-void nsContainerFrame::List(FILE* out, const char* aPrefix,
+void nsContainerFrame::List(nsACString& aTo, const char* aPrefix,
                             uint32_t aFlags) const {
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
@@ -2165,7 +2165,7 @@ void nsContainerFrame::List(FILE* out, const char* aPrefix,
                              mozilla::layout::ChildListName(lists.CurrentID()),
                              &GetChildList(lists.CurrentID()));
     }
-    fprintf_stderr(out, "%s<\n", str.get());
+    aTo += nsPrintfCString("%s<\n", str.get());
     str = "";
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
@@ -2176,14 +2176,14 @@ void nsContainerFrame::List(FILE* out, const char* aPrefix,
       // Have the child frame list
       nsCString pfx(aPrefix);
       pfx += "  ";
-      kid->List(out, pfx.get(), aFlags);
+      kid->List(aTo, pfx.get(), aFlags);
     }
-    fprintf_stderr(out, "%s>\n", aPrefix);
+    aTo += nsPrintfCString("%s>\n", aPrefix);
     outputOneList = true;
   }
 
   if (!outputOneList) {
-    fprintf_stderr(out, "%s<>\n", str.get());
+    aTo += nsPrintfCString("%s<>\n", str.get());
   }
 }
 #endif

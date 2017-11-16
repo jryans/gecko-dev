@@ -4477,13 +4477,13 @@ class nsIFrame : public nsQueryFrame {
   void ListGeneric(nsACString& aTo, const char* aPrefix = "",
                    uint32_t aFlags = 0) const;
   enum {TRAVERSE_SUBDOCUMENT_FRAMES = 0x01};
-  virtual void List(FILE* out = stderr, const char* aPrefix = "",
+  virtual void List(nsACString& aTo, const char* aPrefix = "",
                     uint32_t aFlags = 0) const;
   /**
    * lists the frames beginning from the root frame
    * - calls root frame's List(...)
    */
-  static void RootFrameList(nsPresContext* aPresContext, FILE* out = stderr,
+  static void RootFrameList(nsPresContext* aPresContext, nsACString& aTo,
                             const char* aPrefix = "");
   virtual void DumpFrameTree() const;
   void DumpFrameTreeLimited() const;

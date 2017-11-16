@@ -6861,7 +6861,9 @@ void nsCSSFrameConstructor::ContentAppended(nsIContent* aFirstNewContent,
 #ifdef DEBUG
   if (gReallyNoisyContentUpdates) {
     printf("nsCSSFrameConstructor::ContentAppended: resulting frame model:\n");
-    parentFrame->List(stdout, 0);
+    nsAutoCString str;
+    parentFrame->List(str, 0);
+    printf("%s", str.get());
   }
 #endif
 
@@ -6964,7 +6966,9 @@ void nsCSSFrameConstructor::ContentRangeInserted(
         printf(
             "nsCSSFrameConstructor::ContentRangeInserted: resulting frame "
             "model:\n");
-        mRootElementFrame->List(stdout, 0);
+        nsAutoCString str;
+        mRootElementFrame->List(str, 0);
+        printf("%s", str.get());
       }
 #endif
     }
@@ -7326,7 +7330,9 @@ void nsCSSFrameConstructor::ContentRangeInserted(
     printf(
         "nsCSSFrameConstructor::ContentRangeInserted: resulting frame "
         "model:\n");
-    insertion.mParentFrame->List(stdout, 0);
+    nsAutoCString str;
+    insertion.mParentFrame->List(str, 0);
+    printf("%s", str.get());
   }
 #endif
 
@@ -7582,7 +7588,9 @@ bool nsCSSFrameConstructor::ContentRemoved(nsIContent* aChild,
       printf("nsCSSFrameConstructor::ContentRemoved: childFrame=");
       nsFrame::ListTag(stdout, childFrame);
       putchar('\n');
-      parentFrame->List(stdout, 0);
+      nsAutoCString str;
+      parentFrame->List(str, 0);
+      printf("%s", str.get());
     }
 #endif
 
@@ -7653,7 +7661,9 @@ bool nsCSSFrameConstructor::ContentRemoved(nsIContent* aChild,
 #ifdef DEBUG
     if (gReallyNoisyContentUpdates && parentFrame) {
       printf("nsCSSFrameConstructor::ContentRemoved: resulting frame model:\n");
-      parentFrame->List(stdout, 0);
+      nsAutoCString str;
+      parentFrame->List(str, 0);
+      printf("%s", str.get());
     }
 #endif
   }

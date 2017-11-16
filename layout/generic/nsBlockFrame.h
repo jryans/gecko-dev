@@ -152,7 +152,7 @@ class nsBlockFrame : public nsContainerFrame {
                                bool aRebuildDisplayItems = true) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "",
+  void List(nsACString& aTo, const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif

@@ -291,12 +291,12 @@ void nsFrameList::ApplySetParent(nsContainerFrame* aParent) const {
 }
 
 #ifdef DEBUG_FRAME_DUMP
-void nsFrameList::List(FILE* out) const {
-  fprintf_stderr(out, "<\n");
+void nsFrameList::List(nsACString& aTo) const {
+  aTo += NS_LITERAL_CSTRING("<\n");
   for (nsIFrame* frame = mFirstChild; frame; frame = frame->GetNextSibling()) {
-    frame->List(out, "  ");
+    frame->List(aTo, "  ");
   }
-  fprintf_stderr(out, ">\n");
+  aTo += NS_LITERAL_CSTRING(">\n");
 }
 #endif
 

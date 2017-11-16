@@ -62,6 +62,13 @@ const layoutSpec = generateActorSpec({
         grids: RetVal("array:grid"),
       },
     },
+
+    getFrameTree: {
+      request: {},
+      response: {
+        frameTree: RetVal("string"),
+      },
+    },
   },
 });
 

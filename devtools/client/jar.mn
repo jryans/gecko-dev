@@ -81,6 +81,8 @@ devtools.jar:
     content/dom/main.js (dom/main.js)
     content/accessibility/index.html (accessibility/index.html)
     content/accessibility/main.js (accessibility/main.js)
+    content/layoutframeinspector/index.html (layoutframeinspector/index.html)
+    content/layoutframeinspector/index.js (layoutframeinspector/index.js)
 %   skin devtools classic/1.0 %skin/
     skin/devtools-browser.css (themes/devtools-browser.css)
     skin/dark-theme.css (themes/dark-theme.css)
