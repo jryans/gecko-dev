@@ -61,13 +61,13 @@
 //         {
 //           w.IntElement(1);
 //           w.StartObjectElement();  // SingleLineStyle is inherited from
-//           w.EndObjectElement();    //   above for this collection
+//           w.EndObject();    //   above for this collection
 //         }
 //         w.EndArray();
 //       }
-//       w.EndObjectElement();
+//       w.EndObject();
 //     }
-//     w.EndArrayProperty();
+//     w.EndArray();
 //   }
 //   w.End();
 //

@@ -911,3 +911,8 @@ function getFrameTree(win) {
   return utilsFor(win).getFrameTree();
 }
 exports.getFrameTree = getFrameTree;
+
+function getFrameTreeAsJSON(win) {
+  return utilsFor(win).getFrameTreeAsJSON();
+}
+exports.getFrameTreeAsJSON = getFrameTreeAsJSON;

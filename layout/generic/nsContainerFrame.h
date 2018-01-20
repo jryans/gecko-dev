@@ -72,6 +72,8 @@ class nsContainerFrame : public nsSplittableFrame {
 #ifdef DEBUG_FRAME_DUMP
   void List(nsACString& aTo, const char* aPrefix = "",
             uint32_t aFlags = 0) const override;
+  void ListAsJSON(mozilla::JSONWriter& aWriter,
+                  uint32_t aFlags = 0) const override;
 #endif
 
   // nsContainerFrame methods

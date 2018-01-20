@@ -10,6 +10,7 @@
 
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/dom/HTMLSummaryElement.h"
+#include "mozilla/JSONWriter.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
@@ -2186,4 +2187,36 @@ void nsContainerFrame::List(nsACString& aTo, const char* aPrefix,
     aTo += nsPrintfCString("%s<>\n", str.get());
   }
 }
-#endif
+
+void nsContainerFrame::ListAsJSON(mozilla::JSONWriter& aWriter,
+                                  uint32_t aFlags) const {
+  aWriter.Start();
+  ListGenericAsJSON(aWriter, aFlags);
+
+  // Output the children
+  aWriter.StartArrayProperty("childLists");
+  ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    aWriter.StartObjectElement();
+    aWriter.StringProperty("name",
+                           mozilla::layout::ChildListName(lists.CurrentID()));
+    aWriter.StringProperty(
+        "ptr", nsPrintfCString("%p", &GetChildList(lists.CurrentID())).get());
+    aWriter.StartArrayProperty("children");
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
+      // Verify the child frame's parent frame pointer is correct
+      NS_ASSERTION(child->GetParent() == this, "bad parent frame pointer");
+      // Have the child frame list
+      child->ListAsJSON(aWriter, aFlags);
+    }
+    aWriter.EndArray();
+    aWriter.EndObject();
+  }
+  aWriter.EndArray();
+
+  aWriter.End();
+}
+
+#endif  // DEBUG_FRAME_DUMP

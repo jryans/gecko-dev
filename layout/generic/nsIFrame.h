@@ -109,6 +109,7 @@ class ReflowOutput;
 class ServoRestyleState;
 class DisplayItemData;
 class EffectSet;
+class JSONWriter;
 
 namespace layers {
 class Layer;
@@ -4476,9 +4477,13 @@ class nsIFrame : public nsQueryFrame {
   static void ListTag(nsACString& aTo, const nsIFrame* aFrame);
   void ListGeneric(nsACString& aTo, const char* aPrefix = "",
                    uint32_t aFlags = 0) const;
+  void ListGenericAsJSON(mozilla::JSONWriter& aWriter,
+                         uint32_t aFlags = 0) const;
   enum {TRAVERSE_SUBDOCUMENT_FRAMES = 0x01};
   virtual void List(nsACString& aTo, const char* aPrefix = "",
                     uint32_t aFlags = 0) const;
+  virtual void ListAsJSON(mozilla::JSONWriter& aWriter,
+                          uint32_t aFlags = 0) const;
   /**
    * lists the frames beginning from the root frame
    * - calls root frame's List(...)
