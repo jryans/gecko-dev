@@ -5,11 +5,9 @@
 "use strict";
 
 const { Cu } = require("chrome");
-const ObjectClient = require("devtools/shared/client/object-client");
 
 const defer = require("devtools/shared/defer");
 const EventEmitter = require("devtools/shared/event-emitter");
-const { Task } = require("devtools/shared/task");
 
 /**
  * This object represents DOM panel. It's responsibility is to
@@ -23,8 +21,6 @@ function LayoutFrameInspectorPanel(iframeWindow, toolbox) {
   this.onContentMessage = this.onContentMessage.bind(this);
   this.onPanelVisibilityChange = this.onPanelVisibilityChange.bind(this);
 
-  this.pendingRequests = new Map();
-
   EventEmitter.decorate(this);
 }
 
@@ -35,7 +31,7 @@ LayoutFrameInspectorPanel.prototype = {
    * @return object
    *         A promise that is resolved when the DOM panel completes opening.
    */
-  open: Task.async(function* () {
+  async open() {
     if (this._opening) {
       return this._opening;
     }
@@ -50,11 +46,11 @@ LayoutFrameInspectorPanel.prototype = {
     deferred.resolve(this);
 
     return this._opening;
-  }),
+  },
 
   // Initialization
 
-  initialize: function() {
+  initialize() {
     this.panelWin.addEventListener("devtools/content/message",
       this.onContentMessage, true);
 
@@ -64,8 +60,6 @@ LayoutFrameInspectorPanel.prototype = {
     // Export provider object with useful API for DOM panel.
     const provider = {
       getFrameTree: this.getFrameTree.bind(this),
-      getPrototypeAndProperties: this.getPrototypeAndProperties.bind(this),
-      openLink: this.openLink.bind(this),
     };
 
     // TODO: Maybe rename to client?
@@ -74,7 +68,7 @@ LayoutFrameInspectorPanel.prototype = {
     this.shouldRefresh = true;
   },
 
-  destroy: Task.async(function* () {
+  async destroy() {
     if (this._destroying) {
       return this._destroying;
     }
@@ -89,11 +83,11 @@ LayoutFrameInspectorPanel.prototype = {
 
     deferred.resolve();
     return this._destroying;
-  }),
+  },
 
   // Events
 
-  refresh: function() {
+  refresh() {
     // Do not refresh if the panel isn't visible.
     if (!this.isPanelVisible()) {
       return;
@@ -107,9 +101,7 @@ LayoutFrameInspectorPanel.prototype = {
     // Alright reset the flag we are about to refresh the panel.
     this.shouldRefresh = false;
 
-    this.getRootGrip().then(rootGrip => {
-      this.postContentMessage("init", rootGrip);
-    });
+    this.postContentMessage("init");
   },
 
   /**
@@ -117,7 +109,7 @@ LayoutFrameInspectorPanel.prototype = {
    * The panel is refreshed immediately if it's currently selected
    * or lazily  when the user actually selects it.
    */
-  onTabNavigated: function() {
+  onTabNavigated() {
     this.shouldRefresh = true;
     this.refresh();
   },
@@ -125,7 +117,7 @@ LayoutFrameInspectorPanel.prototype = {
   /**
    * Make sure the panel is refreshed (if needed) when it's selected.
    */
-  onPanelVisibilityChange: function() {
+  onPanelVisibilityChange() {
     this.refresh();
   },
 
@@ -134,45 +126,8 @@ LayoutFrameInspectorPanel.prototype = {
   /**
    * Return true if the panel is currently selected.
    */
-  isPanelVisible: function() {
+  isPanelVisible() {
     return this._toolbox.currentToolId == "layoutframeinspector";
-  },
-
-  getPrototypeAndProperties: function(grip) {
-    const deferred = defer();
-
-    if (!grip.actor) {
-      console.error("No actor!", grip);
-      deferred.reject(new Error("Failed to get actor from grip."));
-      return deferred.promise;
-    }
-
-    // Bail out if target doesn't exist (toolbox maybe closed already).
-    if (!this.target) {
-      return deferred.promise;
-    }
-
-    // If a request for the grips is already in progress
-    // use the same promise.
-    const request = this.pendingRequests.get(grip.actor);
-    if (request) {
-      return request;
-    }
-
-    const client = new ObjectClient(this.target.client, grip);
-    client.getPrototypeAndProperties(response => {
-      this.pendingRequests.delete(grip.actor, deferred.promise);
-      deferred.resolve(response);
-
-      // Fire an event about not having any pending requests.
-      if (!this.pendingRequests.size) {
-        this.emit("no-pending-requests");
-      }
-    });
-
-    this.pendingRequests.set(grip.actor, deferred.promise);
-
-    return deferred.promise;
   },
 
   async getFrameTree() {
@@ -181,26 +136,7 @@ LayoutFrameInspectorPanel.prototype = {
     return layoutInspector.getFrameTree();
   },
 
-  openLink: function(url) {
-    const parentDoc = this._toolbox.doc;
-    const iframe = parentDoc.getElementById("this._toolbox");
-    const top = iframe.ownerDocument.defaultView.top;
-    top.openUILinkIn(url, "tab");
-  },
-
-  getRootGrip: function() {
-    const deferred = defer();
-
-    // Attach Console. It might involve RDP communication, so wait
-    // asynchronously for the result
-    this.target.activeConsole.evaluateJSAsync("window", res => {
-      deferred.resolve(res.result);
-    });
-
-    return deferred.promise;
-  },
-
-  postContentMessage: function(type, args) {
+  postContentMessage(type, args) {
     const data = {
       type: type,
       args: args,
@@ -215,7 +151,7 @@ LayoutFrameInspectorPanel.prototype = {
     this.panelWin.dispatchEvent(event);
   },
 
-  onContentMessage: function(event) {
+  onContentMessage(event) {
     const data = event.data;
     const method = data.type;
     if (typeof this[method] == "function") {
