@@ -2,24 +2,54 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env browser */
+/* global LFIProvider */
+
 "use strict";
 
 const { utils: Cu } = Components;
-
-const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
 const { BrowserLoader } = Cu.import("resource://devtools/client/shared/browser-loader.js", {});
-
-// Module Loader
-const require = BrowserLoader({
+const { require } = BrowserLoader({
   baseURI: "resource://devtools/client/layoutframeinspector/",
   window,
-}).require;
+});
 
-XPCOMUtils.defineConstant(this, "require", require);
+const { createFactory, createElement } =
+  require("devtools/client/shared/vendor/react");
+const ReactDOM = require("devtools/client/shared/vendor/react-dom");
+// const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
-// Localization
-const { LocalizationHelper } = require("devtools/shared/l10n");
-this.l10n = new LocalizationHelper("devtools/client/locales/dom.properties");
+const App = createFactory(require("./components/App"));
+// const Store = require("./store");
 
-// Load panel content
-require("./app.js");
+// Exposed for use by tests
+window.require = require;
+
+const bootstrap = {
+  async init(rootGrip) {
+    const root = document.querySelector("#root");
+    const frameTree = await LFIProvider.getFrameTree();
+    const app = createElement(App, {
+      frameTree: JSON.parse(frameTree),
+    });
+    ReactDOM.render(app, root);
+  },
+
+  handleEvent(event) {
+    const data = event.data;
+    const method = data.type;
+
+    if (typeof this[method] == "function") {
+      this[method](data.args);
+    }
+  },
+};
+
+addEventListener("devtools/chrome/message", bootstrap, true);
+
+// XXX: Defined for JSONView components to work...
+window.JSONView = {
+  Locale: {
+    $STR: msg => msg,
+  },
+};

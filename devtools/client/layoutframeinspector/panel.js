@@ -108,7 +108,7 @@ LayoutFrameInspectorPanel.prototype = {
     this.shouldRefresh = false;
 
     this.getRootGrip().then(rootGrip => {
-      this.postContentMessage("initialize", rootGrip);
+      this.postContentMessage("init", rootGrip);
     });
   },
 
