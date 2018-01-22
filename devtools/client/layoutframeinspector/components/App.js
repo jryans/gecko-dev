@@ -27,7 +27,7 @@ class App extends PureComponent {
         id: "app",
       },
       FrameTreePanel({
-        data: frameTree,
+        frameTree,
       })
     );
   }

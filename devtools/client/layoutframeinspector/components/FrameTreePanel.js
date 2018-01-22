@@ -15,10 +15,86 @@ const { JsonToolbar } = createFactories(require("devtools/client/jsonview/compon
 const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
 const { Rep } = REPS;
 
-const { div } = dom;
-
 function isObject(value) {
   return Object(value) === value;
+}
+
+/**
+ * A provider that converts the raw JSON of the frame dump to the tree of frame nodes we
+ * want to display in the panel.
+ */
+const FrameProvider = {
+  getChildren(node) {
+    if (node instanceof FrameNode) {
+      return node.children;
+    }
+    // Base case for the root of the frame tree
+    return [ new FrameNode(node) ];
+  },
+
+  hasChildren(node) {
+    if (node instanceof FrameNode) {
+      return node.children.length;
+    }
+    // Base case for the root of the frame tree
+    return 1;
+  },
+
+  getLabel(node) {
+    if (!(node instanceof FrameNode)) {
+      throw new Error(`Should be a FrameNode, but was not: ${node}`);
+    }
+    return node.name;
+  },
+
+  getValue(node) {
+    if (!(node instanceof FrameNode)) {
+      throw new Error(`Should be a FrameNode, but was not: ${node}`);
+    }
+    return node;
+  },
+
+  getKey(node) {
+    if (!(node instanceof FrameNode)) {
+      throw new Error(`Should be a FrameNode, but was not: ${node}`);
+    }
+    return node.name;
+  },
+
+  getType(node) {
+    return typeof node;
+  },
+};
+
+/**
+ * FrameNode should have _at least_ the following properties:
+ *   - `name` {string}
+ * If it is possible for the frame to have children (subtypes of nsContainerFrame), it
+ * will also have:
+ *   - `childLists` {array} 2-level array storing each list of child frames
+ */
+class FrameNode {
+  constructor(data) {
+    if (!data.name) {
+      throw new Error(`Invalid data for FrameNode: ${data}`);
+    }
+    Object.assign(this, data);
+    // `childLists` only present on container frames
+    this.childLists = this.childLists || [];
+  }
+
+  get children() {
+    if (this._children) {
+      return this._children;
+    }
+    const children = [];
+    for (const list of this.childLists) {
+      // Each "child list" has its own name, but for now just collapse them all down.
+      Array.prototype.push.apply(children, list.children);
+    }
+    this._children = children.map(child => new FrameNode(child));
+    return this._children;
+  }
 }
 
 /**
@@ -27,13 +103,7 @@ function isObject(value) {
 class FrameTreePanel extends Component {
   static get propTypes() {
     return {
-      data: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.array,
-        PropTypes.object,
-        PropTypes.bool,
-        PropTypes.number,
-      ]),
+      frameTree: PropTypes.object,
       expandedNodes: PropTypes.instanceOf(Set),
       searchFilter: PropTypes.string,
       actions: PropTypes.object,
@@ -96,7 +166,8 @@ class FrameTreePanel extends Component {
 
     // Render tree component.
     return TreeView({
-      object: this.props.data,
+      object: this.props.frameTree,
+      provider: FrameProvider,
       mode: MODE.TINY,
       onFilter: this.onFilter,
       columns: columns,
@@ -106,25 +177,20 @@ class FrameTreePanel extends Component {
   }
 
   render() {
-    let content;
-    const data = this.props.data;
-
-    if (!isObject(data)) {
-      content = div({className: "jsonPrimitiveValue"}, Rep({
-        object: data,
-      }));
-    } else if (data instanceof Error) {
-      content = div({className: "jsonParseError"},
-        data + ""
-      );
-    } else {
-      content = this.renderTree();
-    }
+    const content = this.renderTree();
 
     return (
-      div({className: "tab-panel-inner"},
-        JsonToolbar({actions: this.props.actions}),
-        div({className: "panelContent"},
+      dom.div(
+        {
+          className: "tab-panel-inner",
+        },
+        JsonToolbar({
+          actions: this.props.actions,
+        }),
+        dom.div(
+          {
+            className: "panelContent",
+          },
           content
         )
       )
