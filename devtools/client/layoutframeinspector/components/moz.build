@@ -6,4 +6,5 @@
 
 DevToolsModules(
     'App.js',
+    'FrameTreePanel.js',
 )

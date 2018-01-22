@@ -4,12 +4,11 @@
 
 "use strict";
 
-const { PureComponent } = require("devtools/client/shared/vendor/react");
-const dom = require("devtools/client/shared/vendor/react-dom-factories");
-const { createFactories } = require("devtools/client/shared/react-utils");
+const { PureComponent, createFactory } = require("devtools/client/shared/vendor/react");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+const dom = require("devtools/client/shared/vendor/react-dom-factories");
 
-const { JsonPanel } = createFactories(require("devtools/client/jsonview/components/JsonPanel"));
+const FrameTreePanel = createFactory(require("./FrameTreePanel"));
 
 class App extends PureComponent {
   static get propTypes() {
@@ -27,7 +26,7 @@ class App extends PureComponent {
       {
         id: "app",
       },
-      JsonPanel({
+      FrameTreePanel({
         data: frameTree,
       })
     );
