@@ -7364,11 +7364,18 @@ void nsIFrame::ListGenericAsJSON(mozilla::JSONWriter& aWriter,
     void* IBprevsibling = GetProperty(IBSplitPrevSibling());
     if (IBprevsibling) {
       aTo += nsPrintfCString(" IBSplitPrevSibling=%p", IBprevsibling);
-    }
-    aTo += nsPrintfCString(" {%d,%d,%d,%d}", mRect.x, mRect.y, mRect.width,
-    mRect.height);
+    }*/
 
-    mozilla::WritingMode wm = GetWritingMode();
+  aWriter.StartObjectProperty("rect");
+  aWriter.DoubleProperty("x", nsPresContext::AppUnitsToFloatCSSPixels(mRect.x));
+  aWriter.DoubleProperty("y", nsPresContext::AppUnitsToFloatCSSPixels(mRect.y));
+  aWriter.DoubleProperty("width",
+                         nsPresContext::AppUnitsToFloatCSSPixels(mRect.width));
+  aWriter.DoubleProperty("height",
+                         nsPresContext::AppUnitsToFloatCSSPixels(mRect.height));
+  aWriter.EndObject();
+
+  /*mozilla::WritingMode wm = GetWritingMode();
     if (wm.IsVertical() || !wm.IsBidiLTR()) {
       aTo += nsPrintfCString(" wm=%s: logical size={%d,%d}", wm.DebugString(),
                              ISize(), BSize());
@@ -7387,66 +7394,101 @@ void nsIFrame::ListGenericAsJSON(mozilla::JSONWriter& aWriter,
                                lr.IStart(pWM), lr.BStart(pWM),
                                lr.ISize(pWM), lr.BSize(pWM));
       }
-    }
-    nsIFrame* f = const_cast<nsIFrame*>(this);
-    if (f->HasOverflowAreas()) {
-      nsRect vo = f->GetVisualOverflowRect();
-      if (!vo.IsEqualEdges(mRect)) {
-        aTo += nsPrintfCString(" vis-overflow=%d,%d,%d,%d", vo.x, vo.y,
-    vo.width, vo.height);
+      if (GetNextContinuation()) {
+        bool fluid = GetNextInFlow() == GetNextContinuation();
+        aTo += nsPrintfCString(" next-%s=%p", fluid?"in-flow":"continuation",
+                static_cast<void*>(GetNextContinuation()));
       }
-      nsRect so = f->GetScrollableOverflowRect();
-      if (!so.IsEqualEdges(mRect)) {
-        aTo += nsPrintfCString(" scr-overflow=%d,%d,%d,%d", so.x, so.y,
-    so.width, so.height);
+      void* IBsibling = GetProperty(IBSplitSibling());
+      if (IBsibling) {
+        aTo += nsPrintfCString(" IBSplitSibling=%p", IBsibling);
       }
-    }
-    if (0 != mState) {
-      aTo += nsPrintfCString(" [state=%016llx]", (unsigned long long)mState);
-    }
-    if (HasProperty(BidiDataProperty())) {
-      FrameBidiData bidi = GetBidiData();
-      aTo += nsPrintfCString(" bidi(%d,%d,%d)", bidi.baseLevel,
-                             bidi.embeddingLevel, bidi.precedingControl);
-    }
-    if (IsTransformed()) {
-      aTo += nsPrintfCString(" transformed");
-    }
-    if (ChildrenHavePerspective()) {
-      aTo += nsPrintfCString(" perspective");
-    }
-    if (Extend3DContext()) {
-      aTo += nsPrintfCString(" extend-3d");
-    }
-    if (Combines3DTransformWithAncestors()) {
-      aTo += nsPrintfCString(" combines-3d-transform-with-ancestors");
-    }
-    if (mContent) {
-      aTo += nsPrintfCString(" [content=%p]", static_cast<void*>(mContent));
-    }
-    aTo += nsPrintfCString(" [sc=%p", static_cast<void*>(mStyleContext));
-    if (mStyleContext) {
-      nsAtom* pseudoTag = mStyleContext->GetPseudo();
-      if (pseudoTag) {
-        nsAutoString atomString;
-        pseudoTag->ToString(atomString);
-        aTo += nsPrintfCString("%s",
-    NS_LossyConvertUTF16toASCII(atomString).get());
+      void* IBprevsibling = GetProperty(IBSplitPrevSibling());
+      if (IBprevsibling) {
+        aTo += nsPrintfCString(" IBSplitPrevSibling=%p", IBprevsibling);
       }
-      if (auto* geckoContext = mStyleContext->GetAsGecko()) {
-        if (!geckoContext->GetParent() ||
-            (GetParent() && GetParent()->StyleContext() !=
-    geckoContext->GetParent())) { aTo += nsPrintfCString("^%p",
-    geckoContext->GetParent()); if (geckoContext->GetParent()) { aTo +=
-    nsPrintfCString("^%p", geckoContext->GetParent()->GetParent()); if
-    (geckoContext->GetParent()->GetParent()) { aTo += nsPrintfCString("^%p",
-    geckoContext->GetParent()->GetParent()->GetParent());
+      aTo += nsPrintfCString(" {%d,%d,%d,%d}", mRect.x, mRect.y, mRect.width,
+      mRect.height);
+
+      mozilla::WritingMode wm = GetWritingMode();
+      if (wm.IsVertical() || !wm.IsBidiLTR()) {
+        aTo += nsPrintfCString(" wm=%s: logical size={%d,%d}", wm.DebugString(),
+                               ISize(), BSize());
+      }
+
+      nsIFrame* parent = GetParent();
+      if (parent) {
+        WritingMode pWM = parent->GetWritingMode();
+        if (pWM.IsVertical() || !pWM.IsBidiLTR()) {
+          nsSize containerSize = parent->mRect.Size();
+          LogicalRect lr(pWM, mRect, containerSize);
+          aTo += nsPrintfCString(" parent wm=%s, cs={%d,%d}, "
+                                 " logicalRect={%d,%d,%d,%d}",
+                                 pWM.DebugString(),
+                                 containerSize.width, containerSize.height,
+                                 lr.IStart(pWM), lr.BStart(pWM),
+                                 lr.ISize(pWM), lr.BSize(pWM));
+        }
+      }
+      nsIFrame* f = const_cast<nsIFrame*>(this);
+      if (f->HasOverflowAreas()) {
+        nsRect vo = f->GetVisualOverflowRect();
+        if (!vo.IsEqualEdges(mRect)) {
+          aTo += nsPrintfCString(" vis-overflow=%d,%d,%d,%d", vo.x, vo.y,
+      vo.width, vo.height);
+        }
+        nsRect so = f->GetScrollableOverflowRect();
+        if (!so.IsEqualEdges(mRect)) {
+          aTo += nsPrintfCString(" scr-overflow=%d,%d,%d,%d", so.x, so.y,
+      so.width, so.height);
+        }
+      }
+      if (0 != mState) {
+        aTo += nsPrintfCString(" [state=%016llx]", (unsigned long long)mState);
+      }
+      if (HasProperty(BidiDataProperty())) {
+        FrameBidiData bidi = GetBidiData();
+        aTo += nsPrintfCString(" bidi(%d,%d,%d)", bidi.baseLevel,
+                               bidi.embeddingLevel, bidi.precedingControl);
+      }
+      if (IsTransformed()) {
+        aTo += nsPrintfCString(" transformed");
+      }
+      if (ChildrenHavePerspective()) {
+        aTo += nsPrintfCString(" perspective");
+      }
+      if (Extend3DContext()) {
+        aTo += nsPrintfCString(" extend-3d");
+      }
+      if (Combines3DTransformWithAncestors()) {
+        aTo += nsPrintfCString(" combines-3d-transform-with-ancestors");
+      }
+      if (mContent) {
+        aTo += nsPrintfCString(" [content=%p]", static_cast<void*>(mContent));
+      }
+      aTo += nsPrintfCString(" [sc=%p", static_cast<void*>(mStyleContext));
+      if (mStyleContext) {
+        nsAtom* pseudoTag = mStyleContext->GetPseudo();
+        if (pseudoTag) {
+          nsAutoString atomString;
+          pseudoTag->ToString(atomString);
+          aTo += nsPrintfCString("%s",
+      NS_LossyConvertUTF16toASCII(atomString).get());
+        }
+        if (auto* geckoContext = mStyleContext->GetAsGecko()) {
+          if (!geckoContext->GetParent() ||
+              (GetParent() && GetParent()->StyleContext() !=
+      geckoContext->GetParent())) { aTo += nsPrintfCString("^%p",
+      geckoContext->GetParent()); if (geckoContext->GetParent()) { aTo +=
+      nsPrintfCString("^%p", geckoContext->GetParent()->GetParent()); if
+      (geckoContext->GetParent()->GetParent()) { aTo += nsPrintfCString("^%p",
+      geckoContext->GetParent()->GetParent()->GetParent());
+              }
             }
           }
         }
       }
-    }
-    aTo += "]"; */
+      aTo += "]"; */
 }
 
 void nsIFrame::List(nsACString& aTo, const char* aPrefix,
