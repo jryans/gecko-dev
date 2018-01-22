@@ -10,8 +10,8 @@ const defer = require("devtools/shared/defer");
 const EventEmitter = require("devtools/shared/event-emitter");
 
 /**
- * This object represents DOM panel. It's responsibility is to
- * render Document Object Model of the current debugger target.
+ * This object represents the Layout Frame Inspector panel.  It displays the frame tree
+ * for the target window.
  */
 function LayoutFrameInspectorPanel(iframeWindow, toolbox) {
   this.panelWin = iframeWindow;
@@ -25,12 +25,6 @@ function LayoutFrameInspectorPanel(iframeWindow, toolbox) {
 }
 
 LayoutFrameInspectorPanel.prototype = {
-  /**
-   * Open is effectively an asynchronous constructor.
-   *
-   * @return object
-   *         A promise that is resolved when the DOM panel completes opening.
-   */
   async open() {
     if (this._opening) {
       return this._opening;
@@ -57,7 +51,8 @@ LayoutFrameInspectorPanel.prototype = {
     this.target.on("navigate", this.onTabNavigated);
     this._toolbox.on("select", this.onPanelVisibilityChange);
 
-    // Export provider object with useful API for DOM panel.
+    // Export provider API to the panel content to give it access to the data about the
+    // target needed to present the UI.
     const provider = {
       getFrameTree: this.getFrameTree.bind(this),
     };
@@ -123,9 +118,6 @@ LayoutFrameInspectorPanel.prototype = {
 
   // Helpers
 
-  /**
-   * Return true if the panel is currently selected.
-   */
   isPanelVisible() {
     return this._toolbox.currentToolId == "layoutframeinspector";
   },
