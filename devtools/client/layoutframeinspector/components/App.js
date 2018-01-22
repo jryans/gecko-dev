@@ -4,14 +4,14 @@
 
 "use strict";
 
-const { Component } = require("devtools/client/shared/vendor/react");
+const { PureComponent } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const { createFactories } = require("devtools/client/shared/react-utils");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
 const { JsonPanel } = createFactories(require("devtools/client/jsonview/components/JsonPanel"));
 
-class App extends Component {
+class App extends PureComponent {
   static get propTypes() {
     return {
       frameTree: PropTypes.object.isRequired,
