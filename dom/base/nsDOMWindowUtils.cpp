@@ -4020,7 +4020,7 @@ nsDOMWindowUtils::IsAutoplayTemporarilyAllowed(bool* aResult) {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFrameTree(char** aFrameTree) {
+nsDOMWindowUtils::GetFrameTree(nsACString& aFrameTree) {
 #ifdef DEBUG_FRAME_DUMP
   nsIPresShell* presShell = GetPresShell();
   if (!presShell) {
@@ -4061,7 +4061,7 @@ nsDOMWindowUtils::GetFrameTree(char** aFrameTree) {
 
   fputs(frameTree.get(), stdout);
 
-  *aFrameTree = ToNewCString(frameTree);
+  aFrameTree.Assign(frameTree);
   return NS_OK;
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -4075,7 +4075,7 @@ struct StringWriteFunc : public JSONWriteFunc {
 };
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFrameTreeAsJSON(char** aFrameTreeJSON) {
+nsDOMWindowUtils::GetFrameTreeAsJSON(nsACString& aFrameTreeJSON) {
 #ifdef DEBUG_FRAME_DUMP
   nsIPresShell* presShell = GetPresShell();
   if (!presShell) {
@@ -4117,7 +4117,7 @@ nsDOMWindowUtils::GetFrameTreeAsJSON(char** aFrameTreeJSON) {
 
   // fputs(json.get(), stdout);
 
-  *aFrameTreeJSON = ToNewCString(json);
+  aFrameTreeJSON.Assign(json);
   return NS_OK;
 #else
   return NS_ERROR_NOT_IMPLEMENTED;

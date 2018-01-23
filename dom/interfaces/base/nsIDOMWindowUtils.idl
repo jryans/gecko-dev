@@ -1950,8 +1950,8 @@ interface nsIDOMWindowUtils : nsISupports {
    */
   bool isAutoplayTemporarilyAllowed();
 
-  string getFrameTree();
-  string getFrameTreeAsJSON();
+  AUTF8String getFrameTree();
+  AUTF8String getFrameTreeAsJSON();
 
   // These consts are only for testing purposes.
   const long DEFAULT_MOUSE_POINTER_ID = 0;
