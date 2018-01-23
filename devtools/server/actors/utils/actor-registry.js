@@ -256,6 +256,11 @@ const ActorRegistry = {
       constructor: "ChangesActor",
       type: { target: true },
     });
+    this.registerModule("devtools/server/actors/layout-frame-inspector", {
+      prefix: "layoutFrameInspector",
+      constructor: "LayoutFrameInspectorActor",
+      type: { target: true },
+    });
   },
 
   /**

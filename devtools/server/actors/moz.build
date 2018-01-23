@@ -40,6 +40,7 @@ DevToolsModules(
     'heap-snapshot-file.js',
     'highlighters.css',
     'highlighters.js',
+    'layout-frame-inspector.js',
     'layout.js',
     'memory.js',
     'network-event.js',

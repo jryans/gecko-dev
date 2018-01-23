@@ -21,7 +21,6 @@ loader.lazyRequireGetter(this, "getCSSStyleRules", "devtools/shared/inspector/cs
 loader.lazyRequireGetter(this, "isCssPropertyKnown", "devtools/server/actors/css-properties", true);
 loader.lazyRequireGetter(this, "parseDeclarations", "devtools/shared/css/parsing-utils", true);
 loader.lazyRequireGetter(this, "nodeConstants", "devtools/shared/dom-node-constants");
-loader.lazyRequireGetter(this, "getFrameTreeAsJSON", "devtools/shared/layout/utils", true);
 
 /**
  * Set of actors the expose the CSS layout information to the devtools protocol clients.
@@ -462,10 +461,6 @@ const LayoutActor = ActorClassWithSpec(layoutSpec, {
     }
 
     return gridActors;
-  },
-
-  getFrameTree() {
-    return getFrameTreeAsJSON(this.tabActor.window);
   },
 });
 

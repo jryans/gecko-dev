@@ -24,6 +24,7 @@ DevToolsModules(
     'function-call.js',
     'highlighters.js',
     'inspector.js',
+    'layout-frame-inspector.js',
     'layout.js',
     'memory.js',
     'node.js',

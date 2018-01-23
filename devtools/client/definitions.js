@@ -464,7 +464,7 @@ Tools.layoutFrameInspector = {
   tooltip: "Layout Frames",
 
   isTargetSupported: function(target) {
-    return AppConstants.DEBUG;
+    return AppConstants.DEBUG && target.hasActor("layoutFrameInspector");
   },
 
   build: function(iframeWindow, toolbox) {

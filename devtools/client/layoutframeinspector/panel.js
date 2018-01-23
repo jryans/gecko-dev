@@ -9,6 +9,8 @@ const { Cu } = require("chrome");
 const defer = require("devtools/shared/defer");
 const EventEmitter = require("devtools/shared/event-emitter");
 
+loader.lazyRequireGetter(this, "getFront", "devtools/shared/protocol", true);
+
 /**
  * This object represents the Layout Frame Inspector panel.  It displays the frame tree
  * for the target window.
@@ -71,6 +73,11 @@ LayoutFrameInspectorPanel.prototype = {
     const deferred = defer();
     this._destroying = deferred.promise;
 
+    if (this._layoutFrameInspector) {
+      this._layoutFrameInspector.destroy();
+      this._layoutFrameInspector = null;
+    }
+
     this.target.off("navigate", this.onTabNavigated);
     this._toolbox.off("select", this.onPanelVisibilityChange);
 
@@ -118,14 +125,22 @@ LayoutFrameInspectorPanel.prototype = {
 
   // Helpers
 
+  get layoutFrameInspector() {
+    if (this._layoutFrameInspector) {
+      return this._layoutFrameInspector;
+    }
+    const target = this._toolbox._target;
+    this._layoutFrameInspector =
+      getFront(target.client, "layoutFrameInspector", target.form);
+    return this._layoutFrameInspector;
+  },
+
   isPanelVisible() {
     return this._toolbox.currentToolId == "layoutframeinspector";
   },
 
-  async getFrameTree() {
-    await this._toolbox.initInspector();
-    const layoutInspector = await this._toolbox.walker.getLayoutInspector();
-    return layoutInspector.getFrameTree();
+  getFrameTree() {
+    return this.layoutFrameInspector.getFrameTree();
   },
 
   postContentMessage(type, args) {
