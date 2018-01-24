@@ -1953,6 +1953,11 @@ interface nsIDOMWindowUtils : nsISupports {
   AUTF8String getFrameTree();
   AUTF8String getFrameTreeAsJSON();
 
+  uint64_t getFrameAtPoint(in float x, in float y);
+
+  // ⚠︎ SECURITY HOLE, DO NOT LAND ⚠︎
+  void setShowFrameHighlighter(in uint64_t frame, in boolean show);
+
   // These consts are only for testing purposes.
   const long DEFAULT_MOUSE_POINTER_ID = 0;
   const long DEFAULT_PEN_POINTER_ID   = 1;

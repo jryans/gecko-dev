@@ -4124,6 +4124,60 @@ nsDOMWindowUtils::GetFrameTreeAsJSON(nsACString& aFrameTreeJSON) {
 #endif
 }
 
+NS_IMETHODIMP
+nsDOMWindowUtils::GetFrameAtPoint(float aX, float aY, uint64_t* aFrameID) {
+#ifdef DEBUG_FRAME_DUMP
+  *aFrameID = 0;
+
+  nsIPresShell* presShell = GetPresShell();
+  if (!presShell) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  // The root frame for this content window
+  nsIFrame* rootFrame = presShell->GetRootFrame();
+  if (!rootFrame) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  // Get the target frame at the client coordinates passed to us
+  nsPoint offset;
+  nsCOMPtr<nsIWidget> widget = GetWidget(&offset);
+  LayoutDeviceIntPoint pt =
+      nsContentUtils::ToWidgetPoint(CSSPoint(aX, aY), offset, GetPresContext());
+  nsPoint ptInRoot =
+      nsLayoutUtils::GetEventCoordinatesRelativeTo(widget, pt, rootFrame);
+  nsIFrame* targetFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, ptInRoot);
+  // This can happen if the page hasn't loaded yet or if the point
+  // is outside the frame.
+  if (!targetFrame) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  *aFrameID = reinterpret_cast<uint64_t>(targetFrame);
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::SetShowFrameHighlighter(uint64_t aFrameID, bool show) {
+#ifdef DEBUG_FRAME_DUMP
+  if (!aFrameID) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsIFrame* frame = reinterpret_cast<nsIFrame*>(aFrameID);
+  frame->SetShowFrameHighlighter(show);
+  frame->SchedulePaint();
+
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
 NS_INTERFACE_MAP_BEGIN(nsTranslationNodeList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
   NS_INTERFACE_MAP_ENTRY(nsITranslationNodeList)

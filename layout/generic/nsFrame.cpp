@@ -2395,7 +2395,9 @@ static void DisplayDebugBorders(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) {
   // Draw a border around the child
   // REVIEW: From nsContainerFrame::PaintChild
-  if (nsFrame::GetShowFrameBorders() && !aFrame->GetRect().IsEmpty()) {
+  bool showFrameBorders =
+      nsFrame::GetShowFrameBorders() || aFrame->ShowFrameHighlighter();
+  if (showFrameBorders && !aFrame->GetRect().IsEmpty()) {
     aLists.Outlines()->AppendToTop(MakeDisplayItem<nsDisplayGeneric>(
         aBuilder, aFrame, PaintDebugBorder, "DebugBorder",
         DisplayItemType::TYPE_DEBUG_BORDER));

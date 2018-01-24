@@ -564,6 +564,9 @@ class nsIFrame : public nsQueryFrame {
         mFrameIsModified(false),
         mHasOverrideDirtyRegion(false),
         mMayHaveWillChangeBudget(false),
+#ifdef DEBUG_FRAME_DUMP
+        mShowFrameHighlighter(false),
+#endif
         mIsPrimaryFrame(false),
         mMayHaveTransformAnimation(false),
         mMayHaveOpacityAnimation(false),
@@ -4062,6 +4065,14 @@ class nsIFrame : public nsQueryFrame {
    */
   nsRect GetCompositorHitTestArea(nsDisplayListBuilder* aBuilder);
 
+#ifdef DEBUG_FRAME_DUMP
+  bool ShowFrameHighlighter() { return mShowFrameHighlighter; }
+  void SetShowFrameHighlighter(bool aShow) { mShowFrameHighlighter = aShow; }
+#else
+  bool ShowFrameHighlighter() { return false; }
+  void SetShowFrameHighlighter(bool aShow) {}
+#endif
+
   /**
    * Returns the set of flags indicating the properties of the frame that the
    * compositor might care about for hit-testing purposes. Note that this
@@ -4255,6 +4266,13 @@ class nsIFrame : public nsQueryFrame {
    * items consuming some of the will-change budget.
    */
   bool mMayHaveWillChangeBudget : 1;
+
+#ifdef DEBUG_FRAME_DUMP
+  /**
+   * True if we should show a highlighter on top of the frame for debugging.
+   */
+  bool mShowFrameHighlighter : 1;
+#endif
 
  private:
   /**
