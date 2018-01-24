@@ -57,6 +57,7 @@ LayoutFrameInspectorPanel.prototype = {
     // target needed to present the UI.
     const provider = {
       getFrameTree: this.getFrameTree.bind(this),
+      getHighlighter: this.getHighlighter.bind(this),
     };
 
     // TODO: Maybe rename to client?
@@ -141,6 +142,10 @@ LayoutFrameInspectorPanel.prototype = {
 
   getFrameTree() {
     return this.layoutFrameInspector.getFrameTree();
+  },
+
+  getHighlighter() {
+    return this.layoutFrameInspector.getHighlighter();
   },
 
   postContentMessage(type, args) {

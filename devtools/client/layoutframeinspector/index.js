@@ -29,6 +29,8 @@ const bootstrap = {
   async init(rootGrip) {
     const root = document.querySelector("#root");
     const frameTree = await LFIProvider.getFrameTree();
+    const highlighter = await LFIProvider.getHighlighter();
+    highlighter.pick();
     const app = createElement(App, {
       frameTree: JSON.parse(frameTree),
     });

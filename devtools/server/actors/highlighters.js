@@ -81,7 +81,7 @@ exports.register = register;
  */
 exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
   initialize: function(inspector, autohide) {
-    protocol.Actor.prototype.initialize.call(this, null);
+    protocol.Actor.prototype.initialize.call(this, inspector.conn);
 
     this._autohide = autohide;
     this._inspector = inspector;
@@ -104,10 +104,6 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
     // Listen to navigation events to switch from the BoxModelHighlighter to the
     // SimpleOutlineHighlighter, and back, if the top level window changes.
     this._targetActor.on("navigate", this._onNavigate);
-  },
-
-  get conn() {
-    return this._inspector && this._inspector.conn;
   },
 
   form: function() {

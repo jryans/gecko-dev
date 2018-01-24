@@ -16,6 +16,12 @@ const layoutFrameInspectorSpec = generateActorSpec({
         frameTree: RetVal("string"),
       },
     },
+    getHighlighter: {
+      request: {},
+      response: {
+        highligter: RetVal("highlighter"),
+      },
+    },
   },
 });
 

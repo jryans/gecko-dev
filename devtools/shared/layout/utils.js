@@ -33,6 +33,7 @@ function utilsFor(win) {
   }
   return utilsCache.get(win);
 }
+exports.utilsFor = utilsFor;
 
 /**
  * like win.top, but goes through mozbrowsers and mozapps iframes.
@@ -906,13 +907,3 @@ function getUntransformedQuad(node, region = "border") {
   return quad;
 }
 exports.getUntransformedQuad = getUntransformedQuad;
-
-function getFrameTree(win) {
-  return utilsFor(win).getFrameTree();
-}
-exports.getFrameTree = getFrameTree;
-
-function getFrameTreeAsJSON(win) {
-  return utilsFor(win).getFrameTreeAsJSON();
-}
-exports.getFrameTreeAsJSON = getFrameTreeAsJSON;
