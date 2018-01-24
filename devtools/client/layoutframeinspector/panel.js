@@ -58,6 +58,8 @@ LayoutFrameInspectorPanel.prototype = {
     const provider = {
       getFrameTree: this.getFrameTree.bind(this),
       getHighlighter: this.getHighlighter.bind(this),
+      on: this.onProvider.bind(this),
+      off: this.offProvider.bind(this),
     };
 
     // TODO: Maybe rename to client?
@@ -124,6 +126,24 @@ LayoutFrameInspectorPanel.prototype = {
     this.refresh();
   },
 
+  // Provider
+
+  getFrameTree() {
+    return this.layoutFrameInspector.getFrameTree();
+  },
+
+  getHighlighter() {
+    return this.layoutFrameInspector.getHighlighter();
+  },
+
+  onProvider(...args) {
+    this.layoutFrameInspector.on(...args);
+  },
+
+  offProvider(...args) {
+    this.layoutFrameInspector.off(...args);
+  },
+
   // Helpers
 
   get layoutFrameInspector() {
@@ -138,14 +158,6 @@ LayoutFrameInspectorPanel.prototype = {
 
   isPanelVisible() {
     return this._toolbox.currentToolId == "layoutframeinspector";
-  },
-
-  getFrameTree() {
-    return this.layoutFrameInspector.getFrameTree();
-  },
-
-  getHighlighter() {
-    return this.layoutFrameInspector.getHighlighter();
   },
 
   postContentMessage(type, args) {

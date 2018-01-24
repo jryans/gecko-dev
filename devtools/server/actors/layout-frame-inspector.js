@@ -56,8 +56,13 @@ const LayoutFrameInspectorActor = ActorClassWithSpec(layoutFrameInspectorSpec, {
     }
 
     this._walker = {
-      emit() {
+      emit: (type, data) => {
         // jryans: Part of the faux walker.
+        switch (type) {
+          case "picker-node-picked":
+            this.emit("frame-picked", data.node.rawNode);
+            break;
+        }
       },
 
       attachElement: ({ clientX, clientY }) => {

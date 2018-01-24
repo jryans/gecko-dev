@@ -145,9 +145,8 @@ define(function(require, exports, module) {
      * @param {Object} [optional] An object with the following optional parameters:
      *   - maxLevel: nodes nested deeper than this level won't be expanded.
      *   - maxNodes: maximum number of nodes that can be expanded. The traversal is
-           breadth-first, so expanding nodes nearer to the root will be preferred.
-           Sibling nodes will either be all expanded or none expanded.
-     * }
+     *     breadth-first, so expanding nodes nearer to the root will be preferred.
+     *     Sibling nodes will either be all expanded or none expanded.
      */
     static getExpandedNodes(rootObj, { maxLevel = Infinity, maxNodes = Infinity } = {}) {
       const expandedNodes = new Set();
@@ -215,7 +214,7 @@ define(function(require, exports, module) {
         state.selected = selected;
       }
 
-      this.setState(Object.assign({}, this.state, state));
+      this.setState(state);
     }
 
     componentDidUpdate() {
@@ -237,9 +236,9 @@ define(function(require, exports, module) {
       }
 
       // Compute new state and update the tree.
-      this.setState(Object.assign({}, this.state, {
+      this.setState({
         expandedNodes: nodes,
-      }));
+      });
     }
 
     isExpanded(nodePath) {
@@ -356,9 +355,9 @@ define(function(require, exports, module) {
         return;
       }
 
-      this.setState(Object.assign({}, this.state, {
+      this.setState({
         selected: row.id,
-      }));
+      });
 
       row.scrollIntoView(scrollOptions);
     }

@@ -13,13 +13,15 @@ const FrameTreePanel = createFactory(require("./FrameTreePanel"));
 class App extends PureComponent {
   static get propTypes() {
     return {
-      frameTree: PropTypes.object.isRequired,
+      frameTree: PropTypes.object,
+      pickedFrameID: PropTypes.number,
     };
   }
 
   render() {
     const {
       frameTree,
+      pickedFrameID,
     } = this.props;
 
     return dom.div(
@@ -28,6 +30,7 @@ class App extends PureComponent {
       },
       FrameTreePanel({
         frameTree,
+        pickedFrameID,
       })
     );
   }

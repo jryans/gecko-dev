@@ -9,11 +9,14 @@ const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const { createFactories } = require("devtools/client/shared/react-utils");
 
-const TreeView = createFactory(require("devtools/client/shared/components/tree/TreeView"));
+const TreeViewClass = require("devtools/client/shared/components/tree/TreeView");
+const TreeView = createFactory(TreeViewClass);
 const { JsonToolbar } = createFactories(require("devtools/client/jsonview/components/JsonToolbar"));
 
 const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
 const { Rep } = REPS;
+
+const AUTO_EXPAND_MAX_LEVEL = 10;
 
 function isObject(value) {
   return Object(value) === value;
@@ -104,15 +107,62 @@ class FrameTreePanel extends Component {
   static get propTypes() {
     return {
       frameTree: PropTypes.object,
-      expandedNodes: PropTypes.instanceOf(Set),
+      pickedFrameID: PropTypes.number,
       searchFilter: PropTypes.string,
       actions: PropTypes.object,
     };
   }
 
+  /**
+   * Creates a set with the paths of the nodes that should be expanded by default
+   * according to the passed options.
+   * @param {Object} The root node of the tree.
+   * @param {Object} [optional] An object with the following optional parameters:
+   *   - maxLevel: nodes nested deeper than this level won't be expanded.
+   *   - maxNodes: maximum number of nodes that can be expanded. The traversal is
+   *     breadth-first, so expanding nodes nearer to the root will be preferred.
+   *     Sibling nodes will either be all expanded or none expanded.
+   */
+  static getExpandedNodes(rootObj, { maxLevel = Infinity, maxNodes = Infinity } = {}) {
+    const expandedNodes = new Set();
+    const queue = [{
+      object: rootObj,
+      level: 1,
+      path: "",
+    }];
+    while (queue.length) {
+      const { object, level, path } = queue.shift();
+      if (Object(object) !== object) {
+        continue;
+      }
+      const children = FrameProvider.getChildren(object);
+      if (expandedNodes.size + children.length > maxNodes) {
+        // Avoid having children half expanded.
+        break;
+      }
+      for (const child of children) {
+        const key = FrameProvider.getKey(child);
+        const nodePath = TreeViewClass.subPath(path, key);
+        expandedNodes.add(nodePath);
+        if (level < maxLevel) {
+          queue.push({
+            object: child,
+            level: level + 1,
+            path: nodePath,
+          });
+        }
+      }
+    }
+    return expandedNodes;
+  }
+
   constructor(props) {
     super(props);
-    this.state = {};
+
+    this.state = {
+      expandedNodes: this.expandTree(),
+    };
+
     this.onKeyPress = this.onKeyPress.bind(this);
     this.onFilter = this.onFilter.bind(this);
     this.renderValue = this.renderValue.bind(this);
@@ -123,7 +173,25 @@ class FrameTreePanel extends Component {
     document.addEventListener("keypress", this.onKeyPress, true);
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (this.props.frameTree != nextProps.frameTree) {
+      this.setState({
+        expandedNodes: this.expandTree(),
+      });
+    }
+    if (this.props.pickedFrameID != nextProps.pickedFrameID) {
+      const pickedFramePtr = nextProps.pickedFrameID.toString(16);
+      dump(`Frame: ${pickedFramePtr}\n`);
+      const pickedFrameRow = this.tree.rows.find(row => {
+        return row.props.member.object.ptr == pickedFramePtr;
+      });
+      this.tree.selectRow(pickedFrameRow);
+    }
+  }
+
   componentWillUnmount() {
+    this.tree = null;
+
     document.removeEventListener("keypress", this.onKeyPress, true);
   }
 
@@ -138,6 +206,17 @@ class FrameTreePanel extends Component {
 
     const json = object.name + JSON.stringify(object.value);
     return json.toLowerCase().includes(this.props.searchFilter.toLowerCase());
+  }
+
+  expandTree() {
+    const {
+      frameTree,
+    } = this.props;
+
+    return FrameTreePanel.getExpandedNodes(
+      frameTree,
+      { maxLevel: AUTO_EXPAND_MAX_LEVEL }
+    );
   }
 
   renderValue(props) {
@@ -157,6 +236,13 @@ class FrameTreePanel extends Component {
   }
 
   renderTree() {
+    const {
+      frameTree,
+    } = this.props;
+    const {
+      expandedNodes,
+    } = this.state;
+
     // Append custom column for displaying values. This column
     // Take all available horizontal space.
     const columns = [{
@@ -166,13 +252,14 @@ class FrameTreePanel extends Component {
 
     // Render tree component.
     return TreeView({
-      object: this.props.frameTree,
+      ref: tree => (this.tree = tree),
+      object: frameTree,
       provider: FrameProvider,
       mode: MODE.TINY,
       onFilter: this.onFilter,
       columns: columns,
       renderValue: this.renderValue,
-      expandedNodes: this.props.expandedNodes,
+      expandedNodes,
     });
   }
 

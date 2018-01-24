@@ -4,10 +4,16 @@
 
 "use strict";
 
-const { generateActorSpec, RetVal } = require("devtools/shared/protocol");
+const { generateActorSpec, Arg, RetVal } = require("devtools/shared/protocol");
 
 const layoutFrameInspectorSpec = generateActorSpec({
   typeName: "layoutFrameInspector",
+
+  events: {
+    "frame-picked": {
+      frameID: Arg(0, "number"),
+    },
+  },
 
   methods: {
     getFrameTree: {
@@ -19,7 +25,7 @@ const layoutFrameInspectorSpec = generateActorSpec({
     getHighlighter: {
       request: {},
       response: {
-        highligter: RetVal("highlighter"),
+        highlighter: RetVal("highlighter"),
       },
     },
   },
