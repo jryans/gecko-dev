@@ -15,6 +15,7 @@ class App extends PureComponent {
     return {
       frameTree: PropTypes.object,
       pickedFrameID: PropTypes.number,
+      onFrameSelect: PropTypes.func,
     };
   }
 
@@ -22,6 +23,7 @@ class App extends PureComponent {
     const {
       frameTree,
       pickedFrameID,
+      onFrameSelect,
     } = this.props;
 
     return dom.div(
@@ -31,6 +33,7 @@ class App extends PureComponent {
       FrameTreePanel({
         frameTree,
         pickedFrameID,
+        onFrameSelect,
       })
     );
   }

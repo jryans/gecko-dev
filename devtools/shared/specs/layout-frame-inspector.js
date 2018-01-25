@@ -10,7 +10,7 @@ const layoutFrameInspectorSpec = generateActorSpec({
   typeName: "layoutFrameInspector",
 
   events: {
-    "frame-picked": {
+    "frame-pick": {
       frameID: Arg(0, "number"),
     },
   },

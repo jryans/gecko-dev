@@ -60,7 +60,7 @@ const LayoutFrameInspectorActor = ActorClassWithSpec(layoutFrameInspectorSpec, {
         // jryans: Part of the faux walker.
         switch (type) {
           case "picker-node-picked":
-            this.emit("frame-picked", data.node.rawNode);
+            this.emit("frame-pick", data.node.rawNode);
             break;
         }
       },
@@ -101,6 +101,11 @@ const layoutFrameHighlighterActorProto = Object.assign({}, highlighterActorProto
       this._highlighter.destroy();
       this._highlighter = null;
     }
+  },
+
+  // jryans: Total hack, do something better here...
+  show(frameID) {
+    this._highlighter.show(frameID);
   },
 });
 

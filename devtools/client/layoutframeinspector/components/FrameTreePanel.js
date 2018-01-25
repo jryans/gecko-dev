@@ -146,7 +146,7 @@ class FrameTreePanel extends Component {
       frameTree: PropTypes.object,
       pickedFrameID: PropTypes.number,
       searchFilter: PropTypes.string,
-      actions: PropTypes.object,
+      onFrameSelect: PropTypes.func,
     };
   }
 
@@ -202,6 +202,7 @@ class FrameTreePanel extends Component {
 
     this.onKeyPress = this.onKeyPress.bind(this);
     this.onFilter = this.onFilter.bind(this);
+    this.onRowSelect = this.onRowSelect.bind(this);
     this.renderValue = this.renderValue.bind(this);
     this.renderTree = this.renderTree.bind(this);
   }
@@ -245,6 +246,14 @@ class FrameTreePanel extends Component {
     return json.toLowerCase().includes(this.props.searchFilter.toLowerCase());
   }
 
+  onRowSelect(row) {
+    const {
+      onFrameSelect,
+    } = this.props;
+
+    onFrameSelect(parseInt(row.props.member.object.ptr, 16));
+  }
+
   expandTree() {
     const {
       frameTree,
@@ -279,6 +288,11 @@ class FrameTreePanel extends Component {
     const {
       expandedNodes,
     } = this.state;
+    const {
+      renderValue,
+      onFilter,
+      onRowSelect,
+    } = this;
 
     // Append custom column for displaying values. This column
     // Take all available horizontal space.
@@ -293,9 +307,10 @@ class FrameTreePanel extends Component {
       object: frameTree,
       provider: FrameProvider,
       mode: MODE.TINY,
-      onFilter: this.onFilter,
-      columns: columns,
-      renderValue: this.renderValue,
+      onFilter,
+      onSelect: onRowSelect,
+      columns,
+      renderValue,
       expandedNodes,
     });
   }
@@ -309,7 +324,6 @@ class FrameTreePanel extends Component {
           className: "tab-panel-inner",
         },
         JsonToolbar({
-          actions: this.props.actions,
         }),
         dom.div(
           {

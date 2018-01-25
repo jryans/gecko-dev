@@ -117,6 +117,8 @@ define(function(require, exports, module) {
         onSort: PropTypes.func,
         // Custom row click callback
         onClickRow: PropTypes.func,
+        // Custom selection callback
+        onSelect: PropTypes.func,
         // A header is displayed if set to true
         header: PropTypes.bool,
         // Long string is expandable by a toggle button
@@ -314,7 +316,7 @@ define(function(require, exports, module) {
       event.preventDefault();
     }
 
-    onClickRow(nodePath, event) {
+    onClickRow(event, nodePath, row) {
       const onClickRow = this.props.onClickRow;
 
       if (onClickRow) {
@@ -327,7 +329,7 @@ define(function(require, exports, module) {
       if (cell && cell.classList.contains("treeLabelCell")) {
         this.toggle(nodePath);
       }
-      this.selectRow(event.currentTarget);
+      this.selectRow(row);
     }
 
     getSelectedRow() {
@@ -348,6 +350,7 @@ define(function(require, exports, module) {
     }
 
     selectRow(row, scrollOptions = {block: "nearest"}) {
+      this.props.onSelect(row);
       row = findDOMNode(row);
 
       if (this.state.selected === row.id) {
@@ -473,13 +476,20 @@ define(function(require, exports, module) {
           renderRow = decorator.renderRow(member.object) || renderRow;
         }
 
+        let row;
+
         const props = Object.assign({}, this.props, {
           key: member.path,
           member: member,
           columns: this.state.columns,
           id: member.path,
-          ref: row => row && this.rows.push(row),
-          onClick: this.onClickRow.bind(this, member.path),
+          ref: r => {
+            row = r;
+            r && this.rows.push(r);
+          },
+          onClick: event => {
+            this.onClickRow(event, member.path, row);
+          },
         });
 
         // Render single row.

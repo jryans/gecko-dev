@@ -27,19 +27,20 @@ window.require = require;
 
 const bootstrap = {
   async init(rootGrip) {
-    this.onPickedFrame = this.onPickedFrame.bind(this);
+    this.onFramePick = this.onFramePick.bind(this);
+    this.onFrameSelect = this.onFrameSelect.bind(this);
 
     this.root = document.querySelector("#root");
     this.frameTree = JSON.parse(await LFIProvider.getFrameTree());
     this.highlighter = await LFIProvider.getHighlighter();
-    LFIProvider.on("frame-picked", this.onPickedFrame);
+    LFIProvider.on("frame-pick", this.onFramePick);
     this.highlighter.pick();
     this.render();
   },
 
   // jryans: Call this somewhere...
   destroy() {
-    LFIProvider.off("frame-picked", this.onPickedFrame);
+    LFIProvider.off("frame-pick", this.onFramePick);
     this.frameTree = null;
     this.highlighter = null;
   },
@@ -53,20 +54,26 @@ const bootstrap = {
     }
   },
 
-  onPickedFrame(frameID) {
+  onFramePick(frameID) {
     this.pickedFrameID = frameID;
     this.render();
+  },
+
+  onFrameSelect(frameID) {
+    this.highlighter.show(frameID);
   },
 
   render() {
     const {
       frameTree,
       pickedFrameID,
+      onFrameSelect,
     } = this;
 
     const app = createElement(App, {
       frameTree,
       pickedFrameID,
+      onFrameSelect,
     });
     ReactDOM.render(app, this.root);
   },

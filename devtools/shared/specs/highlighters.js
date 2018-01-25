@@ -30,6 +30,13 @@ const highlighterSpec = generateActorSpec({
     pick: {},
     pickAndFocus: {},
     cancelPick: {},
+
+    // jryans: Total hack, do something better here...
+    show: {
+      request: {
+        frameID: Arg(0, "number"),
+      },
+    },
   },
 });
 
