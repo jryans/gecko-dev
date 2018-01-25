@@ -7,11 +7,9 @@
 const { createFactory, Component } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-const { createFactories } = require("devtools/client/shared/react-utils");
 
 const TreeViewClass = require("devtools/client/shared/components/tree/TreeView");
 const TreeView = createFactory(TreeViewClass);
-const { JsonToolbar } = createFactories(require("devtools/client/jsonview/components/JsonToolbar"));
 
 const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
 const { Rep } = REPS;
@@ -323,8 +321,7 @@ class FrameTreePanel extends Component {
         {
           className: "tab-panel-inner",
         },
-        JsonToolbar({
-        }),
+        // JsonToolbar({}),
         dom.div(
           {
             className: "panelContent",
