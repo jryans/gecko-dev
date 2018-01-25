@@ -28,7 +28,7 @@ function isObject(value) {
  */
 const FrameProvider = {
   getChildren(node) {
-    if (node instanceof FrameNode) {
+    if (node instanceof FrameNode || node instanceof FrameChildList) {
       return node.children;
     }
     // Base case for the root of the frame tree
@@ -36,32 +36,32 @@ const FrameProvider = {
   },
 
   hasChildren(node) {
-    if (node instanceof FrameNode) {
-      return node.children.length;
+    if (node instanceof FrameNode || node instanceof FrameChildList) {
+      return !!node.children.length;
     }
     // Base case for the root of the frame tree
-    return 1;
+    return true;
   },
 
   getLabel(node) {
-    if (!(node instanceof FrameNode)) {
+    if (!(node instanceof FrameNode || node instanceof FrameChildList)) {
       throw new Error(`Should be a FrameNode, but was not: ${node}`);
     }
     return node.name;
   },
 
   getValue(node) {
-    if (!(node instanceof FrameNode)) {
+    if (!(node instanceof FrameNode || node instanceof FrameChildList)) {
       throw new Error(`Should be a FrameNode, but was not: ${node}`);
     }
     return node;
   },
 
   getKey(node) {
-    if (!(node instanceof FrameNode)) {
+    if (!(node instanceof FrameNode || node instanceof FrameChildList)) {
       throw new Error(`Should be a FrameNode, but was not: ${node}`);
     }
-    return node.name;
+    return node.key;
   },
 
   getType(node) {
@@ -81,21 +81,58 @@ class FrameNode {
     if (!data.name) {
       throw new Error(`Invalid data for FrameNode: ${data}`);
     }
+
     Object.assign(this, data);
     // `childLists` only present on container frames
     this.childLists = this.childLists || [];
+
+    // `name` alone is not unique
+    this.key = `${this.name}@${this.ptr}`;
   }
 
   get children() {
     if (this._children) {
       return this._children;
     }
-    const children = [];
+    let children = [];
     for (const list of this.childLists) {
+      if (list.name !== "") {
+        console.log(`Node ${this.name} has non-primary list ${list.name}`);
+      }
       // Each "child list" has its own name, but for now just collapse them all down.
-      Array.prototype.push.apply(children, list.children);
+      children = children.concat(list.children);
     }
     this._children = children.map(child => new FrameNode(child));
+    // jryans: Maybe show non-primary lists later.
+    // this._children = this.childLists.map(list => new FrameChildList(list));
+    return this._children;
+  }
+}
+
+/**
+ * FrameChildList should have _at least_ the following properties:
+ *   - `name` {string}
+ *   - `children` {array} array of child frames
+ */
+class FrameChildList {
+  constructor(data) {
+    // The primary list's name is an empty string
+    if (data.name === undefined) {
+      throw new Error(`Invalid data for FrameChildList: ${data}`);
+    }
+
+    this.name = data.name || "primary";
+    this.ptr = data.ptr;
+    this.__children = data.children || [];
+
+    this.key = this.name;
+  }
+
+  get children() {
+    if (this._children) {
+      return this._children;
+    }
+    this._children = this.__children.map(child => new FrameNode(child));
     return this._children;
   }
 }
