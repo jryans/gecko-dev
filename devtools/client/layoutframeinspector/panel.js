@@ -186,6 +186,17 @@ LayoutFrameInspectorPanel.prototype = {
   get target() {
     return this._toolbox.target;
   },
+
+  // Picker
+
+  async togglePicker(focus) {
+    const highlighter = await this.getHighlighter();
+    highlighter.pick();
+  },
+
+  cancelPicker() {
+    // Seems like actor handles this...?
+  },
 };
 
 // Helpers
