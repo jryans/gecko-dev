@@ -580,6 +580,13 @@ bool GeckoChildProcessHost::PerformAsyncLaunch(
         ENVIRONMENT_STRING(childRustLog);
   }
 
+  // `GECKO_BLOCK_DEBUG_FLAGS_CHILD` is meant for child processes only.
+  nsAutoCString childBlockDebug(PR_GetEnv("GECKO_BLOCK_DEBUG_FLAGS_CHILD"));
+  if (!childBlockDebug.IsEmpty()) {
+    mLaunchOptions->env_map[ENVIRONMENT_LITERAL("GECKO_BLOCK_DEBUG_FLAGS")] =
+        ENVIRONMENT_STRING(childBlockDebug);
+  }
+
 #if defined(XP_LINUX) && defined(MOZ_CONTENT_SANDBOX)
   if (!mTmpDirName.IsEmpty()) {
     // Point a bunch of things that might want to write from content to our
