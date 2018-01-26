@@ -195,7 +195,7 @@ class FrameTreePanel extends Component {
     super(props);
 
     this.state = {
-      expandedNodes: this.expandTree(),
+      expandedNodes: this.expandTree(props.frameTree),
     };
 
     this.onKeyPress = this.onKeyPress.bind(this);
@@ -212,7 +212,7 @@ class FrameTreePanel extends Component {
   componentWillReceiveProps(nextProps) {
     if (this.props.frameTree != nextProps.frameTree) {
       this.setState({
-        expandedNodes: this.expandTree(),
+        expandedNodes: this.expandTree(nextProps.frameTree),
       });
     }
     if (this.props.pickedFrameID != nextProps.pickedFrameID) {
@@ -252,11 +252,7 @@ class FrameTreePanel extends Component {
     onFrameSelect(parseInt(row.props.member.object.ptr, 16));
   }
 
-  expandTree() {
-    const {
-      frameTree,
-    } = this.props;
-
+  expandTree(frameTree) {
     return FrameTreePanel.getExpandedNodes(
       frameTree,
       { maxLevel: AUTO_EXPAND_MAX_LEVEL }

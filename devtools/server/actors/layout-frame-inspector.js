@@ -10,6 +10,7 @@ const { highlighterSpec } = require("devtools/shared/specs/highlighters");
 const { highlighterActorProto } = require("devtools/server/actors/highlighters");
 
 loader.lazyRequireGetter(this, "utilsFor", "devtools/shared/layout/utils", true);
+loader.lazyRequireGetter(this, "isXUL", "devtools/server/actors/highlighters/utils/markup", true);
 
 /**
  * The layout frame inspector actor provides access to the layout frame tree.
@@ -93,6 +94,7 @@ const layoutFrameHighlighterActorProto = Object.assign({}, highlighterActorProto
   },
 
   _createHighlighter() {
+    this._isPreviousWindowXUL = isXUL(this._tabActor.window);
     this._highlighter = new LayoutFrameHighlighter(this._highlighterEnv);
   },
 
@@ -101,6 +103,20 @@ const layoutFrameHighlighterActorProto = Object.assign({}, highlighterActorProto
       this._highlighter.destroy();
       this._highlighter = null;
     }
+  },
+
+  _onNavigate: function({ isTopLevel }) {
+    // Skip navigation events for non top-level windows, or if the document
+    // doesn't exist anymore.
+    if (!isTopLevel || !this._tabActor.window.document.documentElement) {
+      return;
+    }
+
+    if (this._highlighter) {
+      this._highlighter.onNavigate();
+    }
+
+    highlighterActorProto._onNavigate.call(this, { isTopLevel });
   },
 
   // jryans: Total hack, do something better here...
@@ -151,6 +167,11 @@ class LayoutFrameHighlighter {
       return;
     }
     this.winUtils.setShowFrameHighlighter(this.currentFrameID, false);
+    this.currentFrameID = null;
+  }
+
+  onNavigate() {
+    // After navigation, the frame ID is invalid, so just forget it.
     this.currentFrameID = null;
   }
 }
