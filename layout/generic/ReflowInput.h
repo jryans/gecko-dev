@@ -341,30 +341,31 @@ struct SizeComputationInput {
 
 #ifdef DEBUG_FRAME_DUMP
 #define RI_SETTER(sizeName)                                                   \
-  void Set##sizeName(nscoord value, const char* func, const char* file,       \
-                     uint32_t line) {                                         \
+  void Set##sizeName(nscoord value, const char* reason, const char* func,     \
+                     const char* file, uint32_t line) {                       \
     nscoord& size = _##sizeName();                                            \
     if (XRE_IsContentProcess()) {                                             \
       nsAutoString frameName;                                                 \
       mFrame->GetFrameName(frameName);                                        \
-      printf("%s: Set" #sizeName " from %i to %i at %s#%s:%u\n",              \
+      printf("%s: Set" #sizeName " from %i to %i at %s#%s:%u (%s)\n",         \
              NS_ConvertUTF16toUTF8(frameName).get(), size, value, func, file, \
-             line);                                                           \
+             line, reason);                                                   \
     }                                                                         \
     size = value;                                                             \
   }
-#define RI_SET_ComputedWidth(value) \
-  SetComputedWidth((value), __func__, __FILE__, __LINE__)
-#define RI_SET_AvailableISize(value) \
-  SetAvailableISize((value), __func__, __FILE__, __LINE__)
-#define RI_SET_ComputedISize(value) \
-  SetComputedISize((value), __func__, __FILE__, __LINE__)
+#define RI_SET_ComputedWidth(value, reason) \
+  SetComputedWidth((value), (reason), __func__, __FILE__, __LINE__)
+#define RI_SET_AvailableISize(value, reason) \
+  SetAvailableISize((value), (reason), __func__, __FILE__, __LINE__)
+#define RI_SET_ComputedISize(value, reason) \
+  SetComputedISize((value), (reason), __func__, __FILE__, __LINE__)
 #else
 #define RI_SETTER(sizeName) \
   void Set##sizeName(nscoord value) { _##sizeName() = value; }
-#define RI_SET_ComputedWidth(value) SetComputedWidth((value))
-#define RI_SET_AvailableISize(value) SetAvailableISize((value))
-#define RI_SET_ComputedISize(value) SetComputedISize((value))
+#define RI_SET_ComputedWidth(value, reason) SetComputedWidth((value), (reason))
+#define RI_SET_AvailableISize(value, reason) \
+  SetAvailableISize((value), (reason))
+#define RI_SET_ComputedISize(value, reason) SetComputedISize((value), (reason))
 #endif
 
 /**

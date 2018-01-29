@@ -827,7 +827,8 @@ void nsLineLayout::ReflowFrame(nsIFrame* aFrame, nsReflowStatus& aReflowStatus,
     reflowInput.mLineLayout = this;
     reflowInput.mFlags.mIsTopOfPage = mIsTopOfPage;
     if (reflowInput.ComputedISize() == NS_UNCONSTRAINEDSIZE) {
-      reflowInput.RI_SET_AvailableISize(availableSpaceOnLine);
+      reflowInput.RI_SET_AvailableISize(availableSpaceOnLine,
+                                        "Not text, use space on the line");
     }
     WritingMode stateWM = reflowInput.GetWritingMode();
     pfd->mMargin =
@@ -1138,7 +1139,8 @@ void nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
     WritingMode wm = aReflowInput.GetWritingMode();
     aReflowInput.RI_SET_AvailableISize(
         aReflowInput.AvailableISize() -
-        pfd->mMargin.ConvertTo(wm, lineWM).IStart(wm));
+            pfd->mMargin.ConvertTo(wm, lineWM).IStart(wm),
+        "Subtract start margin");
   }
 }
 
