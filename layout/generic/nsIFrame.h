@@ -124,6 +124,26 @@ class Selection;
 
 //----------------------------------------------------------------------
 
+#ifdef DEBUG_FRAME_DUMP
+#define F_LOG(name, value, reason) \
+  F_LOG_2(name, value, reason, __func__, __FILE__, __LINE__)
+#define F_LOG_2(name, value, reason, func, file, line)                        \
+  {                                                                           \
+    if (XRE_IsContentProcess()) {                                             \
+      nsAutoString frameName;                                                 \
+      GetFrameName(frameName);                                                \
+      const char* basename = strrchr((file), '/') + 1;                        \
+      printf("%s: %s is %i at %s#%s:%u (%s)\n",                               \
+             NS_ConvertUTF16toUTF8(frameName).get(), (name), (value), (func), \
+             basename, (line), (reason));                                     \
+    }                                                                         \
+  }
+#else
+#define F_LOG(name, value, reason)
+#endif
+
+//----------------------------------------------------------------------
+
 #define NS_SUBTREE_DIRTY(_frame) \
   (((_frame)->GetStateBits() &   \
     (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) != 0)

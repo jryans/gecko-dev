@@ -5257,6 +5257,7 @@ LogicalSize nsFrame::ComputeSize(gfxContext* aRenderingContext, WritingMode aWM,
   LogicalSize result =
       ComputeAutoSize(aRenderingContext, aWM, aCBSize, aAvailableISize, aMargin,
                       aBorder, aPadding, aFlags);
+  F_LOG("auto I size", result.ISize(aWM), "from ComputeAutoSize")
   const nsStylePosition* stylePos = StylePosition();
 
   LogicalSize boxSizingAdjust(aWM);
@@ -5340,6 +5341,7 @@ LogicalSize nsFrame::ComputeSize(gfxContext* aRenderingContext, WritingMode aWM,
     result.ISize(aWM) = ComputeISizeValue(
         aRenderingContext, aCBSize.ISize(aWM), boxSizingAdjust.ISize(aWM),
         boxSizingToMarginEdgeISize, *inlineStyleCoord, aFlags);
+    F_LOG("non-auto I size", result.ISize(aWM), "from Frame::ComputeISizeValue")
   } else if (MOZ_UNLIKELY(isGridItem) && !IS_TRUE_OVERFLOW_CONTAINER(this)) {
     // 'auto' inline-size for grid-level box - fill the CB for 'stretch' /
     // 'normal' and clamp it to the CB if requested:
@@ -5373,6 +5375,7 @@ LogicalSize nsFrame::ComputeSize(gfxContext* aRenderingContext, WritingMode aWM,
     maxISize = ComputeISizeValue(
         aRenderingContext, aCBSize.ISize(aWM), boxSizingAdjust.ISize(aWM),
         boxSizingToMarginEdgeISize, maxISizeCoord, aFlags);
+    F_LOG("max I size", result.ISize(aWM), "from Frame::ComputeISizeValue")
     result.ISize(aWM) = std::min(maxISize, result.ISize(aWM));
   }
 
@@ -5383,6 +5386,7 @@ LogicalSize nsFrame::ComputeSize(gfxContext* aRenderingContext, WritingMode aWM,
     minISize = ComputeISizeValue(
         aRenderingContext, aCBSize.ISize(aWM), boxSizingAdjust.ISize(aWM),
         boxSizingToMarginEdgeISize, minISizeCoord, aFlags);
+    F_LOG("min I size", result.ISize(aWM), "from Frame::ComputeISizeValue")
   } else if (MOZ_UNLIKELY(aFlags & eIApplyAutoMinSize)) {
     // This implements "Implied Minimum Size of Grid Items".
     // https://drafts.csswg.org/css-grid/#min-size-auto

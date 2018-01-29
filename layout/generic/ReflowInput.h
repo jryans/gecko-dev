@@ -348,7 +348,7 @@ struct SizeComputationInput {
       nsAutoString frameName;                                                 \
       mFrame->GetFrameName(frameName);                                        \
       file = strrchr(file, '/') + 1;                                          \
-      printf("%s: Set" #sizeName " from %i to %i at %s#%s:%u (%s)\n",         \
+      printf("%s: Set " #sizeName " from %i to %i at %s#%s:%u (%s)\n",        \
              NS_ConvertUTF16toUTF8(frameName).get(), size, value, func, file, \
              line, reason);                                                   \
     }                                                                         \
