@@ -11,14 +11,9 @@ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const TreeViewClass = require("devtools/client/shared/components/tree/TreeView");
 const TreeView = createFactory(TreeViewClass);
 
-const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
-const { Rep } = REPS;
+const { MODE } = require("devtools/client/shared/components/reps/reps");
 
 const AUTO_EXPAND_MAX_LEVEL = 10;
-
-function isObject(value) {
-  return Object(value) === value;
-}
 
 /**
  * A provider that converts the raw JSON of the frame dump to the tree of frame nodes we
@@ -201,7 +196,6 @@ class FrameTreePanel extends Component {
     this.onKeyPress = this.onKeyPress.bind(this);
     this.onFilter = this.onFilter.bind(this);
     this.onRowSelect = this.onRowSelect.bind(this);
-    this.renderValue = this.renderValue.bind(this);
     this.renderTree = this.renderTree.bind(this);
   }
 
@@ -259,22 +253,6 @@ class FrameTreePanel extends Component {
     );
   }
 
-  renderValue(props) {
-    const member = props.member;
-
-    // Hide object summary when non-empty object is expanded (bug 1244912).
-    if (isObject(member.value) && member.hasChildren && member.open) {
-      return null;
-    }
-
-    // Render the value (summary) using Reps library.
-    return Rep(Object.assign({}, props, {
-      cropLimit: 50,
-      noGrip: true,
-      omitLinkHref: false,
-    }));
-  }
-
   renderTree() {
     const {
       frameTree,
@@ -283,17 +261,9 @@ class FrameTreePanel extends Component {
       expandedNodes,
     } = this.state;
     const {
-      renderValue,
       onFilter,
       onRowSelect,
     } = this;
-
-    // Append custom column for displaying values. This column
-    // Take all available horizontal space.
-    const columns = [{
-      id: "value",
-      width: "100%",
-    }];
 
     // Render tree component.
     return TreeView({
@@ -303,8 +273,6 @@ class FrameTreePanel extends Component {
       mode: MODE.TINY,
       onFilter,
       onSelect: onRowSelect,
-      columns,
-      renderValue,
       expandedNodes,
     });
   }

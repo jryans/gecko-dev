@@ -12,3 +12,7 @@ body {
 #content {
   margin: 5px;
 }
+
+.treeTable .treeLabelCell::after {
+  display: none;
+}
