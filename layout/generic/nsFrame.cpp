@@ -6017,6 +6017,7 @@ nscoord nsIFrame::ComputeISizeValue(gfxContext* aRenderingContext,
   MOZ_ASSERT(aContainingBlockISize >= 0, "inline-size less than zero");
 
   nscoord result;
+  F_LOG("is coord / percent / calc?", aCoord.IsCoordPercentCalcUnit(), "")
   if (aCoord.IsCoordPercentCalcUnit()) {
     result = aCoord.ComputeCoordPercentCalc(aContainingBlockISize);
     // The result of a calc() expression might be less than 0; we
@@ -6033,6 +6034,7 @@ nscoord nsIFrame::ComputeISizeValue(gfxContext* aRenderingContext,
     switch (val) {
       case NS_STYLE_WIDTH_MAX_CONTENT:
         result = GetPrefISize(aRenderingContext);
+        F_LOG("I size value", result, "max content")
         NS_ASSERTION(result >= 0, "inline-size less than zero");
         break;
       case NS_STYLE_WIDTH_MIN_CONTENT:
@@ -6043,6 +6045,7 @@ nscoord nsIFrame::ComputeISizeValue(gfxContext* aRenderingContext,
                            (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing);
           result = std::min(available, result);
         }
+        F_LOG("I size value", result, "min content")
         break;
       case NS_STYLE_WIDTH_FIT_CONTENT: {
         nscoord pref = GetPrefISize(aRenderingContext),
@@ -6054,10 +6057,12 @@ nscoord nsIFrame::ComputeISizeValue(gfxContext* aRenderingContext,
         }
         result = std::max(min, std::min(pref, fill));
         NS_ASSERTION(result >= 0, "inline-size less than zero");
+        F_LOG("I size value", result, "fit content")
       } break;
       case NS_STYLE_WIDTH_AVAILABLE:
         result = aContainingBlockISize -
                  (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing);
+        F_LOG("I size value", result, "available")
     }
   }
 
