@@ -72,7 +72,7 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext, nsIFrame* aFrame,
   MOZ_ASSERT(aFrame, "no frame");
   MOZ_ASSERT(aPresContext == aFrame->PresContext(), "wrong pres context");
   mParentReflowInput = nullptr;
-  AvailableISize() = aAvailableSpace.ISize(mWritingMode);
+  RI_SET_AvailableISize(aAvailableSpace.ISize(mWritingMode));
   AvailableBSize() = aAvailableSpace.BSize(mWritingMode);
   mFloatManager = nullptr;
   mLineLayout = nullptr;
@@ -192,7 +192,7 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
 
   mParentReflowInput = &aParentReflowInput;
 
-  AvailableISize() = aAvailableSpace.ISize(mWritingMode);
+  RI_SET_AvailableISize(aAvailableSpace.ISize(mWritingMode));
   AvailableBSize() = aAvailableSpace.BSize(mWritingMode);
 
   if (mWritingMode.IsOrthogonalTo(aParentReflowInput.GetWritingMode())) {
@@ -201,7 +201,7 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
     // in preference to leaving it unconstrained.
     if (AvailableISize() == NS_UNCONSTRAINEDSIZE &&
         aParentReflowInput.ComputedBSize() != NS_UNCONSTRAINEDSIZE) {
-      AvailableISize() = aParentReflowInput.ComputedBSize();
+      RI_SET_AvailableISize(aParentReflowInput.ComputedBSize());
     }
   }
 
@@ -298,7 +298,7 @@ void ReflowInput::SetComputedWidth(nscoord aComputedWidth) {
 
   MOZ_ASSERT(aComputedWidth >= 0, "Invalid computed width");
   if (ComputedWidth() != aComputedWidth) {
-    ComputedWidth() = aComputedWidth;
+    RI_SET_ComputedWidth(aComputedWidth);
     LayoutFrameType frameType = mFrame->Type();
     if (frameType != LayoutFrameType::Viewport ||  // Or check GetParent()?
         mWritingMode.IsVertical()) {
@@ -364,7 +364,7 @@ void ReflowInput::Init(nsPresContext* aPresContext,
          parent = parent->mParentReflowInput) {
       if (parent->GetWritingMode().IsOrthogonalTo(mWritingMode) &&
           parent->mOrthogonalLimit != NS_UNCONSTRAINEDSIZE) {
-        AvailableISize() = parent->mOrthogonalLimit;
+        RI_SET_AvailableISize(parent->mOrthogonalLimit);
         break;
       }
     }
@@ -389,7 +389,8 @@ void ReflowInput::Init(nsPresContext* aPresContext,
   if (type == mozilla::LayoutFrameType::Placeholder) {
     // Placeholders have a no-op Reflow method that doesn't need the rest of
     // this initialization, so we bail out early.
-    ComputedBSize() = ComputedISize() = 0;
+    ComputedBSize() = 0;
+    RI_SET_ComputedISize(0);
     return;
   }
 
@@ -464,7 +465,7 @@ void ReflowInput::Init(nsPresContext* aPresContext,
     // columns in the container's block direction
     if (type == LayoutFrameType::ColumnSet &&
         eStyleUnit_Auto == mStylePosition->ISize(mWritingMode).GetUnit()) {
-      ComputedISize() = NS_UNCONSTRAINEDSIZE;
+      RI_SET_ComputedISize(NS_UNCONSTRAINEDSIZE);
     } else {
       AvailableBSize() = NS_UNCONSTRAINEDSIZE;
     }
@@ -1765,7 +1766,7 @@ void ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
         ComputedLogicalBorderPadding().Size(wm) -
             ComputedLogicalPadding().Size(wm),
         ComputedLogicalPadding().Size(wm), computeSizeFlags);
-    ComputedISize() = computedSize.ISize(wm);
+    RI_SET_ComputedISize(computedSize.ISize(wm));
     ComputedBSize() = computedSize.BSize(wm);
     NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
     NS_ASSERTION(
@@ -1971,7 +1972,7 @@ void ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
     }
   }
   ComputedBSize() = computedSize.ConvertTo(wm, cbwm).BSize(wm);
-  ComputedISize() = computedSize.ConvertTo(wm, cbwm).ISize(wm);
+  RI_SET_ComputedISize(computedSize.ConvertTo(wm, cbwm).ISize(wm));
 
   SetComputedLogicalOffsets(offsets.ConvertTo(wm, cbwm));
 
@@ -2222,10 +2223,10 @@ void ReflowInput::InitConstraints(nsPresContext* aPresContext,
     ComputedPhysicalMargin().SizeTo(0, 0, 0, 0);
     ComputedPhysicalOffsets().SizeTo(0, 0, 0, 0);
 
-    ComputedISize() =
-        AvailableISize() - ComputedLogicalBorderPadding().IStartEnd(wm);
+    RI_SET_ComputedISize(AvailableISize() -
+                         ComputedLogicalBorderPadding().IStartEnd(wm));
     if (ComputedISize() < 0) {
-      ComputedISize() = 0;
+      RI_SET_ComputedISize(0);
     }
     if (AvailableBSize() != NS_UNCONSTRAINEDSIZE) {
       ComputedBSize() =
@@ -2363,21 +2364,22 @@ void ReflowInput::InitConstraints(nsPresContext* aPresContext,
       // calc() with percentages acts like auto on internal table elements
       if (eStyleUnit_Auto == inlineSizeUnit ||
           (inlineSize.IsCalcUnit() && inlineSize.CalcHasPercent())) {
-        ComputedISize() = AvailableISize();
+        RI_SET_ComputedISize(AvailableISize());
 
         if ((ComputedISize() != NS_UNCONSTRAINEDSIZE) && !rowOrRowGroup) {
           // Internal table elements don't have margins. Only tables and
           // cells have border and padding
-          ComputedISize() -= ComputedLogicalBorderPadding().IStartEnd(wm);
-          if (ComputedISize() < 0) ComputedISize() = 0;
+          RI_SET_ComputedISize(ComputedISize() -
+                               ComputedLogicalBorderPadding().IStartEnd(wm));
+          if (ComputedISize() < 0) RI_SET_ComputedISize(0);
         }
         NS_ASSERTION(ComputedISize() >= 0, "Bogus computed isize");
 
       } else {
         NS_ASSERTION(inlineSizeUnit == inlineSize.GetUnit(),
                      "unexpected inline size unit change");
-        ComputedISize() = ComputeISizeValue(
-            cbSize.ISize(wm), mStylePosition->mBoxSizing, inlineSize);
+        RI_SET_ComputedISize(ComputeISizeValue(
+            cbSize.ISize(wm), mStylePosition->mBoxSizing, inlineSize));
       }
 
       // Calculate the computed block size
@@ -2502,7 +2504,7 @@ void ReflowInput::InitConstraints(nsPresContext* aPresContext,
               ComputedLogicalPadding().Size(wm),
           ComputedLogicalPadding().Size(wm), computeSizeFlags);
 
-      ComputedISize() = size.ISize(wm);
+      RI_SET_ComputedISize(size.ISize(wm));
       ComputedBSize() = size.BSize(wm);
       NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
       NS_ASSERTION(

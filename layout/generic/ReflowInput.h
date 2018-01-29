@@ -339,6 +339,34 @@ struct SizeComputationInput {
                             const nsStyleCoord& aCoord) const;
 };
 
+#ifdef DEBUG_FRAME_DUMP
+#define RI_SETTER(sizeName)                                                   \
+  void Set##sizeName(nscoord value, const char* func, const char* file,       \
+                     uint32_t line) {                                         \
+    nscoord& size = _##sizeName();                                            \
+    if (XRE_IsContentProcess()) {                                             \
+      nsAutoString frameName;                                                 \
+      mFrame->GetFrameName(frameName);                                        \
+      printf("%s: Set" #sizeName " from %i to %i at %s#%s:%u\n",              \
+             NS_ConvertUTF16toUTF8(frameName).get(), size, value, func, file, \
+             line);                                                           \
+    }                                                                         \
+    size = value;                                                             \
+  }
+#define RI_SET_ComputedWidth(value) \
+  SetComputedWidth((value), __func__, __FILE__, __LINE__)
+#define RI_SET_AvailableISize(value) \
+  SetAvailableISize((value), __func__, __FILE__, __LINE__)
+#define RI_SET_ComputedISize(value) \
+  SetComputedISize((value), __func__, __FILE__, __LINE__)
+#else
+#define RI_SETTER(sizeName) \
+  void Set##sizeName(nscoord value) { _##sizeName() = value; }
+#define RI_SET_ComputedWidth(value) SetComputedWidth((value))
+#define RI_SET_AvailableISize(value) SetAvailableISize((value))
+#define RI_SET_ComputedISize(value) SetComputedISize((value))
+#endif
+
 /**
  * State passed to a frame during reflow or intrinsic size calculation.
  *
@@ -401,9 +429,10 @@ struct ReflowInput : public SizeComputationInput {
   nscoord ComputedMinHeight() const { return mComputedMinHeight; }
   nscoord ComputedMaxHeight() const { return mComputedMaxHeight; }
 
-  nscoord& AvailableWidth() { return mAvailableWidth; }
+  // nscoord& AvailableWidth() { return mAvailableWidth; }
   nscoord& AvailableHeight() { return mAvailableHeight; }
-  nscoord& ComputedWidth() { return mComputedWidth; }
+  RI_SETTER(ComputedWidth)
+  nscoord& _ComputedWidth() { return mComputedWidth; }
   nscoord& ComputedHeight() { return mComputedHeight; }
   nscoord& ComputedMinWidth() { return mComputedMinWidth; }
   nscoord& ComputedMaxWidth() { return mComputedMaxWidth; }
@@ -439,13 +468,15 @@ struct ReflowInput : public SizeComputationInput {
     return mWritingMode.IsVertical() ? mComputedMaxWidth : mComputedMaxHeight;
   }
 
-  nscoord& AvailableISize() {
+  RI_SETTER(AvailableISize)
+  nscoord& _AvailableISize() {
     return mWritingMode.IsVertical() ? mAvailableHeight : mAvailableWidth;
   }
   nscoord& AvailableBSize() {
     return mWritingMode.IsVertical() ? mAvailableWidth : mAvailableHeight;
   }
-  nscoord& ComputedISize() {
+  RI_SETTER(ComputedISize)
+  nscoord& _ComputedISize() {
     return mWritingMode.IsVertical() ? mComputedHeight : mComputedWidth;
   }
   nscoord& ComputedBSize() {
@@ -1037,5 +1068,7 @@ struct ReflowInput : public SizeComputationInput {
 };
 
 }  // namespace mozilla
+
+#undef RI_SETTER
 
 #endif  // mozilla_ReflowInput_h

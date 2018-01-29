@@ -246,7 +246,8 @@ void nsBlockReflowContext::ReflowBlock(
     // child frame doesn't think it can reflow into its margin area.
     if (mWritingMode.IsOrthogonalTo(mFrame->GetWritingMode())) {
       if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableISize()) {
-        aFrameRI.AvailableISize() -= mBStartMargin.get() + aClearance;
+        aFrameRI.RI_SET_AvailableISize(aFrameRI.AvailableISize() -
+                                       (mBStartMargin.get() + aClearance));
       }
     } else {
       if (NS_UNCONSTRAINEDSIZE != aFrameRI.AvailableBSize()) {
