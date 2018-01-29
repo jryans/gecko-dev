@@ -1770,8 +1770,7 @@ void ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
         ComputedLogicalBorderPadding().Size(wm) -
             ComputedLogicalPadding().Size(wm),
         ComputedLogicalPadding().Size(wm), computeSizeFlags);
-    RI_SET_ComputedISize(computedSize.ISize(wm),
-                         "Frame's ComputeSize @ init abs cons");
+    RI_SET_ComputedISize(computedSize.ISize(wm), "Frame's ComputeSize");
     ComputedBSize() = computedSize.BSize(wm);
     NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
     NS_ASSERTION(
@@ -2513,7 +2512,7 @@ void ReflowInput::InitConstraints(nsPresContext* aPresContext,
               ComputedLogicalPadding().Size(wm),
           ComputedLogicalPadding().Size(wm), computeSizeFlags);
 
-      RI_SET_ComputedISize(size.ISize(wm), "Frame's ComputeSize @ init cons");
+      RI_SET_ComputedISize(size.ISize(wm), "Frame's ComputeSize");
       ComputedBSize() = size.BSize(wm);
       NS_ASSERTION(ComputedISize() >= 0, "Bogus inline-size");
       NS_ASSERTION(
