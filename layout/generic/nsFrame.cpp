@@ -7515,6 +7515,12 @@ nsresult nsFrame::MakeFrameName(const nsAString& aType,
   if (mContent && !mContent->IsText()) {
     nsAutoString buf;
     mContent->NodeInfo()->NameAtom()->ToString(buf);
+    if (mContent->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::id)) {
+      nsAutoString id;
+      mContent->AsElement()->GetId(id);
+      buf.Append('#');
+      buf.Append(id);
+    }
     if (IsSubDocumentFrame()) {
       nsAutoString src;
       mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src);
