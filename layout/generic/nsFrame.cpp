@@ -7536,13 +7536,10 @@ nsresult nsFrame::MakeFrameName(const nsAString& aType,
       buf.AppendLiteral(" src=");
       buf.Append(src);
     }
-    aResult.Append('(');
+    aResult.AppendLiteral(" <");
     aResult.Append(buf);
-    aResult.Append(')');
+    aResult.Append('>');
   }
-  aResult.Append('(');
-  aResult.AppendInt(ContentIndexInContainer(this));
-  aResult.Append(')');
   return NS_OK;
 }
 
