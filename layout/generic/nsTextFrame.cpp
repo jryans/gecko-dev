@@ -9977,7 +9977,7 @@ nsresult nsTextFrame::GetFrameName(nsAString& aResult) const {
   nsAutoCString tmp;
   ToCString(tmp, &totalContentLength);
   tmp.SetLength(std::min(tmp.Length(), 50u));
-  aResult += NS_LITERAL_STRING("\"") + NS_ConvertASCIItoUTF16(tmp) +
+  aResult += NS_LITERAL_STRING(" \"") + NS_ConvertASCIItoUTF16(tmp) +
              NS_LITERAL_STRING("\"");
   return NS_OK;
 }
