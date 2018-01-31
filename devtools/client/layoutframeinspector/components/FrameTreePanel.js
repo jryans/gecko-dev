@@ -89,15 +89,16 @@ class FrameNode {
     }
     let children = [];
     for (const list of this.childLists) {
-      if (list.name !== "") {
-        console.log(`Node ${this.name} has non-primary list ${list.name}`);
+      if (list.name === "") {
+        // For the primary child list, show them as direct children.
+        const nodes = list.children.map(child => new FrameNode(child));
+        children = children.concat(nodes);
+      } else {
+        // For non-primary child lists, show children under the list name.
+        children.push(new FrameChildList(list));
       }
-      // Each "child list" has its own name, but for now just collapse them all down.
-      children = children.concat(list.children);
     }
-    this._children = children.map(child => new FrameNode(child));
-    // jryans: Maybe show non-primary lists later.
-    // this._children = this.childLists.map(list => new FrameChildList(list));
+    this._children = children;
     return this._children;
   }
 }
