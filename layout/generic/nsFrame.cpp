@@ -2375,6 +2375,8 @@ static bool ApplyOverflowClipping(
 static void PaintDebugBorder(nsIFrame* aFrame, DrawTarget* aDrawTarget,
                              const nsRect& aDirtyRect, nsPoint aPt) {
   nsRect r(aPt, aFrame->GetSize());
+  // Deflate by 0.5 CSS px to avoid artifacts after disabling
+  r.Deflate(30.f);
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   Color blueOrRed(aFrame->HasView() ? Color(0.f, 0.f, 1.f, 1.f)
                                     : Color(1.f, 0.f, 0.f, 1.f));

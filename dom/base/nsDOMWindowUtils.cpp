@@ -4170,7 +4170,7 @@ nsDOMWindowUtils::SetShowFrameHighlighter(uint64_t aFrameID, bool show) {
 
   nsIFrame* frame = reinterpret_cast<nsIFrame*>(aFrameID);
   frame->SetShowFrameHighlighter(show);
-  frame->SchedulePaint();
+  frame->InvalidateFrame();
 
   return NS_OK;
 #else
