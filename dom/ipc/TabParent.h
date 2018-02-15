@@ -667,6 +667,8 @@ private:
 
   bool AsyncPanZoomEnabled() const;
 
+  bool IsInputPriorityEventEnabled();
+
   // Cached value indicating the docshell active state of the remote browser.
   bool mDocShellIsActive;
 

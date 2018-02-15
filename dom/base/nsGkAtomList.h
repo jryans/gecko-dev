@@ -2256,6 +2256,7 @@ GK_ATOM(DisplayPortBase, "_displayportbase")
 GK_ATOM(AsyncScrollLayerCreationFailed, "_asyncscrolllayercreationfailed")
 GK_ATOM(forcemessagemanager, "forcemessagemanager")
 GK_ATOM(preloadedState, "preloadedState")
+GK_ATOM(MozForceRemote, "moz-force-remote")
 
 // Names for system metrics
 GK_ATOM(scrollbar_start_backward, "scrollbar-start-backward")

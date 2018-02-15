@@ -486,6 +486,7 @@ private:
   bool mObservingOwnerContent : 1;
 
   bool mFreshProcess : 1;
+  bool mIsOopIframe : 1;
 };
 
 #endif

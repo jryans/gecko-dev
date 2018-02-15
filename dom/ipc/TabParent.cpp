@@ -1135,8 +1135,7 @@ TabParent::SendRealMouseEvent(WidgetMouseEvent& aEvent)
   uint64_t blockId;
   ApzAwareEventRoutingToChild(&guid, &blockId, nullptr);
 
-  bool isInputPriorityEventEnabled =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled();
+  bool isInputPriorityEventEnabled = IsInputPriorityEventEnabled();;
 
   if (mIsMouseEnterIntoWidgetEventSuppressed) {
     // In the case that the TabParent suppressed the eMouseEnterWidget event due
@@ -1268,7 +1267,7 @@ TabParent::SendRealDragEvent(WidgetDragEvent& aEvent, uint32_t aDragAction,
   if (mIsDestroyed || !mIsReadyToHandleInputEvents) {
     return;
   }
-  MOZ_ASSERT(!Manager()->AsContentParent()->IsInputPriorityEventEnabled());
+  MOZ_ASSERT(!IsInputPriorityEventEnabled());
   aEvent.mRefPoint += GetChildProcessOffset();
   if (aEvent.mMessage == eDrop) {
     if (!QueryDropLinksForVerification()) {
@@ -1300,7 +1299,7 @@ TabParent::SendMouseWheelEvent(WidgetWheelEvent& aEvent)
   ApzAwareEventRoutingToChild(&guid, &blockId, nullptr);
   aEvent.mRefPoint += GetChildProcessOffset();
   DebugOnly<bool> ret =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+    IsInputPriorityEventEnabled()
       ? PBrowserParent::SendMouseWheelEvent(aEvent, guid, blockId)
       : PBrowserParent::SendNormalPriorityMouseWheelEvent(aEvent, guid, blockId);
 
@@ -1579,14 +1578,18 @@ TabParent::SendRealKeyEvent(WidgetKeyboardEvent& aEvent)
   aEvent.mRefPoint += GetChildProcessOffset();
 
   if (aEvent.mMessage == eKeyPress) {
-    // XXX Should we do this only when input context indicates an editor having
-    //     focus and the key event won't cause inputting text?
-    aEvent.InitAllEditCommands();
+    // XXX(nika): We can't call InitAllEditCommands in a nested content process.
+    // What should we be doing here instead?
+    if (XRE_IsParentProcess()) {
+      // XXX Should we do this only when input context indicates an editor having
+      //     focus and the key event won't cause inputting text?
+      aEvent.InitAllEditCommands();
+    }
   } else {
     aEvent.PreventNativeKeyBindings();
   }
   DebugOnly<bool> ret =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+    IsInputPriorityEventEnabled()
       ? PBrowserParent::SendRealKeyEvent(aEvent)
       : PBrowserParent::SendNormalPriorityRealKeyEvent(aEvent);
 
@@ -1627,8 +1630,7 @@ TabParent::SendRealTouchEvent(WidgetTouchEvent& aEvent)
     aEvent.mTouches[i]->mRefPoint += offset;
   }
 
-  bool inputPriorityEventEnabled =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled();
+  bool inputPriorityEventEnabled = IsInputPriorityEventEnabled();
 
   if (aEvent.mMessage == eTouchMove) {
     DebugOnly<bool> ret = inputPriorityEventEnabled
@@ -1675,7 +1677,7 @@ TabParent::SendHandleTap(TapType aType,
     GetRenderFrame()->TakeFocusForClickFromTap();
   }
   LayoutDeviceIntPoint offset = GetChildProcessOffset();
-  return Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+  return IsInputPriorityEventEnabled()
     ? PBrowserParent::SendHandleTap(aType, aPoint + offset, aModifiers, aGuid,
                                     aInputBlockId)
     : PBrowserParent::SendNormalPriorityHandleTap(aType, aPoint + offset,
@@ -2298,7 +2300,7 @@ TabParent::SendCompositionEvent(WidgetCompositionEvent& aEvent)
   }
 
   bool ret =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+    IsInputPriorityEventEnabled()
       ? PBrowserParent::SendCompositionEvent(aEvent)
       : PBrowserParent::SendNormalPriorityCompositionEvent(aEvent);
   if (NS_WARN_IF(!ret)) {
@@ -2320,7 +2322,7 @@ TabParent::SendSelectionEvent(WidgetSelectionEvent& aEvent)
   }
   mContentCache.OnSelectionEvent(aEvent);
   bool ret =
-    Manager()->AsContentParent()->IsInputPriorityEventEnabled()
+    IsInputPriorityEventEnabled()
       ? PBrowserParent::SendSelectionEvent(aEvent)
       : PBrowserParent::SendNormalPrioritySelectionEvent(aEvent);
   if (NS_WARN_IF(!ret)) {
@@ -2960,8 +2962,12 @@ TabParent::SetRenderLayers(bool aEnabled)
   // Ask the child to repaint using the PHangMonitor channel/thread (which may
   // be less congested).
   if (aEnabled) {
-    ContentParent* cp = Manager()->AsContentParent();
-    cp->ForceTabPaint(this, mLayerTreeEpoch);
+    // XXX(nika): Do we want to support ForcePaint for nested content processes?
+    // If we do we might need to do something else here...
+    if (Manager()->IsContentParent()) {
+      ContentParent* cp = Manager()->AsContentParent();
+      cp->ForceTabPaint(this, mLayerTreeEpoch);
+    }
   }
 
   return NS_OK;
@@ -3617,6 +3623,18 @@ void
 TabParent::LiveResizeStopped()
 {
   SuppressDisplayport(false);
+}
+
+bool
+TabParent::IsInputPriorityEventEnabled()
+{
+  if (Manager()->IsContentParent()) {
+    return Manager()->AsContentParent()->IsInputPriorityEventEnabled();
+  } else {
+    // XXX(nika): Will this be a problem if we unnecessarially return false
+    // here? We can perhaps extract the information from a ContentBridgeParent?
+    return false;
+  }
 }
 
 NS_IMETHODIMP

@@ -597,7 +597,8 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   bool setIMEState = true;
 
   if (newTabParent) {
-    MOZ_ASSERT(XRE_IsParentProcess());
+    // XXX(nika): Yeah, we can totally focus things in nested iframes.
+    // MOZ_ASSERT(XRE_IsParentProcess());
     if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS) {
       // If menu keyboard listener is installed, we need to disable IME now.
       setIMEState = true;

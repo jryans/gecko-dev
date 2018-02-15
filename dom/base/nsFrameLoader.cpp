@@ -180,8 +180,11 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, nsPIDOMWindowOuter* aOpener,
   , mClipSubdocument(true)
   , mClampScrollPosition(true)
   , mObservingOwnerContent(false)
+  , mFreshProcess(false)
+  , mIsOopIframe(false)
 {
   mRemoteFrame = ShouldUseRemoteProcess();
+  // XXX(nika): We'll need to fix this in the future ^_^
   MOZ_ASSERT(!mRemoteFrame || !aOpener,
              "Cannot pass aOpener for a remote frame!");
 }
@@ -635,6 +638,8 @@ nsFrameLoader::CheckURILoad(nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal)
   }
 
   // Bail out if this is an infinite recursion scenario
+  // XXX(nika): We need to bail out on infinite recursion with OOPIFs in the
+  // future.
   if (IsRemoteFrame()) {
     return NS_OK;
   }
@@ -942,6 +947,7 @@ nsFrameLoader::MarginsChanged(uint32_t aMarginWidth,
                               uint32_t aMarginHeight)
 {
   // We assume that the margins are always zero for remote frames.
+  // XXX(nika): We probably can't assume this anymore?
   if (IsRemoteFrame())
     return;
 
@@ -1069,6 +1075,12 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
                                          nsIFrameLoaderOwner* aOtherOwner)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  // XXX(nika): We'll probably want to make sure this code works with iframes
+  // soon, and also support swapping between remote and non-remote frameloaders.
+  // We'll probably use this codepath or something similar to it in order to
+  // implement process switching loads in the future.
+  MOZ_ASSERT(IsRemoteFrame());
 
 #ifdef DEBUG
   RefPtr<nsFrameLoader> first = aThisOwner->GetFrameLoader();
@@ -2030,6 +2042,13 @@ nsFrameLoader::ShouldUseRemoteProcess()
     return false;
   }
 
+  if (mOwnerContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MozForceRemote) &&
+      Preferences::GetBool("dom.ipc.oopif.force.enabled", false)) {
+    // XXX(nika): This is a horrible hack
+    mIsOopIframe = true;
+    return true;
+  }
+
   // If we're an <iframe mozbrowser> and we don't have a "remote" attribute,
   // fall back to the default.
   if (OwnerIsMozBrowserFrame() &&
@@ -2717,7 +2736,7 @@ nsFrameLoader::TryRemoteBrowser()
   // <iframe mozbrowser> gets to skip these checks.
   // iframes for JS plugins also get to skip these checks. We control the URL that gets
   // loaded, but the load is triggered from the document containing the plugin.
-  if (!OwnerIsMozBrowserFrame() && !IsForJSPlugin()) {
+  if (!OwnerIsMozBrowserFrame() && !IsForJSPlugin() && !mIsOopIframe) {
     if (parentDocShell->ItemType() != nsIDocShellTreeItem::typeChrome) {
       // Allow about:addon an exception to this rule so it can load remote
       // extension options pages.
@@ -3076,6 +3095,11 @@ nsFrameLoader::EnsureMessageManager()
     return NS_OK;
   }
 
+  // XXX(nika): We're probably going to want to start setting up message
+  // managers for all iframes soon, for the purposes of the new iframe APIs
+  // we'll want to add for chrome code. If the API we use ends up being
+  // different from the browser message manager API we'll want to look into that
+  // too.
   if (!mIsTopLevelContent &&
       !OwnerIsMozBrowserFrame() &&
       !IsRemoteFrame() &&

@@ -1143,7 +1143,10 @@ ContentParent::CreateBrowser(const TabContext& aContext,
 
   RefPtr<nsIContentParent> constructorSender;
   if (isInContentProcess) {
-    MOZ_ASSERT(aContext.IsMozBrowserElement() || aContext.IsJSPlugin());
+    // XXX(nika): We might want to change this assertion to something else
+    // instead of just removing it?
+
+    // MOZ_ASSERT(aContext.IsMozBrowserElement() || aContext.IsJSPlugin());
     constructorSender = CreateContentBridgeParent(aContext, initialPriority,
                                                   openerTabId, tabId);
   } else {
