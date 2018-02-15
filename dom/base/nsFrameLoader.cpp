@@ -2042,7 +2042,7 @@ nsFrameLoader::ShouldUseRemoteProcess()
     return false;
   }
 
-  if (mOwnerContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MozForceRemote) &&
+  if (XRE_IsContentProcess() &&
       Preferences::GetBool("dom.ipc.oopif.force.enabled", false)) {
     // XXX(nika): This is a horrible hack
     mIsOopIframe = true;
