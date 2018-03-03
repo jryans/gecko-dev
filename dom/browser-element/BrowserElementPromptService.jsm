@@ -16,8 +16,11 @@ const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
 const BROWSER_FRAMES_ENABLED_PREF = "dom.mozBrowserFramesEnabled";
 
 function debug(msg) {
-  //dump("BrowserElementPromptService - " + msg + "\n");
+  dump("BrowserElementPromptService - " + msg + "\n");
 }
+
+let { processID, processType } = Services.appinfo;
+debug(`PromptService loading: pid ${processID}, type ${processType}, ${new Error().stack}`)
 
 function BrowserElementPrompt(win, browserElementChild) {
   this._win = win;
@@ -504,11 +507,14 @@ BrowserElementPromptFactory.prototype = {
   },
 
   getPrompt: function(win, iid) {
+    debug(`getPrompt called: ${win} ${iid}`);
     // It is possible for some object to get a prompt without passing
     // valid reference of window, like nsNSSComponent. In such case, we
     // should just fall back to the native prompt service
-    if (!win)
+    if (!win) {
+      debug(`No window, use native prompt`);
       return this._getNativePromptIfAllowed(win, iid, Cr.NS_ERROR_INVALID_ARG);
+    }
 
     if (iid.number != Ci.nsIPrompt.number &&
         iid.number != Ci.nsIAuthPrompt2.number) {
@@ -573,6 +579,8 @@ this.BrowserElementPromptService = {
       return;
     }
 
+    debug(`Init prompt service: pid ${processID}, type ${processType}`)
+
     // If the pref is disabled, do nothing except wait for the pref to change.
     if (!this._browserFramesPrefEnabled()) {
       var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
@@ -603,7 +611,8 @@ this.BrowserElementPromptService = {
     var newInstance = new BrowserElementPromptFactory(oldInstance);
 
     var newFactory = {
-      createInstance: function(outer, iid) {
+      createInstance: function (outer, iid) {
+        debug(`Create prompt factory`);
         if (outer != null) {
           throw Cr.NS_ERROR_NO_AGGREGATION;
         }

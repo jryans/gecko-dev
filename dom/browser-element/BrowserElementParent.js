@@ -15,8 +15,11 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 function debug(msg) {
-  //dump("BrowserElementParent - " + msg + "\n");
+  dump("BrowserElementParent - " + msg + "\n");
 }
+
+let { processID, processType } = Services.appinfo;
+debug(`HELLO FROM PARENT: pid ${processID}, type ${processType}`)
 
 function getIntPref(prefName, def) {
   try {

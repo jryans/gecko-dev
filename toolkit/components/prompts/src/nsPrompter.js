@@ -28,6 +28,9 @@ Prompter.prototype = {
 
 
     getPrompt(domWin, iid) {
+        dump(`OLD getPrompt: ${domWin} ${iid}\n`)
+        let { processID, processType } = Services.appinfo;
+        dump(`OLD getPrompt: pid ${processID}, type ${processType}\n`)
         // This is still kind of dumb; the C++ code delegated to login manager
         // here, which in turn calls back into us via nsIPromptService.
         if (iid.equals(Ci.nsIAuthPrompt2) || iid.equals(Ci.nsIAuthPrompt)) {

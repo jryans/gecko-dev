@@ -5,7 +5,7 @@
 "use strict";
 
 function debug(msg) {
-  // dump("BrowserElementChildPreload - " + msg + "\n");
+  dump("BrowserElementChildPreload - " + msg + "\n");
 }
 
 debug("loaded");
@@ -27,6 +27,9 @@ var kLongestReturnedString = 128;
 var Timer = Components.Constructor("@mozilla.org/timer;1",
                                    "nsITimer",
                                    "initWithCallback");
+
+let { processID, processType } = Services.appinfo;
+debug(`HELLO FROM CHILD: pid ${processID}, type ${processType}`)
 
 function sendAsyncMsg(msg, data) {
   // Ensure that we don't send any messages before BrowserElementChild.js
