@@ -9,6 +9,8 @@ const Services = require("Services");
 
 const l10n = require("devtools/client/webconsole/webconsole-l10n");
 
+loader.lazyRequireGetter(this, "ConsoleFront", "devtools/shared/fronts/console", true);
+
 const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 // Web Console connection proxy
 
@@ -187,6 +189,12 @@ WebConsoleConnectionProxy.prototype = {
           this._connectDefer.reject(response);
         }
       });
+
+    if (this.target.form.consoleSIActor) {
+      console.log("Attach console SI");
+      const front = new ConsoleFront(this.client, this.target.form);
+      front.start();
+    }
   },
 
   /**

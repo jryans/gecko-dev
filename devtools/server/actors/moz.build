@@ -28,6 +28,7 @@ DevToolsModules(
     'call-watcher.js',
     'canvas.js',
     'common.js',
+    'console.js',
     'css-properties.js',
     'csscoverage.js',
     'device.js',

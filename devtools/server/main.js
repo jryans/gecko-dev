@@ -434,6 +434,11 @@ var DebuggerServer = {
       constructor: "WebConsoleActor",
       type: { target: true }
     });
+    this.registerModule("devtools/server/actors/console", {
+      prefix: "consoleSI",
+      constructor: "ConsoleActor",
+      type: { target: true }
+    });
     this.registerModule("devtools/server/actors/inspector/inspector", {
       prefix: "inspector",
       constructor: "InspectorActor",

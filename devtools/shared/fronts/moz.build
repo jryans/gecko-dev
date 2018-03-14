@@ -14,6 +14,7 @@ DevToolsModules(
     'animation.js',
     'call-watcher.js',
     'canvas.js',
+    'console.js',
     'css-properties.js',
     'csscoverage.js',
     'device.js',
