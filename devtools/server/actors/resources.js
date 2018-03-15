@@ -28,8 +28,9 @@ const { resourcesSpec } = require("devtools/shared/specs/resources");
  * In addition, a tab also has the following native resources:
  *
  *   - Content process for the tab
- *     - Frame content processes
- *     - Worker processes
+ *     - Frame content processes for child documents in different origins
+ *     - Worker processes for workers that affect the tab
+ *     - Add-on processes for add-ons that affect the tab
  *
  * Some of these resources may be remote from the current process.  For example, with Site
  * Isolation, child documents may be in a different process from the main document.
