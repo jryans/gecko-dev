@@ -35,6 +35,10 @@
   - Would need to invent some machinery allow server startup, message passing
     for in-process frames
 
+# Resources
+
+- Only the client side would see the fully composed multi-process view
+
 # Naming
 
 - Use `context` in actors, instead of strange `tabActor` name?
