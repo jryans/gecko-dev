@@ -44,10 +44,10 @@ const { resourcesSpec } = require("devtools/shared/specs/resources");
  */
 const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
 
-  initialize(conn, tabActor) {
+  initialize(conn, context) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.tabActor = tabActor;
-    this.docShell = tabActor.docShell;
+    this.context = context;
+    this.docShell = context.docShell;
   },
 
   find(type, { includeRemote } = {}) { },
@@ -55,7 +55,7 @@ const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
   listen(type) { },
 
   destroy() {
-    this.tabActor = null;
+    this.context = null;
     this.docShell = null;
     protocol.Actor.prototype.destroy.call(this);
   },
