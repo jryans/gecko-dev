@@ -5,8 +5,9 @@
    - runFilter: process => process.type == <parent>
    - a tool should have to explicitly register interest in other processes
      before actors will start running in it.
-   - Want to control this at runtime, e.g. chrome-only console vs. with content
-     too.
+   - Browser Console wants to connect to main and content processes vs. Console
+     wants the content process for the context
+     - Chrome vs Content filtering is separate; about privs, not processes.
 - Is there a generic way to keep actors filter to one tab, rather than each
   content type making up their own plan?
 - We want to observe network requests in the parent / SW processes where they
@@ -22,3 +23,9 @@
 # Naming
 
 - Use `context` in actors, instead of strange `tabActor` name?
+
+# Cleanup
+
+- Teach fronts how to find their own actor names?  (Might require root actor to
+  be converted first.)
+- Remove `activeConsole` from targets?
