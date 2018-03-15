@@ -38,6 +38,8 @@
 # Resources
 
 - Only the client side would see the fully composed multi-process view
+- You express an interest in the web resources, not the processes directly
+  - Client can create new targets for remote resources
 
 # Naming
 
