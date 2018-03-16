@@ -50,3 +50,4 @@
 - Teach fronts how to find their own actor names?  (Might require root actor to
   be converted first.)
 - Remove `activeConsole` from targets?
+- Some way to avoid repeating actor prefix in server/main and actor spec?
