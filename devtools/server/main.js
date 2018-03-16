@@ -542,6 +542,11 @@ var DebuggerServer = {
       constructor: "AccessibilityActor",
       type: { target: true }
     });
+    this.registerModule("devtools/server/actors/resources", {
+      prefix: "resources",
+      constructor: "ResourcesActor",
+      type: { target: true }
+    });
   },
 
   /**

@@ -9,6 +9,8 @@ const resourcesSpec = generateActorSpec({
   typeName: "resources",
 
   methods: {
+    find: {},
+    listen: {},
   }
 });
 
