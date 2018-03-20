@@ -35,6 +35,13 @@
   - Would need to invent some machinery allow server startup, message passing
     for in-process frames
 
+# Loading Server into Frames
+
+- In today's world, we would end up with a separate DevTools server per frame if
+  we follow existing conventions
+  - A separate optimization pass could minimize this down to one server per
+    process
+
 # Resources
 
 - Only the client side would see the fully composed multi-process view
