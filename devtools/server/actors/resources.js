@@ -7,6 +7,11 @@
 const protocol = require("devtools/shared/protocol");
 const { resourcesSpec } = require("devtools/shared/specs/resources");
 
+loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
+
+const Scanners = {};
+loader.lazyRequireGetter(Scanners, "FrameScanner", "devtools/server/actors/resources/frame", true);
+
 /**
  * A general resource discovery mechanism for all resources related to the current
  * connection context (tab, browser, add-on, etc.).
@@ -49,17 +54,40 @@ const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.context = context;
     this.docShell = context.docShell;
+    this.scanners = new Map();
   },
 
-  find(type, { includeRemote } = {}) { },
-
-  listen(type) { },
-
   destroy() {
+    for (const scanner of this.scanners.values()) {
+      scanner.destroy();
+    }
+    this.scanners = null;
     this.context = null;
     this.docShell = null;
     protocol.Actor.prototype.destroy.call(this);
   },
+
+  get includeRemote() {
+    // TODO(jryans): How should this really be controlled?  Is it always on?  Is part of
+    // the context for a whole toolbox?  Does each tool specify their own value when
+    // looking for resources?  (The first tool that says `true` implies connecting to
+    // remote frames...)
+    return true;
+  },
+
+  find(type) {
+    // TODO(jryans): Use an enum to ease things for clients
+    assert(type == "Frame", `Unexpected resource type: ${type}`);
+    let scanner = this.scanners.get(type);
+    if (scanner) {
+      return scanner.find({ includeRemote: this.includeRemote });
+    }
+    scanner = new Scanners[`${type}Scanner`](this.conn, this.context);
+    this.scanners.set(type, scanner);
+    return scanner.find({ includeRemote: this.includeRemote });
+  },
+
+  listen(type) { },
 
 });
 
