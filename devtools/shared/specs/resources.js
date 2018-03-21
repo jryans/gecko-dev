@@ -9,7 +9,14 @@ const resourcesSpec = generateActorSpec({
   typeName: "resources",
 
   methods: {
-    find: {},
+    find: {
+      request: {
+        kind: Arg(0, "string"),
+      },
+      response: {
+        frames: RetVal("array:string"),
+      }
+    },
     listen: {},
   }
 });

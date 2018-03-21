@@ -12,6 +12,7 @@ DIRS += [
     'inspector',
     'object',
     'targets',
+    'resources',
     'utils',
     'webconsole',
     'worker',
