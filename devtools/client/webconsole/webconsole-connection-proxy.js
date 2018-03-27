@@ -10,6 +10,7 @@ const Services = require("Services");
 const l10n = require("devtools/client/webconsole/webconsole-l10n");
 
 loader.lazyRequireGetter(this, "ConsoleFront", "devtools/shared/fronts/console", true);
+loader.lazyRequireGetter(this, "ResourcesFront", "devtools/shared/fronts/resources", true);
 
 const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 // Web Console connection proxy
@@ -173,7 +174,7 @@ WebConsoleConnectionProxy.prototype = {
    * Attach to the Web Console actor.
    * @private
    */
-  _attachConsole: function() {
+  async _attachConsole() {
     const listeners = ["PageError", "ConsoleAPI", "NetworkActivity",
                        "FileActivity"];
     // Enable the forwarding of console messages to the parent process
@@ -194,6 +195,11 @@ WebConsoleConnectionProxy.prototype = {
       console.log("Attach console SI");
       const front = new ConsoleFront(this.client, this.target.form);
       front.start();
+    }
+    if (this.target.form.resourcesActor) {
+      console.log("Attach resources");
+      const front = new ResourcesFront(this.client, this.target.form);
+      console.log(await front.find("Frame"));
     }
   },
 
