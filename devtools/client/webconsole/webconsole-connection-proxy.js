@@ -179,7 +179,7 @@ WebConsoleConnectionProxy.prototype = {
     // Enable the forwarding of console messages to the parent process
     // when we open the Browser Console or Toolbox.
     if (this.target.chrome && !this.target.isAddon) {
-      listeners.push("ContentProcessMessages");
+      // listeners.push("ContentProcessMessages");
     }
     this.client.attachConsole(this._consoleActor, listeners)
       .then(this._onAttachConsole, response => {
