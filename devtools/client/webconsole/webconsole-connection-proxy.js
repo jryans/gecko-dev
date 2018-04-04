@@ -194,6 +194,7 @@ WebConsoleConnectionProxy.prototype = {
       console.log("Attach resources");
       const front = new ResourcesFront(this.client, this.target.form);
       console.log(await front.find("Frame"));
+      console.log(front.targetsByType.get("Frame"));
     }
   },
 
