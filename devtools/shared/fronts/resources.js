@@ -50,7 +50,10 @@ const ResourcesFront = FrontClassWithSpec(resourcesSpec, {
       });
     }));
     this.targetsByType.set(type, targets);
-    return results;
+    return {
+      results,
+      targets,
+    };
   }, {
     impl: "_find"
   }),
