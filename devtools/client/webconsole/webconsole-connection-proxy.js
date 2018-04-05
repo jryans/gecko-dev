@@ -27,6 +27,7 @@ const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 function WebConsoleConnectionProxy(webConsoleFrame, target) {
   this.webConsoleFrame = webConsoleFrame;
   this.target = target;
+  this.children = [];
 
   this._onPageError = this._onPageError.bind(this);
   this._onLogMessage = this._onLogMessage.bind(this);
@@ -80,6 +81,15 @@ WebConsoleConnectionProxy.prototype = {
    * @type boolean
    */
   connected: false,
+
+  /**
+   * The target may contain additional child targets that need their own connections.
+   * An instance of this type will stored here for each child target.
+   * TODO(jryans): Is "child" the right name here?
+   *
+   * @type array of WebConsoleConnectionProxy
+   */
+  children: null,
 
   /**
    * Timer used for the connection.
@@ -190,11 +200,17 @@ WebConsoleConnectionProxy.prototype = {
         }
       });
 
-    if (this.target.form.resourcesActor) {
-      console.log("Attach resources");
+    if (this.target.form.resourcesActor && this.target.chrome && !this.target.isAddon) {
+      // console.log("Attach resources");
       const front = new ResourcesFront(this.client, this.target.form);
-      console.log(await front.find("Frame"));
-      console.log(front.targetsByType.get("Frame"));
+      const { targets } = await front.find("Frame");
+      // console.log(targets);
+      for (const target of targets) {
+        console.log(`Adding child console connection proxy for ${target.url}`);
+        const child = new WebConsoleConnectionProxy(this.webConsoleFrame, target);
+        this.children.push(child);
+        child.connect();
+      }
     }
   },
 
@@ -447,12 +463,16 @@ WebConsoleConnectionProxy.prototype = {
    * @return object
    *         A promise object that is resolved when disconnect completes.
    */
-  disconnect: function() {
+  async disconnect() {
     if (this._disconnecter) {
       return this._disconnecter.promise;
     }
 
     this._disconnecter = defer();
+
+    const children = this.children;
+    this.children = [];
+    await Promise.all(children.map(c => c.disconnect()));
 
     if (!this.client) {
       this._disconnecter.resolve(null);
