@@ -33,6 +33,7 @@ const {
   CSS,
   CSSRule,
   Event,
+  fetch,
   FileReader,
   FormData,
   indexedDB,
@@ -49,6 +50,7 @@ const {
     "CSS",
     "CSSRule",
     "Event",
+    "fetch",
     "FileReader",
     "FormData",
     "indexedDB",
@@ -266,6 +268,7 @@ exports.globals = {
   },
   Element: Ci.nsIDOMElement,
   Event,
+  fetch,
   FormData,
   isWorker: false,
   loader: {
