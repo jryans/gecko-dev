@@ -38,6 +38,9 @@ exclude = [
   "media/mp4parse-rust/mp4parse",
   "media/mp4parse-rust/mp4parse_capi",
   "media/mp4parse-rust/mp4parse_fallible",
+
+  # Exclude DevTools lexer which is compiled to WebAssembly as needed.
+  "devtools/shared/css/lexer",
 ]
 
 # Explicitly specify what our profiles use.  The opt-level setting here is

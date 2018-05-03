@@ -89,6 +89,10 @@ _OPT\.OBJ/
 # Ignore node_modules directories in devtools
 ^devtools/.*/node_modules/
 
+# DevTools CSS lexer
+^devtools/shared/css/lexer/target/
+^devtools/shared/css/lexer/Cargo.lock
+
 # git checkout of libstagefright
 ^media/libstagefright/android$
 

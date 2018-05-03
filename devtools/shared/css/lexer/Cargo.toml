@@ -1,0 +1,18 @@
+[package]
+name = "devtools-css-lexer"
+version = "0.1.0"
+authors = ["J. Ryan Stinnett <jryans@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+
+[dependencies]
+cssparser = "0.23.4"
+
+[dependencies.wasm-bindgen]
+version = "0.2.6"
+default-features = false
+features = ["std"]
