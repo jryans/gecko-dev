@@ -138,6 +138,9 @@ devtools/client/webconsole/old/webconsole.js
 devtools/client/debugger/new/**
 devtools/client/shared/components/reps/**
 
+# Ignore devtools generated / compiled files
+devtools/shared/css/lexer/devtools_css_lexer*
+
 # Ignore devtools preferences files
 devtools/client/preferences/**
 devtools/client/webide/preferences/**
