@@ -11,3 +11,13 @@ self.wasm_bindgen.loaded = self.wasm_bindgen("resource://devtools/shared/css/lex
 module.exports = self.wasm_bindgen;
 ' > devtools_css_lexer.js
 ```
+
+To use:
+
+```
+const Lexer = require("devtools/shared/css/lexer/devtools_css_lexer");
+Lexer.loaded.then(() => {
+  Lexer.new_lexer(".bob { color: blue; }");
+  console.log(Lexer.next_token());
+});
+```
