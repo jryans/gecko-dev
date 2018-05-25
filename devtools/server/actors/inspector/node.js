@@ -327,7 +327,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    */
   getEventListeners: function(node) {
     const parsers = this._eventParsers;
-    const dbg = this.parent().tabActor.makeDebugger();
+    const dbg = this.parent().targetActor.makeDebugger();
     const listenerArray = [];
 
     for (const [, {getListeners, normalizeListener}] of parsers) {

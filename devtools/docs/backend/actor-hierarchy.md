@@ -1,7 +1,7 @@
 # How actors are organized
 
-To start with, actors are living within /devtools/server/actors/ folder.
-They are organized in a hierarchy for easier lifecycle/memory management:
+To start with, actors are living within devtools/server/actors folder.
+They are organized in a hierarchy for easier lifecycle and memory management:
 once a parent is removed from the pool, its children are removed as well.
 (See actor-registration.md for more information about how to implement one)
 
@@ -9,23 +9,23 @@ The overall hierarchy of actors looks like this:
 
 ```
 RootActor: First one, automatically instantiated when we start connecting.
-   |         Mostly meant to instantiate new actors.
+   |       Mostly meant to instantiate new actors.
    |
    |--> Global-scoped actors:
-   |    Actors exposing features related to the main process,
-   |    that are not specific to any particular context (document, tab, app,
-   |    add-on, or worker).
+   |    Actors exposing features related to the main process, that are not
+   |    specific to any particular target (document, tab, add-on, or worker).
    |    A good example is the preference actor.
    |
-   \--> "TabActor" (or alike):
-          |    Actors meant to designate one context (document, tab, app,
-          |    add-on, or worker) and track its lifetime.  Generally, there is
-          |    one of these for each thing you can point a toolbox at.
+   \--> Target actors:
+          |    Actors that represent the main "thing" being targeted by a given
+          |    toolbox, such as a tab, frame, worker, add-on, etc. and track its
+          |    lifetime.  Generally, there is a target actor for each thing you
+          |    can point a toolbox at.
           |
           \--> Tab-scoped actors:
-               Actors exposing one particular feature set, this time,
-               specific to a given context (document, tab, app, add-on, or
-               worker).  Examples include the console and inspector actors.
+               Actors exposing one particular feature set, filtered to only the
+               targeted thing (document, tab, add-on, or worker).
+               Examples include the console and inspector actors.
                These actors may extend this hierarchy by having their
                own children, like LongStringActor, WalkerActor, etc.
 ```
@@ -52,6 +52,7 @@ RootActor (root.js)
    |       The "real" actor for a tab, which runs in whichever process holds the
    |       content.  BrowserTabActor communicates with this via the tab's
    |       message manager.
+   |       Extends the abstract class BrowsingContextTargetActor.
    |       Returned by "connect" on BrowserTabActor.
    |
    |-- WorkerActor (worker.js)
@@ -66,11 +67,13 @@ RootActor (root.js)
    |-- WindowActor (window.js)
    |   Targets a single window, such as a browser window in Firefox, but it can
    |   be used to reach any window in the parent process.
+   |   Extends the abstract class BrowsingContextTargetActor.
    |   Returned by "getWindow" request to the root actor.
    |
    |-- ChromeActor (chrome.js)
    |   Targets all resources in the parent process of firefox
    |   (chrome documents, JSM, JS XPCOM, etc.).
+   |   Extends the abstract class BrowsingContextTargetActor.
    |   Returned by "getProcess" request without any argument.
    |
    |-- ChildProcessActor (child-process.js)
@@ -83,22 +86,28 @@ RootActor (root.js)
        Returned by "listAddons" request.
 ```
 
-## "TabActor"
+## Target Actors
 
 Those are the actors exposed by the root actors which are meant to track the
-lifetime of a given context: tab, app, process, add-on, or worker. It also
-allows to fetch the tab-scoped actors connected to this context. Actors like
-console, inspector, thread (for debugger), styleinspector, etc. Most of them
-inherit from TabActor (defined in tab.js) which is document centric. It
-automatically tracks the lifetime of the targeted document, but it also tracks
-its iframes and allows switching the context to one of its iframes. For
-historical reasons, these actors also handle creating the ThreadActor, used to
-manage breakpoints in the debugger. All the other tab-scoped actors are created
-when we access the TabActor's grip. We return the tab-scoped actors `actorID` in
-it. Actors inheriting from TabActor expose `attach`/`detach` requests, that
-allows to start/stop the ThreadActor.
+lifetime of a given context: tab, process, add-on, or worker. It also allows to
+fetch the tab-scoped actors connected to this context, which are actors like
+console, inspector, thread (for debugger), style inspector, etc.
 
-The tab-scoped actors expect to find the following properties on the "TabActor":
+Some target actors inherit from BrowsingContextTargetActor (defined in
+browsing-context.js) which is meant for "browsing contexts" which present
+documents to the user. It automatically tracks the lifetime of the targeted
+browsing context, but it also tracks its iframes and allows switching the
+context to one of its iframes.
+
+For historical reasons, target actors also handle creating the ThreadActor, used
+to manage breakpoints in the debugger. Actors inheriting from
+BrowsingContextTargetActor expose `attach`/`detach` requests, that allows to
+start/stop the ThreadActor.
+
+Tab-scoped actors are accessed via the target actor's RDP form which contains
+the `actorID` for each tab-scoped actor.
+
+The tab-scoped actors expect to find the following properties on the target actor:
  - threadActor:
    ThreadActor instance for the given context,
    only defined once `attach` request is called, or on construction.
@@ -110,8 +119,8 @@ The tab-scoped actors expect to find the following properties on the "TabActor":
    Helper function used to create Debugger object for the targeted context.
    (See actors/utils/make-debugger.js for more info)
 
-In addition to this, the actors inheriting from TabActor, expose many other
-attributes and events:
+In addition to this, the actors inheriting from BrowsingContextTargetActor,
+expose many other attributes and events:
  - window:
    Reference to the window global object currently targeted.
    It can change over time if we switch context to an iframe, so it
@@ -126,10 +135,16 @@ attributes and events:
    The chrome event handler for the current context. Allows to listen to events
    that can be missing/cancelled on this document itself.
 
-See TabActor documentation for events definition.
+See BrowsingContextTargetActor documentation for more details.
 
 ## Tab-scoped actors
 
 Each of these actors focuses on providing one particular feature set, specific
-to one context, that can be a web page, an app, a top level firefox window, a
-process, an add-on, or a worker.
+to one to the thing being targeted (which might be a web page, a top level
+Firefox window, a process, an add-on, a worker, etc.).
+
+To improve performance, tab-scoped actors are created lazily. The target actor
+lists the actor ID for each one, but the actor modules aren't actually loaded
+and instantiated at that point. Once the first request for a given tab-scoped
+actor is received by the server, that specific actor is instantiated just in
+time to service the request.
