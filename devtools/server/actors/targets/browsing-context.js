@@ -12,7 +12,7 @@
  * in the HTML spec as "an environment in which `Document` objects are presented to the
  * user".  In Gecko, this means a browsing context is a `docShell`.
  *
- * This class is extended by ContentActor, ChromeActor, and WindowActor.
+ * This class is extended by FrameTargetActor, ChromeActor, and WindowActor.
  *
  * See devtools/docs/backend/actor-hierarchy.md for more details.
  *
@@ -207,7 +207,7 @@ const browsingContextTargetPrototype = {
    *  - window-ready
    *  - navigate
    *
-   * This class is subclassed by ContentActor and others.
+   * This class is subclassed by FrameTargetActor and others.
    * Subclasses are expected to implement a getter for the docShell property.
    *
    * @param connection DebuggerServerConnection

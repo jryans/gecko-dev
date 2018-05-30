@@ -43,15 +43,15 @@ RootActor (root.js)
    |
    |-- BrowserTabActor (webbrowser.js)
    |   Targets tabs living in the parent or child process. Note that this is
-   |   just a proxy for ContentActor, which is loaded via the tab's message
+   |   just a proxy for FrameTargetActor, which is loaded via the tab's message
    |   manager as a frame script in the process containing the tab. This proxy
    |   via message manager is always used, even when e10s is disabled.
    |   Returned by "listTabs" or "getTab" requests.
    |   |
-   |   \-> ContentActor (content.js)
-   |       The "real" actor for a tab, which runs in whichever process holds the
-   |       content.  BrowserTabActor communicates with this via the tab's
-   |       message manager.
+   |   \-> FrameTargetActor (frame.js)
+   |       The "real" target actor for a frame (such as a tab) which runs in
+   |       whichever process holds the content. BrowserTabActor communicates
+   |       with this via the frame's message manager.
    |       Extends the abstract class BrowsingContextTargetActor.
    |       Returned by "connect" on BrowserTabActor.
    |
