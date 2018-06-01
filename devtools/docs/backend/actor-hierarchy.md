@@ -56,7 +56,7 @@ RootActor (root.js)
    |       Extends the abstract class BrowsingContextTargetActor.
    |       Returned by "connect" on FrameTargetActorProxy.
    |
-   |-- WorkerActor (worker.js)
+   |-- WorkerTargetActor (worker.js)
    |   Targets a worker (applies to various kinds like web worker, service
    |   worker, etc.).
    |   Returned by "listWorkers" request to the root actor to get all workers.
