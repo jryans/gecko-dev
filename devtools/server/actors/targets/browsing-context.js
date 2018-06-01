@@ -12,7 +12,7 @@
  * in the HTML spec as "an environment in which `Document` objects are presented to the
  * user".  In Gecko, this means a browsing context is a `docShell`.
  *
- * This class is extended by FrameTargetActor, ChromeActor, and WindowActor.
+ * This class is extended by FrameTargetActor, ChromeActor, and ChromeWindowTargetActor.
  *
  * See devtools/docs/backend/actor-hierarchy.md for more details.
  *
