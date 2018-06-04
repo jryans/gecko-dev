@@ -540,7 +540,7 @@ var DebuggerServer = {
   },
 
   /**
-   * Passes a set of options to the BrowserAddonActors for the given ID.
+   * Passes a set of options to the AddonTargetActors for the given ID.
    *
    * @param id string
    *        The ID of the add-on to pass the options to
@@ -1677,7 +1677,7 @@ DebuggerServerConnection.prototype = {
   },
 
   /**
-   * Passes a set of options to the BrowserAddonActors for the given ID.
+   * Passes a set of options to the AddonTargetActors for the given ID.
    *
    * @param id string
    *        The ID of the add-on to pass the options to
@@ -1690,8 +1690,8 @@ DebuggerServerConnection.prototype = {
     if (!addonList) {
       return Promise.resolve();
     }
-    return addonList.getList().then((addonActors) => {
-      for (const actor of addonActors) {
+    return addonList.getList().then((addonTargetActors) => {
+      for (const actor of addonTargetActors) {
         if (actor.id != id) {
           continue;
         }
