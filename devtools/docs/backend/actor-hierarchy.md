@@ -75,7 +75,7 @@ RootActor (root.js)
    |   Targets all resources in the parent process of Firefox (chrome documents,
    |   JSMs, JS XPCOM, etc.).
    |   Extends the abstract class BrowsingContextTargetActor.
-   |   Extended by WebExtensionChildActor.
+   |   Extended by WebExtensionTargetActor.
    |   Returned by "getProcess" request without any argument.
    |
    |-- ContentProcessTargetActor (content-process.js)
@@ -84,8 +84,13 @@ RootActor (root.js)
    |   Returned by "getProcess" request with a id argument, matching the
    |   targeted process.
    |
-   \-- AddonTargetActor (addon.js)
-       Targets a legacy (non-WebExtension) add-on.
+   |-- AddonTargetActor (addon.js)
+   |   Targets a legacy (non-WebExtension) add-on.
+   |   Returned by "listAddons" request.
+   |
+   \-- WebExtensionTargetActor (webextension.js)
+       Targets a WebExtension add-on.
+       Extends ParentProcessTargetActor.
        Returned by "listAddons" request.
 ```
 
