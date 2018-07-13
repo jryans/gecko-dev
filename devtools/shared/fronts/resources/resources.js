@@ -4,7 +4,7 @@
 "use strict";
 
 const { Front, FrontClassWithSpec, custom } = require("devtools/shared/protocol");
-const { resourcesSpec } = require("devtools/shared/specs/resources");
+const { resourcesSpec } = require("devtools/shared/specs/resources/resources");
 
 loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);

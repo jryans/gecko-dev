@@ -9,7 +9,7 @@ const Services = require("Services");
 
 const l10n = require("devtools/client/webconsole/webconsole-l10n");
 
-loader.lazyRequireGetter(this, "ResourcesFront", "devtools/shared/fronts/resources", true);
+loader.lazyRequireGetter(this, "ResourcesFront", "devtools/shared/fronts/resources/resources", true);
 
 const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 // Web Console connection proxy

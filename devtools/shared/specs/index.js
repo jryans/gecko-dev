@@ -182,6 +182,11 @@ const Types = exports.__TypesForTests = [
     spec: "devtools/shared/specs/reflow",
     front: "devtools/shared/fronts/reflow",
   },
+  {
+    types: ["resources"],
+    spec: "devtools/shared/specs/resources/resources",
+    front: "devtools/shared/fronts/resources/resources",
+  },
   /* Script and source have old fashion client and no front */
   {
     types: ["context"],

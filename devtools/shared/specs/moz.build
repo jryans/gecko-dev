@@ -6,6 +6,7 @@
 
 DIRS += [
     'addon',
+    'resources',
     'targets',
     'worker',
 ]
@@ -40,7 +41,6 @@ DevToolsModules(
     'promises.js',
     'property-iterator.js',
     'reflow.js',
-    'resources.js',
     'script.js',
     'source.js',
     'storage.js',

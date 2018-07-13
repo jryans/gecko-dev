@@ -5,7 +5,7 @@
 "use strict";
 
 const protocol = require("devtools/shared/protocol");
-const { resourcesSpec } = require("devtools/shared/specs/resources");
+const { resourcesSpec } = require("devtools/shared/specs/resources/resources");
 
 loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 

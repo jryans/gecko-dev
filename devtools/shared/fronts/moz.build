@@ -6,6 +6,7 @@
 
 DIRS += [
     'addon',
+    'resources',
 ]
 
 DevToolsModules(
@@ -31,7 +32,6 @@ DevToolsModules(
     'preference.js',
     'promises.js',
     'reflow.js',
-    'resources.js',
     'storage.js',
     'string.js',
     'styles.js',
