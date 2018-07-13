@@ -98,15 +98,20 @@ const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
     return true;
   },
 
-  find(type) {
-    // TODO(jryans): Use an enum to ease things for clients
-    assert(type == "Frame", `Unexpected resource type: ${type}`);
+  getOrCreateScanner(type) {
     let scanner = this.scanners.get(type);
     if (scanner) {
-      return scanner.find({ includeRemote: this.includeRemote });
+      return scanner;
     }
-    scanner = new Scanners[`${type}Scanner`](this.conn, this.context);
+    const Scanner = Scanners[`${type}Scanner`];
+    assert(Scanner, `Unexpected resource type: ${type}`);
+    scanner = new Scanner(this.conn, this.context);
     this.scanners.set(type, scanner);
+    return scanner;
+  },
+
+  find(type) {
+    const scanner = this.getOrCreateScanner(type);
     return scanner.find({ includeRemote: this.includeRemote });
   },
 
