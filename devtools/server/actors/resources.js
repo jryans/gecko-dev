@@ -16,37 +16,60 @@ loader.lazyRequireGetter(Scanners, "FrameScanner", "devtools/server/actors/resou
  * A general resource discovery mechanism for all resources related to the current
  * connection context (tab, browser, add-on, etc.).
  *
- * For example, we might have the following web resources:
+ * For example, a tab might have the following resources:
  *
  *   - Main document
  *     - Scripts
  *     - Stylesheets
  *     - Fonts
  *     - Images
- *     - Service workers
- *     - Workers
- *     - Add-ons affecting the document
+ *     - Service workers [c]
+ *     - Workers, worklets, etc. [t]
+ *     - Add-on content scripts affecting the document
  *     - Storage
- *     - Frame documents
+ *       - Cache Storage
+ *       - Cookies [p]
+ *       - Indexed DB [p]
+ *       - Local Storage
+ *       - Session Storage
+ *     - Network request / response data [p]
+ *     - Frame documents [c]
  *       - <each of these may itself have any of the above>
  *
- * In addition, a tab also has the following native resources:
+ * Some of these resources may be remote from the current process. With Fission, child
+ * frame documents may be in a different process from the main document.
  *
- *   - Content process for the tab
- *     - Frame content processes for child documents in different origins
- *     - Worker processes for workers that affect the tab
- *     - Add-on processes for add-ons that affect the tab
+ * When accessing the entire browser via the Browser Toolbox, we have the following
+ * resources:
  *
- * Some of these resources may be remote from the current process.  For example, with Site
- * Isolation, child documents may be in a different process from the main document.
+ *   - Browser windows
+ *     - <each may have any of the resources shown above for a main document>
+ *     - Browser tabs
+ *       - Frame scripts [c]
+ *       - Main document [c]
+ *         - <each may have any of the resources shown above for a main document>
+ *   - Add-ons
+ *     - UI documents [c]
+ *     - Background document [c]
+ *     - DevTools document [c]
+ *   - Process scripts [c]
+ *   - Sandboxes
+ *   - JSMs
+ *   - Chrome workers [t]
+ *   - Hidden window (from `Services.appShell.hiddenDOMWindow`)
+ *   - Windowless browsers (from `Services.appShell.createWindowlessBrowser()`)
  *
- * Using this mechanism, you can find the existing resources for the active context and
- * listen to be alerted when the set for that resource type changes.  Resources support
- * navigating up and down the tree: from a script, you can find the document that contains
- * it; from a document, you can find the child documents.
+ * Using this discovery mechanism, you can find the existing resources for the active
+ * target and listen to be alerted when the set for that resource type changes. Resources
+ * support navigating up and down the tree: from a script, you can find the document that
+ * contains it; from a document, you can find the child documents.
  *
  * Everything is found lazily; we only track things of a certain type when have a client
  * who cares about that type.
+ *
+ * [p]: parent process
+ * [t]: separate thread
+ * [c]: separate content process
  */
 const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
 
