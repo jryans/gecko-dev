@@ -202,8 +202,8 @@ WebConsoleConnectionProxy.prototype = {
 
     if (this.target.form.resourcesActor && this.target.chrome && !this.target.isAddon) {
       // console.log("Attach resources");
-      const front = new ResourcesFront(this.client, this.target.form);
-      const { targets } = await front.find("Frame");
+      const resources = new ResourcesFront(this.client, this.target.form);
+      const { targets } = await resources.frames.find();
       // console.log(targets);
       for (const target of targets) {
         console.log(`Adding child console connection proxy for ${target.url}`);
