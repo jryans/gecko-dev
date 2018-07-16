@@ -6,5 +6,6 @@
 
 DevToolsModules(
     'frame.js',
+    'process.js',
     'resources.js',
 )

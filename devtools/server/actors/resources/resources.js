@@ -11,6 +11,7 @@ loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 
 const Scanners = {};
 loader.lazyRequireGetter(Scanners, "FrameScanner", "devtools/server/actors/resources/frame", true);
+loader.lazyRequireGetter(Scanners, "ProcessScanner", "devtools/server/actors/resources/process", true);
 
 /**
  * A general resource discovery mechanism for all resources related to the current

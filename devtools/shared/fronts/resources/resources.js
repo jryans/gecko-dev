@@ -72,6 +72,10 @@ const ResourcesFront = FrontClassWithSpec(resourcesSpec, {
   get frames() {
     return this.getOrCreateGroup("Frame");
   },
+
+  get processes() {
+    return this.getOrCreateGroup("Process");
+  },
 });
 
 exports.ResourcesFront = ResourcesFront;
