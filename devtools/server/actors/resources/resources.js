@@ -106,7 +106,13 @@ const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
     }
     const Scanner = Scanners[`${type}Scanner`];
     assert(Scanner, `Unexpected resource type: ${type}`);
-    scanner = new Scanner(this.conn, this.context);
+    scanner = new Scanner({
+      conn: this.conn,
+      context: this.context,
+      emit: (eventType, ...args) => {
+        this.emit(eventType, type, ...args);
+      },
+    });
     this.scanners.set(type, scanner);
     return scanner;
   },
@@ -116,7 +122,15 @@ const ResourcesActor = protocol.ActorClassWithSpec(resourcesSpec, {
     return scanner.find({ includeRemote: this.includeRemote });
   },
 
-  listen(type) { },
+  listen(type) {
+    const scanner = this.getOrCreateScanner(type);
+    scanner.listen();
+  },
+
+  unlisten(type) {
+    const scanner = this.getOrCreateScanner(type);
+    scanner.unlisten();
+  },
 
 });
 

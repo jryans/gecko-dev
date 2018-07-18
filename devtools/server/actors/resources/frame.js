@@ -10,7 +10,7 @@ loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 
 class FrameScanner {
-  constructor(conn, context) {
+  constructor({ conn, context }) {
     this.conn = conn;
     this.context = context;
   }

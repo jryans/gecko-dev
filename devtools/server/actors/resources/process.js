@@ -12,9 +12,10 @@ loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 const PROCESS_SCRIPT = "data:text/javascript,sendAsyncMessage('debug:new-process');";
 
 class ProcessScanner {
-  constructor(conn, context) {
+  constructor({ conn, context, emit }) {
     this.conn = conn;
     this.context = context;
+    this.emit = emit;
     this.knownProcessMessageManagers = new Set();
   }
 
@@ -22,6 +23,7 @@ class ProcessScanner {
     this.unlisten();
     this.conn = null;
     this.context = null;
+    this.emit = null;
     this.knownProcessMessageManagers = null;
   }
 

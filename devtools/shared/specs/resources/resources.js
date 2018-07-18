@@ -8,6 +8,17 @@ const { Arg, RetVal, generateActorSpec } = require("devtools/shared/protocol");
 const resourcesSpec = generateActorSpec({
   typeName: "resources",
 
+  events: {
+    added: {
+      kind: Arg(0, "string"),
+      item: Arg(1, "json"),
+    },
+    removed: {
+      kind: Arg(0, "string"),
+      item: Arg(1, "json"),
+    },
+  },
+
   methods: {
     find: {
       request: {
@@ -17,7 +28,16 @@ const resourcesSpec = generateActorSpec({
         frames: RetVal("array:string"),
       }
     },
-    listen: {},
+    listen: {
+      request: {
+        kind: Arg(0, "string"),
+      },
+    },
+    unlisten: {
+      request: {
+        kind: Arg(0, "string"),
+      },
+    },
   }
 });
 

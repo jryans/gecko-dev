@@ -4,14 +4,17 @@
 
 "use strict";
 
+const EventEmitter = require("devtools/shared/event-emitter");
+
 loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
 
 /**
  * Provides the resources API for a single type of item, such as frames, workers,
  * processes, etc.
  */
-class ResourceGroup {
+class ResourceGroup extends EventEmitter {
   constructor(type, front) {
+    super();
     this.type = type;
     this.front = front;
   }
@@ -43,7 +46,17 @@ class ResourceGroup {
     };
   }
 
-  // listen(type) { },
+  // TODO(jryans): Rename these to on / off instead?  I wasn't sure if it's useful to use
+  // a different name since these end up send messages via RDP.
+  listen(eventType, handler) {
+    this.front.listen(this.type);
+    this.on(eventType, handler);
+  }
+
+  // TODO(jryans): Tell the server to unlisten when all client handlers removed.
+  unlisten(eventType, handler) {
+    this.off(eventType, handler);
+  }
 
   createTarget(form) {
     const client = this.front.conn;

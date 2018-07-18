@@ -7,6 +7,7 @@
 const { Front, FrontClassWithSpec } = require("devtools/shared/protocol");
 const { resourcesSpec } = require("devtools/shared/specs/resources/resources");
 
+loader.lazyRequireGetter(this, "assert", "devtools/shared/DevToolsUtils", true);
 loader.lazyRequireGetter(this, "ResourceGroup", "devtools/shared/fronts/resources/group", true);
 
 /**
@@ -50,6 +51,8 @@ const ResourcesFront = FrontClassWithSpec(resourcesSpec, {
     this.actorID = form.resourcesActor;
     this.manage(this);
     this.resourceGroupsByType = new Map();
+    this.on("added", this.onAdded);
+    this.on("removed", this.onRemoved);
   },
 
   destroy() {
@@ -57,6 +60,7 @@ const ResourcesFront = FrontClassWithSpec(resourcesSpec, {
       group.destroy();
     }
     this.resourceGroupsByType = null;
+    this.off();
     Front.prototype.destroy.call(this);
   },
 
@@ -75,6 +79,18 @@ const ResourcesFront = FrontClassWithSpec(resourcesSpec, {
 
   get processes() {
     return this.getOrCreateGroup("Process");
+  },
+
+  onAdded(type, ...args) {
+    const group = this.getOrCreateGroup(type);
+    assert(group, `Unexpected resource type: ${type}`);
+    group.emit("added", ...args);
+  },
+
+  onRemoved(type, ...args) {
+    const group = this.getOrCreateGroup(type);
+    assert(group, `Unexpected resource type: ${type}`);
+    group.emit("removed", ...args);
   },
 });
 
