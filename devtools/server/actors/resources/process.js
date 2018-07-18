@@ -15,7 +15,7 @@ class ProcessScanner {
   constructor(conn, context) {
     this.conn = conn;
     this.context = context;
-    this.knownProcessMessageManagers = new WeakSet();
+    this.knownProcessMessageManagers = new Set();
   }
 
   destroy() {
@@ -87,7 +87,7 @@ class ProcessScanner {
     // TODO(jryans): This assumes processes are only appended to the child list.
     // It would be much better to expose the OS PID to uniquely identify each
     // process clearly.
-    const process = await this._connectToProcess(this.knownProcessMessageManagers.size());
+    const process = await this._connectToProcess(this.knownProcessMessageManagers.size);
     this.emit("added", process);
   }
 }
